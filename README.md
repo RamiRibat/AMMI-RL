@@ -1,6 +1,7 @@
 # AMMI-RL
 ## AMMI, Deep RL, Fall 2021: RL Implementation for Continuous Control Tasks
 
+[Project report](https://drive.google.com/file/d/1_0ocjyF_3m9hPVpZjwmDEuT3LTi8_Vs5/view?usp=sharing)
 
 ## Course and Project details
 This Deep RL course was taught at **The African Master's in Machine Intelligence** [AMMI](https://aimsammi.org/) in Fall 2021. It was instructed by researchers at [DeepMind](https://deepmind.com/): *[Bilal Piot](https://scholar.google.com/citations?user=fqxNUREAAAAJ)*, *[Corentin Tallec](https://scholar.google.com/citations?user=OPKX4GgLCxIC)* and *[Florian Strub](https://scholar.google.com/citations?user=zxO5kccAAAAJ)*. This project is the coursework of Deep RL where we **Catalyst Agents** team trying to re-implement RL algorithm(s) for continuous control tasks. We chose three types of environments: easy, medium, and hard to run the algorithm(s). The course project meant to submit only one algorithm, but we plan to continue working on this repo making it an open project by this team of student from AMMI. This is why we're trying to make a modular repo to ease the re-implementation of future algorithms.
