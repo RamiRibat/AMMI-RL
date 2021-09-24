@@ -339,7 +339,3 @@ class SAC(MFRL):
             for p, p_targ in zip(self.actor_critic.critic.parameters(),
                                  self.actor_critic.critic_target.parameters()):
                 p_targ.data.copy_(tau * p.data + (1 - tau) * p_targ.data)
-
-
-# Report:
-#   Explain the problem, algorithm, do anaysis, and show results.
