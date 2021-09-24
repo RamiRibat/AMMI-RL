@@ -1,4 +1,4 @@
-name: rl-ammi
+name: ammi-rl
 channels:
   - conda-forge
   - defaults
