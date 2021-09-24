@@ -1,0 +1,14 @@
+name: rl-ammi
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip=21.2.4
+  - python=3.8.12
+  - pip:
+    - gym==0.20.0
+    - matplotlib==3.4.3
+    - mujoco-py==2.0.2.13
+    - numpy==1.21.2
+    - torch==1.9.0
+    - wandb==0.12.2

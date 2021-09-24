@@ -1,0 +1,13 @@
+.DS_Store
+rl.egg-info/
+__pycache__/
+*.pyc
+
+
+rl/agents
+rl/saved_agents
+rl/gifs
+rl/video
+rl/wandb
+rl/jpgs/
+rl/MUJOCO_LOG.TXT
