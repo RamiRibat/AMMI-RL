@@ -23,7 +23,7 @@ Algorithms we are re-implementing/plannning to re-implement:
 ### Installation
 #### Ubuntu 20.04
 
-Move into `AMMI-RL//` directory, and then run the following:
+Move into `AMMI-RL/` directory, and then run the following:
 
 ```
 conda create -n ammi-rl python=3.8
@@ -47,7 +47,7 @@ unset LD_PRELOAD
 
 #### MacOS
 
-Move into `AMMI-RL//` directory, and then run the following:
+Move into `AMMI-RL/` directory, and then run the following:
 
 ```
 conda create -n ammi-rl python=3.8
