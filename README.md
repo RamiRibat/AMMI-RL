@@ -1,4 +1,4 @@
-# RL-AMMI
+# AMMI-RL
 ## AMMI, Deep RL, Fall 2021: RL Implementation for Continuous Control Tasks
 
 
@@ -23,10 +23,10 @@ Algorithms we are re-implementing/plannning to re-implement:
 ### Installation
 #### Ubuntu 20.04
 
-Move into `rl-ammi` directory, and then run the following:
+Move into `AMMI-RL//` directory, and then run the following:
 
 ```
-conda create -n rl-ammi python=3.8
+conda create -n ammi-rl python=3.8
 
 pip install -e .
 
@@ -47,10 +47,10 @@ unset LD_PRELOAD
 
 #### MacOS
 
-Move into `rl-ammi` directory, and then run the following:
+Move into `AMMI-RL//` directory, and then run the following:
 
 ```
-conda create -n rl-ammi python=3.8
+conda create -n ammi-rl python=3.8
 
 pip install -e .
 
@@ -75,7 +75,7 @@ unset LD_PRELOAD
 
 ### Run an experiment
 
-Move into `rl-ammi/` directory, and then:
+Move into `AMMI-RL/` directory, and then:
 
 ```
 python experiment.py -cfg <cfg_file-.py> -seed <int>
