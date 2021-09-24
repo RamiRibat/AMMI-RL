@@ -19,6 +19,6 @@ setup(
     ],
     description="RL-AMMI tools for combining deep RL algorithms.",
     authors="AAMI: MohamedElfatih Salah, Rami Ahmed*, Ruba Mutasim, Wafaa Mohammed",
-    url="https://github.com/RamiSketcher/RL-AMMI",
+    url="https://github.com/RamiSketcher/AMMI-RL",
     author_email="*rahmed@aimsammi.com"
 )
