@@ -107,22 +107,22 @@ In thoe following we evaluate our code on the following environments. For some r
 Tasks we are evaluating:
 1. HalfCheetah
 
-<img src="https://drive.google.com/uc?export=view&id=1CmX5rYxnqb_8l060AAiMsqalNTM1cYKv" style="width: 200px; max-width: 100%; height: 200" title="Click to enlarge picture" /> <img src="https://drive.google.com/uc?export=view&id=1l6YA9hhnQRTReLh98McIXVIOkXD5U9uv" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
+<img src="https://drive.google.com/uc?export=view&id=1l6YA9hhnQRTReLh98McIXVIOkXD5U9uv" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
   
   
 2. Ant
 
-<img src="https://drive.google.com/uc?export=view&id=1adpkWOCpMM7kCqEN46Se2vkL6j5wNAUK" style="width: 200px; max-width: 100%; height: 200" title="Click to enlarge picture" /> <img src="https://drive.google.com/uc?export=view&id=1mKwzMDDtv8Dw_1tfwrvmgBtL_dl_1MQ5" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
+<img src="https://drive.google.com/uc?export=view&id=1mKwzMDDtv8Dw_1tfwrvmgBtL_dl_1MQ5" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
 
 
 3. Walker2d
 
-<img src="https://drive.google.com/uc?export=view&id=19AMBFZAAPbIgjudiU4KMC1pgQreXLSY8" style="width: 200px; max-width: 100%; height: 200" title="Click to enlarge picture" /> <img src="https://drive.google.com/uc?export=view&id=1Nm8bbqRZXxLopnsepq66wqmmcPLbL36K" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
+<img src="https://drive.google.com/uc?export=view&id=1Nm8bbqRZXxLopnsepq66wqmmcPLbL36K" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
 
 
 4. Hooper
 
-<img src="https://drive.google.com/uc?export=view&id=1UmHXCfbgaDbDojV5y9OXc6we42hbFBVN" style="width: 200px; max-width: 100%; height: 200" title="Click to enlarge picture" /> <img src="https://drive.google.com/uc?export=view&id=17zdbI5zgzi-pdmrTGXmTNMWYhgQ02-7N" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
+<img src="https://drive.google.com/uc?export=view&id=17zdbI5zgzi-pdmrTGXmTNMWYhgQ02-7N" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
 
 
 ### Manipulation
@@ -130,12 +130,12 @@ Tasks we are evaluating:
 
 1. DClaw Valve Turning
 
-<img src="https://drive.google.com/uc?export=view&id=1x0sM4pLcUFJU0EAcCuLH_mYk_Pht1wFs" style="width: 200px; max-width: 100%; height: 200" title="Click to enlarge picture" /> <img src="https://drive.google.com/uc?export=view&id=1ux1nMubQZxmmI90UTfdJeIv_KZNrVNJt" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
+<img src="https://drive.google.com/uc?export=view&id=1ux1nMubQZxmmI90UTfdJeIv_KZNrVNJt" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
 
 
-3. ShadowHand Cube Re-orientation
+2. ShadowHand Cube Re-orientation
 
-<img src="https://drive.google.com/uc?export=view&id=13m5OHmweUq9MUkfCPlOmc6TvnUZvFRg4" style="width: 200px; max-width: 100%; height: 200" title="Click to enlarge picture" /> <img src="https://drive.google.com/uc?export=view&id=1FWFViyX35-OXwEEjWywzaFu6OUSBEJSy" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
+<img src="https://drive.google.com/uc?export=view&id=1FWFViyX35-OXwEEjWywzaFu6OUSBEJSy" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
 
 
 ## Catalyst Agents Team, Group 2
