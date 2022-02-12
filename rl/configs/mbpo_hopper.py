@@ -3,12 +3,15 @@
 configurations = {
 
     'environment': {
-        # 'universe': 'MuJoCo/Bullet',
-        'name': 'Hopper-v2',
-        'horizon': 1e3,
-    },
+            'name': 'Hopper-v2',
+            'type': 'gym-mujoco',
+            'state_space': 'continuous',
+            'action_space': 'continuous',
+            'horizon': 1e3,
+        },
 
     'algorithm': {
+        'name': 'MBPO',
         'learning': {
             'epochs': 125, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
@@ -120,12 +123,13 @@ configurations = {
         'device': "auto",
     },
 
+
     'experiment': {
-        'name': 'seed1',
-        'seed': 1,
         'verbose': 0,
-        'device': "cuda:0",
-        'tensorboard_log': None,
-        'logdir': '~/AI/RL/myGitHub/FUSION/Gym/'
-    },
+        'device': "cpu",
+        # 'device': "cuda:0",
+        # 'WandB': True,
+        'WandB': False,
+        'print_logs': True,
+    }
 }

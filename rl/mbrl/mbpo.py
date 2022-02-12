@@ -41,7 +41,7 @@ class MBPO(MBRL, SAC):
     def _seed_fake_world(self):
         pass
 
-    
+
     def learn(self):
         pass
 
@@ -56,3 +56,43 @@ class MBPO(MBRL, SAC):
 
     def sac_batch(self):
         pass
+
+
+
+
+
+
+
+
+
+def main(exp_prefix, seed, configs):
+
+	print('Start an MBPO experiment...')
+	print('\n')
+
+    # agent = SAC(exp_prefix, configs, seed)
+    #
+    # agent.learn()
+
+	print('\n')
+	print('...End the MBPO experiment')
+
+if __name__ == "__main__":
+
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-exp_prefix', type=str)
+    parser.add_argument('-cfg', type=str)
+    parser.add_argument('-seed', type=str)
+
+    args = parser.parse_args()
+
+    exp_prefix = args.exp_prefix
+    sys.path.append("../../configs")
+    config = importlib.import_module(args.cfg)
+    seed = int(args.seed)
+    print('seed: ', seed)
+
+    main(exp_prefix, config, seed)
