@@ -40,7 +40,17 @@ def main(configs, seed):
             config=configs
         )
 
+    cwd = os.getcwd()
+
+    # algs_path = '/home/rami/AI/RL/myGitHub/FUSION/fusion/algorithms/'
+    # for root, dirs, files in os.walk(algs_path):
+    #     for f in files:
+    #         if f == (args.alg + '.py'):
+    #             # alg = f
+    #             alg = os.path.join(root, f)
+
     agent = SAC(exp_prefix, configs, seed)
+
     agent.learn()
 
     # T.save(agent.actor_critic.actor,
