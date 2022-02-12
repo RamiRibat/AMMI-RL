@@ -1,7 +1,7 @@
 
 
 configurations = {
-    
+
     'environment': {
         # 'universe': 'MuJoCo/Bullet',
         'name': 'Hopper-v2',
@@ -12,19 +12,19 @@ configurations = {
         'learning': {
             'epochs': 125, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
-            'init_epochs': 5, # Ni epochs
+            'init_epochs': 5, # Ni epochs = 5000 exploration steps
             'expl_epochs': 10, # Nx epochs
             'real_epochs': 0, # Nr epochs
 
             'env_steps' : 1, # E: interact E times then train
             'Mgrad_steps': 50, # G: ac grad
-            'SACgrad_steps': 20, # ACG: ac grad
-            
+            'SACgrad_steps': 20, # ACG: ac grad, 40
+
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
             'target_update_interval': 1,
-                        
-                        
+
+
             'n_episodes_rollout': -1,
             # 'net_arch': [64, dict(vf=[256, 256], pi=[128])], # [shared, dict(non-shared)]
 
@@ -41,23 +41,26 @@ configurations = {
             'eval_render_mode': None,
         }
     },
-    
-        
-    'model': {
+
+
+    'world_model': {
         'type': 'PE',
         'Ensemble': 7,
         'num_elites': 5,
         'Sample_type': 'Random',
+        'learn_reward': True,
         'model_train_freq': 250, # Mf
         'rollout_schedule': [20, 100, 1, 15],
         'network': {
             'net_arch': [200,200,200,200], #@#
             'init_weights': 3e-3,
             'init_biases': 0,
-            'activation': 'ReLU',
+            'activation': 'LeakyReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam", #@#
             'lr': 1e-3, #@#
+            'wd': 1e-5,
+            'wd': 1e-5,
             'batch_size': 250,
             'device': "auto",
         }
@@ -67,7 +70,7 @@ configurations = {
         'type': 'gaussianpolicy',
         'action_noise': None, # Optional
         'alpha': 0.2, # Temprature/Entropy #@#
-        'automatic_entropy': True, # trainer_kwargs
+        'automatic_entropy': False, # trainer_kwargs
         'target_entropy': "auto",
         'network': {
             'net_arch': [256,256], #@#
@@ -77,11 +80,14 @@ configurations = {
             'output_activation': 'nn.Identity',
             'optimizer': "Adam", #@#
             'lr': 3e-4, #@#
+            'wd': 1e-5,
+            'wd': 1e-5,
+            'batch_size': 256,
             'device': "auto",
         }
     },
 
-    'value': {
+    'value-functions': {
         'type': 'sofQ',
         'number': 2,
         'gamma': 0.99,
@@ -94,6 +100,8 @@ configurations = {
             'output_activation': 'nn.Identity',
             'optimizer': "Adam", #@#
             'lr': 3e-4, #@#
+            'wd': 1e-5,
+            'batch_size': 256,
             'device': "auto",
         }
     },
@@ -105,6 +113,7 @@ configurations = {
         'buffer_size': int(5e5),
         'model_buffer_size': int(1e7),
         'real_ratio': 0.05,
+        'model_val_ration': 0.2,
         'rollout_batch_size': 400,
         'model_batch_size': 256,
         'batch_size': 256,

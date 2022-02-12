@@ -19,7 +19,7 @@ configurations = {
 
             'env_steps' : 1, # E: interact E times then train
             'grad_AC_steps': 1, # ACG: ac grad
-            
+
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
             'target_update_interval': 1,
@@ -71,10 +71,11 @@ configurations = {
 
     'experiment': {
         'verbose': 0,
-        # 'device': "cpu",
-        'device': "cuda:0",
-        'WandB': True,
+        'device': "cpu",
+        # 'device': "cuda:0",
+        # 'WandB': True,
+        'WandB': False,
         'print_logs': True,
     }
-    
+
 }
