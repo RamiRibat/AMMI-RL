@@ -10,4 +10,5 @@ rl/gifs
 rl/video
 rl/wandb
 rl/jpgs/
+rl/lightning_logs
 rl/MUJOCO_LOG.TXT
