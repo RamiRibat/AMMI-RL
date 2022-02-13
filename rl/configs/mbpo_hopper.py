@@ -116,7 +116,7 @@ configurations = {
         'buffer_size': int(5e5),
         'model_buffer_size': int(1e7),
         'real_ratio': 0.05,
-        'model_val_ration': 0.2,
+        'model_val_ratio': 0.2,
         'rollout_batch_size': 400,
         'model_batch_size': 256,
         'batch_size': 256,
