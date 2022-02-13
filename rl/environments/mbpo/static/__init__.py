@@ -6,12 +6,14 @@ import pdb
 
 def import_fns(path, file, fns_name='StaticFns'):
 	full_path = os.path.join(path, file)
-	import_path = full_path.replace('/', '.')
+	import_path = 'rl.'+full_path.replace('/', '.')
+	# print('import_path: ', 'rl.'+import_path)
 	module = importlib.import_module(import_path)
+	# print('module: ', module)
 	fns = getattr(module, fns_name)
 	return fns
 
-cwd = 'rl/environments/mbpo/static'
+cwd = f'environments/mbpo/static'
 files = os.listdir(cwd)
 ## remove __init__.py
 files = filter(lambda x: '__' not in x, files)
