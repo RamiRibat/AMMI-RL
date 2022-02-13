@@ -3,6 +3,7 @@ from gym.spaces import Box
 from gym.wrappers import RecordVideo
 
 from rl.data.buffer import ReplayBuffer
+from rl.data.buffer import DataBuffer
 from rl.data.dataset import RLDataModule
 from rl.world_models.world_model import WorldModel
 
@@ -12,7 +13,7 @@ class MBRL:
     """
     def __init__(self, exp_prefix, configs, seed):
         # super(MFRL, self).__init__(configs, seed)
-        # print('Initialize MFRL!')
+        # print('init MBRL!')
         self.exp_prefix = exp_prefix
         self.configs = configs
         self.seed = seed
@@ -21,7 +22,7 @@ class MBRL:
     def _build(self):
         self._set_env()
         self._set_env_buffer()
-        self._set_rl_dataset()
+        self._set_data_module()
         self._set_world_model()
 
 
@@ -31,25 +32,26 @@ class MBRL:
 
         # Inintialize Learning environment
         self.learn_env = gym.make(name)
-        self._seed_env(self.learn_env, self.seed)
+        self._seed_env(self.learn_env)
         assert isinstance (self.learn_env.action_space, Box), "Works only with continuous action space"
 
         if evaluate:
             # Ininialize Evaluation environment
             self.eval_env = gym.make(name)
-            # if self.configs['experiment']['capture_video']:
-            #     video_dir = self.configs['experiment']['video_dir'] + '/' + self.exp_prefix
-            #     self.eval_env = RecordVideo(self.eval_env, video_dir, name_prefix='evaluation')
-            #     self._seed_env(self.eval_env, self.seed)
+            self._seed_env(self.eval_env)
+        else:
+            self.eval_env = None
 
         # Spaces dimensions
         self.obs_dim = self.learn_env.observation_space.shape[0]
         self.act_dim = self.learn_env.action_space.shape[0]
         self.act_up_lim = self.learn_env.action_space.high
         self.act_low_lim = self.learn_env.action_space.low
+        self.rew_dim = 1
 
 
-    def _seed_env(self, env, seed):
+    def _seed_env(self, env):
+        seed = self.seed
         env.seed(seed)
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
@@ -58,26 +60,24 @@ class MBRL:
     def _set_env_buffer(self):
         max_size = self.configs['data']['buffer_size']
         device = self.configs['experiment']['device']
-        self.replay_buffer = ReplayBuffer(self.obs_dim, self.act_dim,
-                                          max_size, self.seed, device)
+        # self.env_buffer = ReplayBuffer(self.obs_dim, self.act_dim,
+        #                                   max_size, self.seed, device)
+        self.env_buffer = DataBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
-    def _set_rl_data_module(self):
-        self.rl_data_module = RLDataModule(self.replay_buffer, self.configs['data'])
+    def _set_data_module(self):
+        self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
 
 
     def _set_world_model(self):
-        self.world_model = WorldModel(self.obs_dim,
-                                        self.act_dim,
-                                        self.rew_dim,
-                                        self.config)
+        self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed)
 
 
     def reallocate_model_buffer(self, batch_size_ro, K, NT, model_train_frequency):
         # print('Rellocate Model Buffer..')
 
-        seed = self.config['Experiment']['seed']
-        device = self.config['Experiment']['device']
-        model_retain_epochs = self.config['Model']['model_retain_epochs']
+        seed = self.seed
+        device = self.configs['experiment']['device']
+        model_retain_epochs = self.configs['world_model']['model_retain_epochs']
 
         rollouts_per_epoch = batch_size_ro * NT / model_train_frequency
         model_steps_per_epoch = int(K * rollouts_per_epoch)
@@ -103,7 +103,7 @@ class MBRL:
         	assert self.model_buffer.size == new_model_buffer.size
         	# # Delete old data buffer and free GPU memory
         	# del self.model_buffer
-        	# th.cuda.empty_cache()
+        	# Tcuda.empty_cache()
         	self.model_buffer = new_model_buffer
 
 
@@ -125,7 +125,7 @@ class MBRL:
                 o_next, r, d, info = self.learn_env.step(a)
                 d = True if el == max_el else d # Ignore artificial termination
 
-                self.replay_buffer.store_transition(o, a, r, o_next, d)
+                self.env_buffer.store_transition(o, a, r, o_next, d)
 
                 o = o_next
                 Z += r
@@ -151,7 +151,7 @@ class MBRL:
         o_next, r, d, _ = self.learn_env.step(a)
         d = False if el == max_el else d # Ignore artificial termination
 
-        self.replay_buffer.store_transition(o, a, r, o_next, d)
+        self.env_buffer.store_transition(o, a, r, o_next, d)
 
         o = o_next
         Z += r

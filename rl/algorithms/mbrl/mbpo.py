@@ -36,7 +36,7 @@ class MBPO(MBRL, SAC):
     """
     def __init__(self, exp_prefix, configs, seed) -> None:
         super(MBPO, self).__init__(exp_prefix, configs, seed)
-        print('Initialize MBPO Algorithm!')
+        # print('init MBPO Algorithm!')
         self.configs = configs
         self.seed = seed
         self._build()
@@ -53,13 +53,13 @@ class MBPO(MBRL, SAC):
 
     ## FakeEnv
     def _set_fake_world(self):
-        env_name = self.configs['Environment']['name']
-        device = self.configs['Experiment']['device']
-        if self.configs['Environment']['name'][:4] == 'pddm':
+        env_name = self.configs['environment']['name']
+        device = self.configs['experiment']['device']
+        if self.configs['environment']['name'][:4] == 'pddm':
         	static_fns = None
         else:
         	static_fns = mbpo_static[env_name[:-3].lower()]
-        self.fake_env = FakeEnv(self.dyn_models, static_fns, env_name, self.train_env, self.config)
+        self.fake_world = FakeWorld(self.world_model, static_fns, env_name, self.learn_env, self.configs)
 
 
 
@@ -68,19 +68,19 @@ class MBPO(MBRL, SAC):
         N = self.configs['algorithm']['learning']['epochs']
         NT = self.configs['algorithm']['learning']['epoch_steps']
         Ni = self.configs['algorithm']['learning']['init_epochs']
-        # Nx = self.configs['algorithm']['learning']['expl_epochs']
+        Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         E = self.configs['algorithm']['learning']['env_steps']
         G_sac = self.configs['algorithm']['learning']['grad_SAC_steps']
 
         # batch_size = self.configs['data']['batch_size']
 
-        model_train_frequency = self.configs['Model']['model_train_freq']
-        batch_size_m = self.configs['Model']['Network']['batch_size'] # bs_m
-        mEpochs = self.configs['Model']['Network']['mEpochs']
-        real_ratio = self.configs['Data']['real_ratio'] # rr
-        batch_size = self.configs['Data']['batch_size'] # bs
-        batch_size_ro = self.configs['Data']['rollout_batch_size'] # bs_ro
+        model_train_frequency = self.configs['world_model']['model_train_freq']
+        batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
+        wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
+        real_ratio = self.configs['data']['real_ratio'] # rr
+        batch_size = self.configs['data']['batch_size'] # bs
+        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
 
         o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
@@ -94,11 +94,11 @@ class MBPO(MBRL, SAC):
         start_time_real = time.time()
         for n in range(1, N+1):
             if self.configs['experiment']['print_logs']:
-                print('=' * 80)
+                print('=' * 50)
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]')
                 elif n > Ni:
-                    print(f'\n[ Epoch {n}   Inintial Exploration + Learning ]')
+                    print(f'\n[ Epoch {n}   Exploration + Learning ]')
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]')
 
@@ -115,10 +115,11 @@ class MBPO(MBRL, SAC):
                     if nt % model_train_frequency == 0:
                         #03. Train model pθ on Denv via maximum likelihood
                         # PyTorch Lightning Model Training
-                        print(f'\n\n[ Epoch {n}   WM Training | mEpochs = {mEpochs}]')
+                        print(f'\n[ Epoch {n}   WM Training | wm_epochs = {wm_epochs}]')
                         # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}                                             ')
-                        Jwm, mEpochs = self.fake_env.train(self.rl_data_module, model_train_frequency)
-                        JWMList.append(Jwm.item())
+                        # Jwm, mEpochs = self.fake_world.train(self.data_module)
+                        Jwm = self.fake_world.train(self.data_module)
+                        JWMList.append(Jwm)
 
                         # Update K-steps length
                         K = self.set_rollout_length(n)
@@ -178,7 +179,7 @@ class MBPO(MBRL, SAC):
                         env_name = self.configs['environment']['name']
                         alg_name = self.configs['algorithm']['name']
                         T.save(self.actor_critic.actor,
-                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
+                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pTtar')
                         lastES = np.mean(ES)
                 else:
                     if np.mean(EZ) > lastEZ:
@@ -186,7 +187,7 @@ class MBPO(MBRL, SAC):
                         env_name = self.configs['environment']['name']
                         alg_name = self.configs['algorithm']['name']
                         T.save(self.actor_critic.actor,
-                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
+                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pTtar')
                         lastEZ = np.mean(EZ)
 
             # Printing logs
@@ -205,10 +206,10 @@ class MBPO(MBRL, SAC):
 
 
     def set_rollout_length(self, n):
-        if self.configs['Model']['rollout_schedule'] == None:
+        if self.configs['world_model']['rollout_schedule'] == None:
         	K = 1
         else:
-        	min_epoch, max_epoch, min_length, max_length = self.configs['Model']['rollout_schedule']
+        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['rollout_schedule']
 
         	if n <= min_epoch:
         		K = min_length
@@ -223,7 +224,7 @@ class MBPO(MBRL, SAC):
 
     def rollout_world_model(self, batch_size_ro, K):
     	#07. Sample st uniformly from Denv
-    	device = self.configs['Experiment']['device']
+    	device = self.configs['experiment']['device']
     	batch_size = min(batch_size_ro, self.env_buffer.size)
     	print(f'[ Model Rollout ] Batch Size {batch_size}, Rollout Len {K}                ')
     	B_ro = self.env_buffer.sample_batch(batch_size)
@@ -234,17 +235,17 @@ class MBPO(MBRL, SAC):
 
     	#08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	for k in range(1, K+1):
-    		with th.no_grad():
+    		with T.no_grad():
     			A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
 
-    		# O_next, R, D, _ = self.fake_env.step(O, A) # ip:Tensor, op:Tensor
-    		O_next, R, D, _ = self.fake_env.step_np(O, A) # ip:Tensor, op:Numpy
+    		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
+    		O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
 
     		O = O.detach().cpu().numpy()
     		A = A.detach().cpu().numpy()
     		# O_next = O_next.detach().cpu().numpy()
     		# R = R.detach().cpu().numpy()
-    		# D = th.as_tensor(D, dtype=th.bool).detach().cpu().numpy()
+    		# D = T.as_tensor(D, dtype=Tbool).detach().cpu().numpy()
 
     		self.model_buffer.store_batch(O, A, R, O_next, D) # ip:Numpy
     		# print('model buff ptr: ', self.model_buffer.ptr)
@@ -256,7 +257,7 @@ class MBPO(MBRL, SAC):
     		nonD = np.repeat(nonD, len(O[0,:]), axis=1).reshape(-1, len(O[0,:]))
 
     		O = O_next[nonD].reshape(-1,len(O[0,:]))
-    		O = th.as_tensor(O, dtype=th.float32).to(device)
+    		O = T.as_tensor(O, dtype=T.float32).to(device)
 
 
     def sac_batch(self, real_ratio, batch_size):
@@ -267,7 +268,7 @@ class MBPO(MBRL, SAC):
     	if batch_size_img > 0:
     		B_img = self.model_buffer.sample_batch(batch_size_img)
     		keys = B_real.keys()
-    		B = {k: th.cat((B_real[k], B_img[k]), dim=0) for k in keys}
+    		B = {k: Tcat((B_real[k], B_img[k]), dim=0) for k in keys}
     	else:
     		B = B_real
     	return B
@@ -286,10 +287,12 @@ def main(exp_prefix, config, seed):
     print('\n')
 
     configs = config.configurations
+    if seed:
+        random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
     agent = MBPO(exp_prefix, configs, seed)
 
-    # agent.learn()
+    agent.learn()
 
     print('\n')
     print('... End the MBPO experiment')

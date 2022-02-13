@@ -2,7 +2,7 @@ import gym
 from gym.spaces import Box
 
 import rl.environments
-from rl.buffer import ReplayBuffer
+from rl.data.buffer import ReplayBuffer
 
 
 class MFRL:
@@ -11,7 +11,7 @@ class MFRL:
     """
     def __init__(self, exp_prefix, configs, seed) -> None:
         # super(MFRL, self).__init__(configs, seed)
-        # print('Initialize MFRL!')
+        # print('init MFRL!')
         self.exp_prefix = exp_prefix
         self.configs = configs
         self.seed = seed
