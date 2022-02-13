@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from rl.algorithms.mbrl.mbrl import MBRL
 from rl.algorithms.mfrl.sac import SAC
 from rl.world_models.fake_world import FakeWorld
-# import rl.environments.mbpo.static as mbpo_static
+import rl.environments.mbpo.static as mbpo_static
 
 
 
@@ -117,7 +117,7 @@ class MBPO(MBRL, SAC):
                         # PyTorch Lightning Model Training
                         print(f'\n\n[ Epoch {n}   WM Training | mEpochs = {mEpochs}]')
                         # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}                                             ')
-                        Jwm, mEpochs = self.fake_env.train(self.env_buffer, model_train_frequency)
+                        Jwm, mEpochs = self.fake_env.train(self.rl_data_module, model_train_frequency)
                         JWMList.append(Jwm.item())
 
                         # Update K-steps length

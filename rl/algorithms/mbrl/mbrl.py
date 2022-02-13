@@ -2,7 +2,8 @@ import gym
 from gym.spaces import Box
 from gym.wrappers import RecordVideo
 
-from rl.buffer import ReplayBuffer
+from rl.data.buffer import ReplayBuffer
+from rl.data.dataset import RLDataModule
 from rl.world_models.world_model import WorldModel
 
 class MBRL:
@@ -20,6 +21,7 @@ class MBRL:
     def _build(self):
         self._set_env()
         self._set_env_buffer()
+        self._set_rl_dataset()
         self._set_world_model()
 
 
@@ -58,6 +60,9 @@ class MBRL:
         device = self.configs['experiment']['device']
         self.replay_buffer = ReplayBuffer(self.obs_dim, self.act_dim,
                                           max_size, self.seed, device)
+
+    def _set_rl_data_module(self):
+        self.rl_data_module = RLDataModule(self.replay_buffer, self.configs['data'])
 
 
     def _set_world_model(self):
