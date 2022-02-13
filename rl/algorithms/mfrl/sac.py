@@ -12,8 +12,8 @@ import torch as T
 import torch.nn.functional as F
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.networks.policy import StochasticPolicy
-from rl.networks.q_function import SoftQFunction
+from rl.control.policy import StochasticPolicy
+from rl.value_functions.q_function import SoftQFunction
 
 
 
