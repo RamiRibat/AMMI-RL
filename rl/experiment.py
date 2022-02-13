@@ -46,7 +46,7 @@ def main(cfg, seed):
 
     cwd = os.getcwd()
     alg_dir = cwd + f'/algorithms/'
-    print('alg_dir: ', alg_dir)
+    # print('alg_dir: ', alg_dir)
     # print('alg name', alg_name)
 
 
@@ -54,7 +54,7 @@ def main(cfg, seed):
         for f in files:
             if f == (alg_name.lower() + '.py'):
                 alg = os.path.join(root, f)
-    print('alg', alg)
+    # print('alg', alg)
 
     subprocess.run(['python', alg, '-exp_prefix', exp_prefix, '-cfg', cfg, '-seed', str(seed)])
 

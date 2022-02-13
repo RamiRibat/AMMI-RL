@@ -1,3 +1,9 @@
+import os, subprocess, sys
+import argparse
+import importlib
+import datetime
+import random
+
 import time
 import wandb
 
@@ -5,7 +11,7 @@ import numpy as np
 import torch as T
 import torch.nn.functional as F
 
-from rl.mfrl.mfrl_ import MFRL
+from rl.algorithms.mfrl.mfrl import MFRL
 from rl.networks.policy import StochasticPolicy
 from rl.networks.q_function import SoftQFunction
 
@@ -178,7 +184,7 @@ class SAC(MFRL):
                             AlphaList.append(self.alpha)
 
                 nt += E
-           
+
             logs['time/training                  '] = time.time() - learn_start_real
             logs['training/objectives/sac/Jq     '] = np.mean(JQList)
             logs['training/objectives/sac/Jpi    '] = np.mean(JPiList)
@@ -339,3 +345,39 @@ class SAC(MFRL):
             for p, p_targ in zip(self.actor_critic.critic.parameters(),
                                  self.actor_critic.critic_target.parameters()):
                 p_targ.data.copy_(tau * p.data + (1 - tau) * p_targ.data)
+
+
+
+
+
+
+def main(exp_prefix, seed, configs):
+
+	print('Start an SAC experiment...')
+	print('\n')
+
+    # agent = SAC(exp_prefix, configs, seed)
+    #
+    # agent.learn()
+
+	print('\n')
+	print('... End the SAC experiment')
+
+if __name__ == "__main__":
+
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-exp_prefix', type=str)
+    parser.add_argument('-cfg', type=str)
+    parser.add_argument('-seed', type=str)
+
+    args = parser.parse_args()
+
+    exp_prefix = args.exp_prefix
+    sys.path.append(f"{os.getcwd()}/configs")
+    config = importlib.import_module(args.cfg)
+    seed = int(args.seed)
+
+    main(exp_prefix, config, seed)

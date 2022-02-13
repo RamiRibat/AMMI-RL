@@ -2,8 +2,8 @@ import gym
 from gym.spaces import Box
 from gym.wrappers import RecordVideo
 
-from buffer import ReplayBuffer
-from world_models.world_model import WorldModel
+from rl.buffer import ReplayBuffer
+# from world_models.world_model import WorldModel
 
 class MBRL:
     """
@@ -36,7 +36,7 @@ class MBRL:
             self.eval_env = gym.make(name)
             if self.configs['experiment']['capture_video']:
                 video_dir = self.configs['experiment']['video_dir'] + '/' + self.exp_prefix
-                self.eval_env = RecordVideo(self.eval_env, video_dir, name_prefix='evaluation')  
+                self.eval_env = RecordVideo(self.eval_env, video_dir, name_prefix='evaluation')
                 self._seed_env(self.eval_env, self.seed)
 
         # Spaces dimensions
@@ -58,7 +58,7 @@ class MBRL:
         self.replay_buffer = ReplayBuffer(self.obs_dim, self.act_dim,
                                           max_size, self.seed, device)
 
-    
+
     def _set_world_model(self):
         self.world_model = WorldModel()
         pass
@@ -76,7 +76,7 @@ class MBRL:
         o, Z, el, t = env.reset(), 0, 0, 0
 
         if Ni < 1: return o, Z, el, t
-        
+
         print(f'[ Initial exploaration ] Starting')
         for ni in range(1, Ni+1):
             print(f'[ Initial exploaration ] Epoch {ni}')
@@ -93,10 +93,10 @@ class MBRL:
                 Z += r
                 el +=1
                 t +=1
-                
+
                 if d or (el == max_el):
                     o, Z, el = env.reset(), 0, 0
-                
+
                 nt += 1
 
         return o, Z, el, t
@@ -120,7 +120,7 @@ class MBRL:
         Z += r
         el +=1
         t +=1
-        
+
         if d or (el == max_el):
             o, Z, el = env.reset(), 0, 0
 
@@ -136,7 +136,7 @@ class MBRL:
             max_el = self.configs['environment']['horizon']
             EZ = 0 # Evaluation episodic return
             # ES = 0 # Evaluation episodic score
-            EL = 0 # Evaluation episodic 
+            EL = 0 # Evaluation episodic
 
             for ee in range(1, EE+1):
                 o, d, Z, S, el = env.reset(), False, 0, 0, 0
@@ -156,4 +156,3 @@ class MBRL:
             AvgES = 0 # ES / EE
             AvgEL = EL / EE
         return AvgEZ, AvgES, AvgEL
-

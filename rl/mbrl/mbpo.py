@@ -5,8 +5,8 @@ import numpy as np
 import torch as T
 import torch.nn.functional as F
 
-from mbrl.mbrl import MBRL
-from mfrl.sac import SAC
+from rl.mbrl.mbrl import MBRL
+from rl.mfrl.sac import SAC
 
 
 

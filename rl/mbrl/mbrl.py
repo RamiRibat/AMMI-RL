@@ -2,8 +2,8 @@ import gym
 from gym.spaces import Box
 from gym.wrappers import RecordVideo
 
-from buffer import ReplayBuffer
-from world_models.world_model import WorldModel
+from rl.buffer import ReplayBuffer
+# from world_models.world_model import WorldModel
 
 class MBRL:
     """
