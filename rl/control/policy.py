@@ -5,7 +5,7 @@ from torch.distributions.normal import Normal
 nn = T.nn
 
 from rl.networks.mlp import MLPNet
-from rl.networks.distributions import TanhNormal
+from rl.control.distributions import TanhNormal
 
 
 LOG_STD_MAX = 2
@@ -14,7 +14,7 @@ LOG_STD_MIN = -20
 
 
 class StochasticPolicy(nn.Module):
-	
+
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
@@ -103,5 +103,3 @@ class StochasticPolicy(nn.Module):
 		pi, log_pi = self.forward(obs, reparameterize, deterministic, return_log_pi)
 		pi = pi.detach().cpu().numpy()
 		return pi, log_pi
-
-
