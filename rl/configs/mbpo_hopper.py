@@ -20,7 +20,7 @@ configurations = {
             'real_epochs': 0, # Nr epochs
 
             'env_steps' : 1, # E: interact E times then train
-            'grad_WM_steps': 50, # G: ac grad
+            'grad_WM_steps': 1, # G: ac grad
             'grad_SAC_steps': 20, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
@@ -29,7 +29,7 @@ configurations = {
 
 
             'n_episodes_rollout': -1,
-            # 'net_arch': [64, dict(vf=[256, 256], pi=[128])], # [shared, dict(non-shared)]
+            # 'arch': [64, dict(vf=[256, 256], pi=[128])], # [shared, dict(non-shared)]
 
             'use_sde': False,
             'sde_sample_freq': -1,
@@ -48,14 +48,15 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 7,
-        'num_elites': 5,
+        'num_ensembles': 3, # 7
+        'num_elites': 2, # 5
         'sample_type': 'Random',
         'learn_reward': True,
         'model_train_freq': 250, # Mf
+        'model_retain_epochs': 1,
         'rollout_schedule': [20, 100, 1, 15],
         'network': {
-            'net_arch': [200,200,200,200], #@#
+            'arch': [200,200,200,200], #@#
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'LeakyReLU',
@@ -63,20 +64,20 @@ configurations = {
             'optimizer': "Adam", #@#
             'lr': 1e-3, #@#
             'wd': 1e-5,
-            'wd': 1e-5,
+            'dropout': None,
             'batch_size': 250,
             'device': "auto",
         }
     },
 
-    'control': {
+    'actor': {
         'type': 'gaussianpolicy',
         'action_noise': None, # Optional
         'alpha': 0.2, # Temprature/Entropy #@#
         'automatic_entropy': False, # trainer_kwargs
         'target_entropy': "auto",
         'network': {
-            'net_arch': [256,256], #@#
+            'arch': [256,256], #@#
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
@@ -85,18 +86,19 @@ configurations = {
             'lr': 3e-4, #@#
             'wd': 1e-5,
             'wd': 1e-5,
+            'dropout': None,
             'batch_size': 256,
             'device': "auto",
         }
     },
 
-    'value-functions': {
+    'critic': {
         'type': 'sofQ',
         'number': 2,
         'gamma': 0.99,
         'tau': 5e-3,
         'network': {
-            'net_arch': [256,256], #@#
+            'arch': [256,256], #@#
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
@@ -104,6 +106,7 @@ configurations = {
             'optimizer': "Adam", #@#
             'lr': 3e-4, #@#
             'wd': 1e-5,
+            'dropout': None,
             'batch_size': 256,
             'device': "auto",
         }
