@@ -18,8 +18,9 @@ class StochasticPolicy(nn.Module):
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
-		# print('Initialize Policy!')
-		random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
+		# print('init Policy!')
+		if seed:
+			random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
 		self.device = device
 		net_arch = net_configs['arch']
@@ -29,7 +30,7 @@ class StochasticPolicy(nn.Module):
 		super().__init__() # To automatically use 'def forward'
 
 		# My suggestions:
-		self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs, seed)
+		self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
 		self.mu = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
 
