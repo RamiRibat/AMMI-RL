@@ -48,9 +48,9 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'Ensemble': 7,
+        'num_ensembles': 7,
         'num_elites': 5,
-        'Sample_type': 'Random',
+        'sample_type': 'Random',
         'learn_reward': True,
         'model_train_freq': 250, # Mf
         'rollout_schedule': [20, 100, 1, 15],
