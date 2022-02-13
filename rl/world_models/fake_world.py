@@ -2,35 +2,35 @@
 
 # Imports
 import numpy as np
-import torch as th
+import torch as T
 
 # import pdb
 
 class FakeWorld:
 
-    def __init__(self, dyn_models, static_fns, env_name, train_env, config):
-        print('Initialize Fake Environment!')
-        self.dyn_models = dyn_models
+    def __init__(self, dyn_models, static_fns, env_name, train_env, configs):
+        # print('init FakeWorld!')
+        self.models = dyn_models
         self.static_fns = static_fns
         self.env_name = env_name
         self.train_env = train_env
-        self.config = config
+        self.configs = configs
 
 
     def step(self, Os, As, deterministic=False): ###
-        device = self.config['Experiment']['device']
+        device = self.configs['experiment']['device']
         # assert len(Os.shape) == len(As.shape) ###
         if len(Os.shape) != len(As.shape) or len(Os.shape) == 1: # not a batch
             Os = Os[None]
             As = As[None]
 
-        Os = th.as_tensor(Os, dtype=th.float32).to(device)
-        As = th.as_tensor(As, dtype=th.float32).to(device)
+        Os = T.as_tensor(Os, dtype=T.float32).to(device)
+        As = T.as_tensor(As, dtype=T.float32).to(device)
 
         # Predictions
-        sample_type = self.config['Model']['Sample_type']
-        with th.no_grad():
-            Os_next, Rs, Means, STDs = self.dyn_models(Os, As, deterministic, sample_type)
+        sample_type = self.configs['world_model']['sample_type']
+        with T.no_grad():
+            Os_next, Rs, Means, STDs = self.models(Os, As, deterministic, sample_type)
 
         # Terminations
         if self.env_name[:4] == 'pddm':
@@ -51,19 +51,19 @@ class FakeWorld:
 
 
     def step_model(self, Os, As, m, deterministic=False): ###
-        device = self.config['Experiment']['device']
+        device = self.configs['experiment']['device']
         # assert len(Os.shape) == len(As.shape) ###
         if len(Os.shape) != len(As.shape) or len(Os.shape) == 1: # not a batch
             Os = Os[None]
             As = As[None]
 
-        Os = th.as_tensor(Os, dtype=th.float32).to(device)
-        As = th.as_tensor(As, dtype=th.float32).to(device)
+        Os = T.as_tensor(Os, dtype=T.float32).to(device)
+        As = T.as_tensor(As, dtype=T.float32).to(device)
 
         # Predictions
         sample_type = m
-        with th.no_grad():
-            Os_next, Rs, Means, STDs = self.dyn_models(Os, As, deterministic, sample_type)
+        with T.no_grad():
+            Os_next, Rs, Means, STDs = self.models(Os, As, deterministic, sample_type)
 
         # Terminations
         if self.env_name[:4] == 'pddm':
@@ -89,9 +89,10 @@ class FakeWorld:
         return Os_next, Rs, Ds, INFOs
 
 
-    def train(self, env_buffer, batch_size):
-        Jmodel, mEpochs = self.dyn_models.trainModels(env_buffer, batch_size)
-        return Jmodel, mEpochs
+    def train(self, data_module):
+        # Jmodel, mEpochs = self.models.train_WM(data_module)
+        Jwm = self.models.train_WM(data_module)
+        return Jwm#, mEpochs
 
     def close(self):
         pass
