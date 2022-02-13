@@ -351,17 +351,19 @@ class SAC(MFRL):
 
 
 
-def main(exp_prefix, seed, configs):
+def main(exp_prefix, config, seed):
 
-	print('Start an SAC experiment...')
-	print('\n')
+    print('Start an SAC experiment...')
+    print('\n')
 
-    # agent = SAC(exp_prefix, configs, seed)
-    #
-    # agent.learn()
+    configs = config.configurations
 
-	print('\n')
-	print('... End the SAC experiment')
+    agent = SAC(exp_prefix, configs, seed)
+
+    agent.learn()
+
+    print('\n')
+    print('... End the SAC experiment')
 
 if __name__ == "__main__":
 
