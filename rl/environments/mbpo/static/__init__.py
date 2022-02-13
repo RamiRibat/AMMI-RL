@@ -11,7 +11,7 @@ def import_fns(path, file, fns_name='StaticFns'):
 	fns = getattr(module, fns_name)
 	return fns
 
-cwd = 'fusion/environments/mbpo/static'
+cwd = 'rl/environments/mbpo/static'
 files = os.listdir(cwd)
 ## remove __init__.py
 files = filter(lambda x: '__' not in x, files)
@@ -22,4 +22,3 @@ files = map(lambda x: x.replace('.py', ''), files)
 static_fns = {file.replace('_', ''): import_fns(cwd, file) for file in files}
 
 sys.modules[__name__] = static_fns
-
