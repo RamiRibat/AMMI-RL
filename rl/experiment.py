@@ -14,7 +14,9 @@ import wandb
 def main(cfg, seed):
     print('\n')
     sys.path.append("./configs")
+    # print('cfg: ', cfg)
     config = importlib.import_module(cfg)
+    # print('config: ', config)
     configurations = config.configurations
 
     alg_name = configurations['algorithm']['name']
