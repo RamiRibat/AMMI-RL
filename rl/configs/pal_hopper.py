@@ -13,15 +13,15 @@ configurations = {
     'algorithm': {
         'name': 'MBPO',
         'learning': {
-            'epochs': 10,#125, # N epochs
-            'epoch_steps': 100,#1000, # NT steps/epoch
-            'init_epochs': 1,#5, # Ni epochs = 5000 exploration steps
-            'expl_epochs': 5,#10, # Nx epochs
+            'epochs': 125, # N epochs
+            'epoch_steps': 1000, # NT steps/epoch
+            'init_epochs': 5, # Ni epochs = 5000 exploration steps
+            'expl_epochs': 10, # Nx epochs
             'real_epochs': 0, # Nr epochs
 
             'env_steps' : 1, # E: interact E times then train
             'grad_WM_steps': 1, # G: ac grad
-            'grad_SAC_steps': 5,#20, # ACG: ac grad, 40
+            'grad_SAC_steps': 20, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -48,7 +48,7 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 2, # 7
+        'num_ensembles': 3, # 7
         'num_elites': 2, # 5
         'sample_type': 'Random',
         'learn_reward': True,
