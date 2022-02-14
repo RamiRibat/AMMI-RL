@@ -115,7 +115,7 @@ class MBPO(MBRL, SAC):
                     if nt % model_train_frequency == 0:
                         #03. Train model pθ on Denv via maximum likelihood
                         # PyTorch Lightning Model Training
-                        print(f'\n[ Epoch {n}   WM Training | wm_epochs = {wm_epochs}]')
+                        print(f'\n[ Epoch {n}   Worl Model Training ]')
                         # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}                                             ')
                         # Jwm, mEpochs = self.fake_world.train(self.data_module)
                         Jwm = self.fake_world.train(self.data_module)
@@ -135,7 +135,7 @@ class MBPO(MBRL, SAC):
 
                     for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't know!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
-                        print(f'[ Interaction & Training ] Env Steps: {nt}, AC Grads: {g}, Reward: {round(R, 5)}', end='\r')
+                        print(f'[ Epoch {n}   Actor-Critic Training ] Env Steps: {nt}, AC Grads: {g}, Reward: {round(Z, 5)}', end='\r')
                         ## Sample a batch B_sac
                         B_sac = self.sac_batch(real_ratio, batch_size)
                         ## Train networks using batch B_sac
@@ -268,7 +268,7 @@ class MBPO(MBRL, SAC):
     	if batch_size_img > 0:
     		B_img = self.model_buffer.sample_batch(batch_size_img)
     		keys = B_real.keys()
-    		B = {k: Tcat((B_real[k], B_img[k]), dim=0) for k in keys}
+    		B = {k: T.cat((B_real[k], B_img[k]), dim=0) for k in keys}
     	else:
     		B = B_real
     	return B
