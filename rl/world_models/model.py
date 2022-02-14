@@ -168,28 +168,22 @@ class SimpleModel(pl.LightningModule):
         return J
 
 
-    # def validation_step(self, batch, batch_idx):
-    #     # In validation loop, we generally don't want to put a metrics for
-    #     # every batch (all batches are independent), plot metric for the whole validation set
-    #     # results = self.training_step(batch, batch_idx)
-    #     # results['progress_bar']['val_acc'] = results['progress_bar']['train_acc']
-    #     # del results['progress_bar']['train_acc']
-    #     # return results
-    #     device = self._device_
-    #     O, A, R, O_next, D = batch
-    #     D = T.as_tensor(D, dtype=T.bool).to(device)
-    #
-    #     _, mean, log_std, std, inv_std = self(O, A) # dyn_delta, reward
-    #     mean_target = T.cat([O_next - O, R], dim=-1)
-    #
-    #     # 2 Compute obj function
-    #     Jmean = T.mean(T.mean(T.square(mean - mean_target) * inv_std * ~D, dim=-1), dim=-1) # batch loss
-    #     Jstd = T.mean(T.mean(log_std * ~D, dim=-1), dim=-1)
-    #     Jl2 = self.compute_l2_loss()
-    #     J = Jmean + Jstd + Jl2
-    #     J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
-    #
-    #     self.log("J_val", J.item(), prog_bar=True)
+    def validation_step(self, batch, batch_idx):
+        device = self._device_
+        O, A, R, O_next, D = batch
+        D = T.as_tensor(D, dtype=T.bool).to(device)
+
+        _, mean, log_std, std, inv_std = self(O, A) # dyn_delta, reward
+        mean_target = T.cat([O_next - O, R], dim=-1)
+
+        # 2 Compute obj function
+        Jmean = T.mean(T.mean(T.square(mean - mean_target) * inv_std * ~D, dim=-1), dim=-1) # batch loss
+        Jstd = T.mean(T.mean(log_std * ~D, dim=-1), dim=-1)
+        Jl2 = self.compute_l2_loss()
+        J = Jmean + Jstd + Jl2
+        J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
+
+        self.log("J_val", J.item(), prog_bar=True)
 
 
     def get_progress_bar_dict(self):
@@ -200,12 +194,14 @@ class SimpleModel(pl.LightningModule):
 
 
     # def compute_l2_loss(self, l2_loss_coefs: Union[float, List[float]]):
-    def compute_l2_loss(self):
+    def compute_l2_loss(self): # must have 4 hid-layers in the WorldModel
         l2_loss_coefs = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001, 0.0001]
         weight_norms = []
         for name, weight in self.named_parameters():
         	if "weight" in name:
         		weight_norms.append(weight.norm(2))
         weight_norms = T.stack(weight_norms, dim=0)
+        # print('l2_loss_coefs: ', T.tensor(l2_loss_coefs, device=weight_norms.device))
+        # print('weight_norms: ', weight_norms)
         weight_decay = (T.tensor(l2_loss_coefs, device=weight_norms.device) * weight_norms).sum()
         return weight_decay

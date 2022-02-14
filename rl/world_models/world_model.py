@@ -132,15 +132,26 @@ class WorldModel(LightningModule):
         num_elites = self.configs['world_model']['num_elites']
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
 
+        checkpoint_callback = False
         trainer = Trainer(max_epochs=wm_epochs,
+                          # log_every_n_steps=5,
                           # gpus=1,
-                          # enable_model_summary=False,
+                          weights_summary=None,
                           # checkpoint_callback=False,
                           # progress_bar_refresh_rate=20,
                           # log_save_interval=100,
-                          # logger=self.pl_logger,
+                          # logger=None, #self.pl_logger,
                           # callbacks=[checkpoint_callback],
                            )
+        #
+        # max_epochs=mEpochs,
+		# 						 gpus=1,
+		# 						 weights_summary=ws_summ,
+		# 						 checkpoint_callback=False,
+		# 						 logger=False,
+		# 						 # progress_bar_refresh_rate=0,
+		# 						 # log_save_interval=100,
+		# 						 # callbacks=[checkpoint_callback]
 
         if model_type == 'P':
         	Jm, mEpochs = self.models.train_Model(env_buffer, batch_size, 0)
