@@ -20,8 +20,8 @@ configurations = {
             'real_epochs': 0, # Nr epochs
 
             'env_steps' : 1, # E: interact E times then train
-            'grad_WM_steps': 1, # G: ac grad
-            'grad_SAC_steps': 5,#20, # ACG: ac grad, 40
+            'grad_WM_steps': 5, # G: ac grad
+            'grad_SAC_steps': 20,#20, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -78,8 +78,8 @@ configurations = {
         'automatic_entropy': False, # trainer_kwargs
         'target_entropy': "auto",
         'network': {
-            # 'arch': [256,256], #@#
-            'arch': [64,64],
+            'arch': [256,256], #@#
+            # 'arch': [64,64],
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
@@ -100,8 +100,8 @@ configurations = {
         'gamma': 0.99,
         'tau': 5e-3,
         'network': {
-            # 'arch': [256,256], #@#
-            'arch': [64,64], #@#
+            'arch': [256,256], #@#
+            # 'arch': [64,64], #@#
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
