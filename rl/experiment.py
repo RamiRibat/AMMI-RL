@@ -5,12 +5,17 @@ import datetime
 import random
 
 import torch as T
+T.multiprocessing.set_sharing_strategy('file_system')
+
 import wandb
 
 # from rl.mfrl.sac import SAC
 
 import warnings
 warnings.filterwarnings('ignore')
+
+
+
 
 
 def main(cfg, seed):
@@ -44,7 +49,7 @@ def main(cfg, seed):
             name=exp_prefix,
             group=group_name,
             # project='test',
-            project='ammi-rl',
+            project='ammi-rl-2022',
             config=configs
         )
 
@@ -72,7 +77,6 @@ def main(cfg, seed):
     print('\n')
     print('End of the RL experiment')
     print('=' * 50)
-
 
 
 if __name__ == "__main__":
