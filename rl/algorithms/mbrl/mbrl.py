@@ -2,10 +2,17 @@ import gym
 from gym.spaces import Box
 from gym.wrappers import RecordVideo
 
-from rl.data.buffer import ReplayBuffer
+import torch as T
+# T.multiprocessing.set_sharing_strategy('file_system')
+
+# from rl.data.buffer import ReplayBuffer
 from rl.data.buffer import DataBuffer
 from rl.data.dataset import RLDataModule
 from rl.world_models.world_model import WorldModel
+
+
+
+
 
 class MBRL:
     """
@@ -64,6 +71,7 @@ class MBRL:
         #                                   max_size, self.seed, device)
         self.env_buffer = DataBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
+
     def _set_data_module(self):
         self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
 
@@ -84,7 +92,7 @@ class MBRL:
         new_buffer_size = model_retain_epochs * model_steps_per_epoch
 
         if not hasattr(self, 'model_buffer'):
-        	print('[ MBPO ] Initializing new model buffer with size {:.2e}'.format(new_buffer_size))
+        	print('[ MBRL ] Initializing new model buffer with size {:.2e}'.format(new_buffer_size))
         	self.model_buffer = DataBuffer(obs_dim=self.obs_dim,
         								act_dim=self.act_dim,
         								size=new_buffer_size,
@@ -103,9 +111,10 @@ class MBRL:
         	assert self.model_buffer.size == new_model_buffer.size
         	# # Delete old data buffer and free GPU memory
         	# del self.model_buffer
-        	# Tcuda.empty_cache()
+        	# T.cuda.empty_cache()
         	self.model_buffer = new_model_buffer
 
+        print(f'[ Model Buffer ] Size: {self.model_buffer.size}')
 
 
     def initialize_learning(self, NT, Ni):
@@ -166,7 +175,7 @@ class MBRL:
     def evaluate(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
-            print('[ Evaluation ]')
+            print('[ Evaluation ]'+(' '*100))
             EE = self.configs['algorithm']['evaluation']['eval_episodes']
             max_el = self.configs['environment']['horizon']
             EZ = [] # Evaluation episodic return
