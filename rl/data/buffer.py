@@ -4,6 +4,7 @@ import torch as T
 # from torch.utils.data import random_split, DataLoader
 # from torch.utils.data.dataset import IterableDataset
 
+# T.multiprocessing.set_sharing_strategy('file_system')
 
 
 
@@ -23,7 +24,8 @@ class ReplayBuffer: # Done !
     """
     def __init__(self, obs_dim, act_dim, max_size, seed, device):
         # print('Initialize ReplayBuffer!')
-        random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
+        if seed:
+            random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
         self.device = device
 
         self.observation_buffer = np.zeros((max_size, obs_dim), dtype=np.float32)
@@ -167,4 +169,17 @@ class DataBuffer:
     				rewards=self.rew_buf[idxs],
     				observations_next=self.obs_next_buf[idxs],
     				terminals=self.ter_buf[idxs])
-    	return {k: T.as_tensor(v, dtype=T.float32).to(device) for k,v in buffer.items()}
+    	return {k: T.as_tensor(v, dtype=T.float32).to(device) for k, v in buffer.items()}
+
+
+    def return_all_np(self):
+    	# print('Return All')
+    	device = self.device
+
+    	idxs = np.random.randint(0, self.size, size=self.size)
+    	buffer = dict(observations=self.obs_buf[idxs],
+                      actions=self.act_buf[idxs],
+                      rewards=self.rew_buf[idxs],
+                      observations_next=self.obs_next_buf[idxs],
+                      terminals=self.ter_buf[idxs])
+    	return {k: v for k, v in buffer.items()}
