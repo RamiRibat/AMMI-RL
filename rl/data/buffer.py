@@ -57,101 +57,114 @@ class ReplayBuffer: # Done !
 
 
 class DataBuffer:
-	"""
+    """
     A simple FIFO experience replay buffer for an agent.
     """
 
-	def __init__(self, obs_dim, act_dim, size, seed, device):
+    def __init__(self, obs_dim, act_dim, size, seed, device):
 
-		np.random.seed(seed)
-		T.manual_seed(seed)
+        np.random.seed(seed)
+        T.manual_seed(seed)
 
-		# self.name = None
-		self.device = device
+        # self.name = None
+        self.device = device
 
-		self.obs_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
-		self.act_buf = np.zeros(combined_shape(size, act_dim), dtype=np.float32)
-		self.rew_buf = np.zeros(combined_shape(size, 1), dtype=np.float32)
-		self.obs_next_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
-		self.ter_buf = np.zeros(combined_shape(size, 1), dtype=np.float32)
+        self.obs_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
+        self.act_buf = np.zeros(combined_shape(size, act_dim), dtype=np.float32)
+        self.rew_buf = np.zeros(combined_shape(size, 1), dtype=np.float32)
+        self.obs_next_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
+        self.ter_buf = np.zeros(combined_shape(size, 1), dtype=np.float32)
 
-		self.ptr, self.size, self.max_size = 0, 0, size
-
-	def store_transition(self, obs, act, rew, obs_next, ter):
-		self.obs_buf[self.ptr] = obs
-		self.act_buf[self.ptr] = act
-		self.rew_buf[self.ptr] = rew
-		self.obs_next_buf[self.ptr] = obs_next
-		self.ter_buf[self.ptr] = ter
-
-		self.ptr = (self.ptr+1) % self.max_size
-		self.size = min(self.size+1, self.max_size)
-
-	def store_batch(self, O, A, R, O_next, D):
-		batch_size = len(O[:,0])
-
-		if self.ptr+batch_size > self.max_size:
-			diff_size = self.max_size - self.ptr # 84
-			self.obs_buf[self.ptr:self.ptr+diff_size] = O[:diff_size,:]
-			self.act_buf[self.ptr:self.ptr+diff_size] = A[:diff_size,:]
-			self.rew_buf[self.ptr:self.ptr+diff_size] = R[:diff_size].reshape(-1,1)
-			self.obs_next_buf[self.ptr:self.ptr+diff_size] = O_next[:diff_size,:]
-			self.ter_buf[self.ptr:self.ptr+diff_size] = D[:diff_size]
-			self.ptr = (self.ptr+diff_size) % self.max_size # 0
-
-			remain_size = batch_size - diff_size # 316
-			self.obs_buf[self.ptr:self.ptr+remain_size] = O[diff_size:,:]
-			self.act_buf[self.ptr:self.ptr+remain_size] = A[diff_size:,:]
-			self.rew_buf[self.ptr:self.ptr+remain_size] = R[diff_size:].reshape(-1,1)
-			self.obs_next_buf[self.ptr:self.ptr+remain_size] = O_next[diff_size:,:]
-			self.ter_buf[self.ptr:self.ptr+remain_size] = D[diff_size:]
-			self.ptr = (self.ptr+remain_size) % self.max_size # 316
-			# print('\nptr: ', self.ptr)
-		else:
-			self.obs_buf[self.ptr:self.ptr+batch_size] = O
-			self.act_buf[self.ptr:self.ptr+batch_size] = A
-			self.rew_buf[self.ptr:self.ptr+batch_size] = R.reshape(-1,1)
-			self.obs_next_buf[self.ptr:self.ptr+batch_size] = O_next
-			self.ter_buf[self.ptr:self.ptr+batch_size] = D
-			self.ptr = (self.ptr+batch_size) % self.max_size
-
-			self.size = min(self.size+batch_size, self.max_size)
-
-	def sample_batch(self, batch_size=32):
-		device = self.device
-		idxs = np.random.randint(0, self.size, size=batch_size)
-		# print('Index:	', idxs[0: 5])
-		batch = dict(observations=self.obs_buf[idxs],
-					actions=self.act_buf[idxs],
-					rewards=self.rew_buf[idxs],
-					observations_next=self.obs_next_buf[idxs],
-					terminals=self.ter_buf[idxs])
-		return {k: T.as_tensor(v, dtype=T.float32).to(device) for k,v in batch.items()}
-
-	def get_recent_data(self, batch_size=32):
-		device = self.device
-		batch = dict(observations=self.obs_buf[-batch_size:],
-					actions=self.act_buf[-batch_size:],
-					rewards=self.rew_buf[-batch_size:],
-					observations_next=self.obs_next_buf[-batch_size:],
-					terminals=self.ter_buf[-batch_size:])
-		return {k: T.as_tensor(v, dtype=T.float32).to(device) for k,v in batch.items()}
+        self.ptr, self.size, self.max_size = 0, 0, size
 
 
-	def return_all(self):
-		# print('Return All')
-		device = self.device
+    def store_transition(self, obs, act, rew, obs_next, ter):
+        self.obs_buf[self.ptr] = obs
+        self.act_buf[self.ptr] = act
+        self.rew_buf[self.ptr] = rew
+        self.obs_next_buf[self.ptr] = obs_next
+        self.ter_buf[self.ptr] = ter
 
-		idxs = np.random.randint(0, self.size, size=self.size)
-		buffer = dict(observations=self.obs_buf[idxs],
-					actions=self.act_buf[idxs],
-					rewards=self.rew_buf[idxs],
-					observations_next=self.obs_next_buf[idxs],
-					terminals=self.ter_buf[idxs])
+        self.ptr = (self.ptr+1) % self.max_size
+        self.size = min(self.size+1, self.max_size)
 
-		# buffer = dict(observations=self.obs_buf[:self.size],
-		# 			  actions=self.act_buf[:self.size],
-		# 			  rewards=self.rew_buf[:self.size],
-		# 			  observations_next=self.obs_next_buf[:self.size],
-		# 			  terminals=self.ter_buf[:self.size])
-		return {k: T.as_tensor(v, dtype=T.float32).to(device) for k,v in buffer.items()}
+
+    def override_batch(self, O, A, R, O_next, D, batch_size):
+        available_size = self.max_size - self.ptr # 84
+        self.obs_buf[self.ptr:self.ptr+available_size] = O[:available_size,:]
+        self.act_buf[self.ptr:self.ptr+available_size] = A[:available_size,:]
+        self.rew_buf[self.ptr:self.ptr+available_size] = R[:available_size].reshape(-1,1)
+        self.obs_next_buf[self.ptr:self.ptr+available_size] = O_next[:available_size,:]
+        self.ter_buf[self.ptr:self.ptr+available_size] = D[:available_size]
+        self.ptr = (self.ptr+available_size) % self.max_size # 0
+        remain_size = batch_size - available_size # 316
+        # print('available_size=', available_size)
+        # print('remain_size=', remain_size)
+        # print('ptr=', self.ptr)
+
+        if self.ptr+remain_size > self.max_size:
+            self.override_batch(O[available_size:,:],
+                                A[available_size:,:],
+                                R[available_size:],
+                                O_next[available_size:,:],
+                                D[available_size:],
+                                remain_size)
+        else:
+            self.obs_buf[self.ptr:self.ptr+remain_size] = O[available_size:,:]
+            self.act_buf[self.ptr:self.ptr+remain_size] = A[available_size:,:]
+            self.rew_buf[self.ptr:self.ptr+remain_size] = R[available_size:].reshape(-1,1)
+            self.obs_next_buf[self.ptr:self.ptr+remain_size] = O_next[available_size:,:]
+            self.ter_buf[self.ptr:self.ptr+remain_size] = D[available_size:]
+            self.ptr = (self.ptr+remain_size) % self.max_size # 316
+
+
+    def store_batch(self, O, A, R, O_next, D):
+    	batch_size = len(O[:,0])
+    	# print(f"store_batch, size={batch_size}, ptr={self.ptr}, max_size={self.max_size}")
+
+    	if self.ptr+batch_size > self.max_size:
+            self.override_batch(O, A, R, O_next, D, batch_size)
+    	else:
+    		self.obs_buf[self.ptr:self.ptr+batch_size] = O
+    		self.act_buf[self.ptr:self.ptr+batch_size] = A
+    		self.rew_buf[self.ptr:self.ptr+batch_size] = R.reshape(-1,1)
+    		self.obs_next_buf[self.ptr:self.ptr+batch_size] = O_next
+    		self.ter_buf[self.ptr:self.ptr+batch_size] = D
+    		self.ptr = (self.ptr+batch_size) % self.max_size
+
+    		self.size = min(self.size+batch_size, self.max_size)
+
+
+    def sample_batch(self, batch_size=32):
+    	device = self.device
+    	idxs = np.random.randint(0, self.size, size=batch_size)
+    	# print('Index:	', idxs[0: 5])
+    	batch = dict(observations=self.obs_buf[idxs],
+    				actions=self.act_buf[idxs],
+    				rewards=self.rew_buf[idxs],
+    				observations_next=self.obs_next_buf[idxs],
+    				terminals=self.ter_buf[idxs])
+    	return {k: T.as_tensor(v, dtype=T.float32).to(device) for k,v in batch.items()}
+
+
+    def get_recent_data(self, batch_size=32):
+    	device = self.device
+    	batch = dict(observations=self.obs_buf[-batch_size:],
+    				actions=self.act_buf[-batch_size:],
+    				rewards=self.rew_buf[-batch_size:],
+    				observations_next=self.obs_next_buf[-batch_size:],
+    				terminals=self.ter_buf[-batch_size:])
+    	return {k: T.as_tensor(v, dtype=T.float32).to(device) for k,v in batch.items()}
+
+
+    def return_all(self):
+    	# print('Return All')
+    	device = self.device
+
+    	idxs = np.random.randint(0, self.size, size=self.size)
+    	buffer = dict(observations=self.obs_buf[idxs],
+    				actions=self.act_buf[idxs],
+    				rewards=self.rew_buf[idxs],
+    				observations_next=self.obs_next_buf[idxs],
+    				terminals=self.ter_buf[idxs])
+    	return {k: T.as_tensor(v, dtype=T.float32).to(device) for k,v in buffer.items()}

@@ -86,6 +86,7 @@ class MBPO(MBRL, SAC):
         # o, Z, el, t = self.initialize_learning(NT, Ni)
         oldJs = [0, 0, 0]
         JWMList, JQList, JAlphaList, JPiList = [0]*Ni, [0]*Ni, [0]*Ni, [0]*Ni
+        JWMMeanList = [0]*Ni
         AlphaList = [self.alpha]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
@@ -96,11 +97,11 @@ class MBPO(MBRL, SAC):
             if self.configs['experiment']['print_logs']:
                 print('=' * 50)
                 if n > Nx:
-                    print(f'\n[ Epoch {n}   Learning ]')
+                    print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
                 elif n > Ni:
-                    print(f'\n[ Epoch {n}   Exploration + Learning ]')
+                    print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
                 else:
-                    print(f'\n[ Epoch {n}   Inintial Exploration ]')
+                    print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
 
             # print(f'[ Replay Buffer ] Size: {self.replay_buffer.size}, pointer: {self.replay_buffer.ptr}')
             nt = 0
@@ -115,10 +116,11 @@ class MBPO(MBRL, SAC):
                     if nt % model_train_frequency == 0:
                         #03. Train model pθ on Denv via maximum likelihood
                         # PyTorch Lightning Model Training
-                        print(f'\n[ Epoch {n}   Worl Model Training ]')
+                        print(f'\n[ Epoch {n}   World Model Training ]'+(' '*50))
                         # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}                                             ')
                         # Jwm, mEpochs = self.fake_world.train(self.data_module)
-                        Jwm = self.fake_world.train(self.data_module)
+                        Jmean, Jwm = self.fake_world.train(self.data_module)
+                        JWMMeanList.append(Jmean)
                         JWMList.append(Jwm)
 
                         # Update K-steps length
@@ -135,7 +137,7 @@ class MBPO(MBRL, SAC):
 
                     for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't know!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
-                        print(f'[ Epoch {n}   Actor-Critic Training ] Env Steps: {nt}, AC Grads: {g}, Reward: {round(Z, 5)}', end='\r')
+                        print(f'[ Epoch {n}   Actor-Critic Training ] Env Steps: {nt} | AC Grads: {g} | Return: {round(Z, 2)}', end='\r')
                         ## Sample a batch B_sac
                         B_sac = self.sac_batch(real_ratio, batch_size)
                         ## Train networks using batch B_sac
@@ -150,7 +152,9 @@ class MBPO(MBRL, SAC):
                 nt += E
 
             logs['time/training                  '] = time.time() - learn_start_real
-            logs['training/objectives/sac/Jwm     '] = np.mean(JQList)
+            logs['training/objectives/wm/Jwm     '] = np.mean(JWMList)
+            logs['training/objectives/wm/Jwm_mean     '] = np.mean(JWMMeanList)
+            # logs['validation/objectives/wm/Jwm_mean     '] = np.mean(JWMMeanList)
             logs['training/objectives/sac/Jq     '] = np.mean(JQList)
             logs['training/objectives/sac/Jpi    '] = np.mean(JPiList)
             if self.configs['actor']['automatic_entropy']:

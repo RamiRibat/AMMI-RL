@@ -9,6 +9,8 @@ import wandb
 
 # from rl.mfrl.sac import SAC
 
+import warnings
+warnings.filterwarnings('ignore')
 
 
 def main(cfg, seed):

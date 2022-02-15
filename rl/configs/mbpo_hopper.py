@@ -52,7 +52,7 @@ configurations = {
         'num_elites': 2, # 5
         'sample_type': 'Random',
         'learn_reward': True,
-        'model_train_freq': 250, # Mf
+        'model_train_freq': 25,#250, # Mf
         'model_retain_epochs': 1,
         'rollout_schedule': [20, 100, 1, 15],
         'network': {

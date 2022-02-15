@@ -19,6 +19,11 @@ from rl.world_models.model import SimpleModel#, BayesianModel
 # from rl.networks.mlp import MLPNet
 
 
+import logging
+logging.getLogger('lightning').setLevel(0)
+T.multiprocessing.set_sharing_strategy('file_system')
+
+
 LOG_SIGMA_MAX = 2
 LOG_SIGMA_MIN = -20
 
@@ -133,44 +138,40 @@ class WorldModel(LightningModule):
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
 
         checkpoint_callback = False
+        enable_model_summary = False
+        # callbacks_list = [enable_model_summary=False, checkpoint_callback = False]
         trainer = Trainer(max_epochs=wm_epochs,
-                          # log_every_n_steps=5,
-                          # gpus=1,
-                          weights_summary=None,
-                          # checkpoint_callback=False,
-                          # progress_bar_refresh_rate=20,
+                          # log_every_n_steps=2,
+                          accelerator=device, devices='auto',
+                          gpus=0,
+                          enable_model_summary=False,
+                          enable_checkpointing=False,
+                          progress_bar_refresh_rate=20,
                           # log_save_interval=100,
-                          # logger=None, #self.pl_logger,
-                          # callbacks=[checkpoint_callback],
+                          logger=False, #self.pl_logger,
+                          # callbacks=[checkpoint_callback, enable_model_summary],
                            )
-        #
-        # max_epochs=mEpochs,
-		# 						 gpus=1,
-		# 						 weights_summary=ws_summ,
-		# 						 checkpoint_callback=False,
-		# 						 logger=False,
-		# 						 # progress_bar_refresh_rate=0,
-		# 						 # log_save_interval=100,
-		# 						 # callbacks=[checkpoint_callback]
 
         if model_type == 'P':
         	Jm, mEpochs = self.models.train_Model(env_buffer, batch_size, 0)
         	# self.models.to(device) # bc pl-training detatchs models
         	# Jwm = Jdyns
         elif model_type == 'PE':
-        	J = []
+        	JMean, JM = [], []
         	for m in range(M):
         		# Jm, mEpochs = self.models[m].train_Model(env_buffer, batch_size, m)
-        		Jm = self.models[m].train_Model(trainer, data_module, m)
+        		Jmean, Jm = self.models[m].train_Model(trainer, data_module, m)
         		# print(f'modle {m}: Jdyn = {Jdyn}')
-        		J.append(Jm)
+        		JMean.append(Jmean)
+        		JM.append(Jm)
         		self.models[m].to(device) # bc pl-training detatchs models
-        	inx_model = np.argsort(J)
+        	inx_model = np.argsort(JM)
         	self.inx_elites = inx_model[:num_elites]
         	# print(f'Jdyns = {Jdyns}')
-        	Jwm = sum(J) / M
+        	Jmean = sum(JMean) / M
+        	Jwm = sum(JM) / M
 
-        print('Jwm: ', round(Jwm, 5))
+        print('Jmean: ', round(Jmean, 5))
         print('Elite Models: ', self.inx_elites)
 
-        return Jwm#, mEpochs
+        return Jmean, Jwm#, mEpochs

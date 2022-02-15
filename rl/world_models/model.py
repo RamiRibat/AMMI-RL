@@ -14,26 +14,26 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
 
 import pytorch_lightning as pl
+from pytorch_lightning import LightningModule
 
 
 from rl.networks.mlp import MLPNet
+
+import warnings
+warnings.filterwarnings('ignore')
+
+import logging
+logging.getLogger('lightning').setLevel(0)
+T.multiprocessing.set_sharing_strategy('file_system')
 
 
 LOG_SIGMA_MAX = 2
 LOG_SIGMA_MIN = -20
 
 
-class RLDataset(IterableDataset):
-    pass
 
+class SimpleModel(LightningModule):
 
-class DataModule(pl.LightningDataModule):
-    pass
-
-
-
-
-class SimpleModel(pl.LightningModule):
     def __init__(self, obs_dim, act_dim, rew_dim, configs) -> None:
         # print('init SimpleModel!')
         super(SimpleModel, self).__init__() # To automatically use 'def forward'
@@ -53,8 +53,6 @@ class SimpleModel(pl.LightningModule):
         self.max_log_sigma = nn.Parameter( T.ones([1, obs_dim + rew_dim]) / 2, requires_grad=False)
         self.min_log_sigma = nn.Parameter( -T.ones([1, obs_dim + rew_dim]) * 10, requires_grad=False)
         self.reparam_noise = 1e-6
-
-
 
 
     def get_model_dist_params(self, ips):
@@ -88,11 +86,6 @@ class SimpleModel(pl.LightningModule):
 
 
     def train_Model(self, trainer, data_module, m):
-        # batch_data = env_buffer.get_recent_data(batch_size)
-        # Os = batch_data['observations']
-        # As = batch_data['actions']
-        # self.obs_norm.update(Os)
-        # self.act_norm.update(As)
 
         self.m = m
 
@@ -102,27 +95,12 @@ class SimpleModel(pl.LightningModule):
 
         # data = DataModule(env_buffer, batch_size)
         if dropout != None: self.train()
-        # ws_summ = None
-        # # checkpoint_callback = ModelCheckpoint(save_last=None)
-        # dyn_trainer = pl.Trainer(max_epochs=mEpochs,
-        # 						 gpus=1,
-        # 						 weights_summary=ws_summ,
-        # 						 checkpoint_callback=False,
-        # 						 logger=False,
-        # 						 # progress_bar_refresh_rate=0,
-        # 						 # log_save_interval=100,
-        # 						 # callbacks=[checkpoint_callback]
-        # 						 )
-        # # print('SimpleModel Self: ', self)
 
         trainer.fit(self, data_module)
 
         if dropout != None: self.eval()
 
-        # env_buffer.device = self.configs['experiment']['device']
-        # # dyn_trainer.save_checkpoint(f"/home/rami/AI/RL/myGitHub/FUSION/lightning_logs/DynModelsCkPts/model{m+1}")
-        return self.J #, mEpochs
-
+        return self.Jmean, self.J #, mEpochs
 
 
 	### PyTorch Lightning ###
@@ -157,13 +135,16 @@ class SimpleModel(pl.LightningModule):
         # 2 Compute obj function
         Jmean = T.mean(T.mean(T.square(mean - mean_target) * inv_std * ~D, dim=-1), dim=-1) # batch loss
         Jstd = T.mean(T.mean(log_std * ~D, dim=-1), dim=-1)
-        Jl2 = self.compute_l2_loss()
-        J = Jmean + Jstd + Jl2
+        Jwl2 = self.weight_l2_loss()
+        J = Jmean + Jstd + Jwl2
         J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
+        # print('J=', J)
 
 
-        self.log(f'Model {self.m+1}, J_train', J.item(), prog_bar=True)
+        self.log(f'Model {self.m+1}, Jmean_train', Jmean.item(), prog_bar=True)
+        self.Jmean = Jmean.item()
         self.J = J.item() # We no longer need it; bc it's auto optimized
+        # print('self.J=', self.J)
 
         return J
 
@@ -179,11 +160,11 @@ class SimpleModel(pl.LightningModule):
         # 2 Compute obj function
         Jmean = T.mean(T.mean(T.square(mean - mean_target) * inv_std * ~D, dim=-1), dim=-1) # batch loss
         Jstd = T.mean(T.mean(log_std * ~D, dim=-1), dim=-1)
-        Jl2 = self.compute_l2_loss()
-        J = Jmean + Jstd + Jl2
+        Jwl2 = self.weight_l2_loss()
+        J = Jmean + Jstd + Jwl2
         J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
 
-        self.log("J_val", J.item(), prog_bar=True)
+        self.log("Jmean_val", Jmean.item(), prog_bar=True)
 
 
     def get_progress_bar_dict(self):
@@ -194,7 +175,7 @@ class SimpleModel(pl.LightningModule):
 
 
     # def compute_l2_loss(self, l2_loss_coefs: Union[float, List[float]]):
-    def compute_l2_loss(self): # must have 4 hid-layers in the WorldModel
+    def weight_l2_loss(self): # must have 4 hid-layers in the WorldModel
         l2_loss_coefs = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001, 0.0001]
         weight_norms = []
         for name, weight in self.named_parameters():
