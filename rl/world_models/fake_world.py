@@ -1,10 +1,13 @@
 ''' Source: MBPO/mbpo/models/fake_env.py '''
 
-# Imports
 import numpy as np
 import torch as T
 
-# import pdb
+# T.multiprocessing.set_sharing_strategy('file_system')
+
+
+
+
 
 class FakeWorld:
 
@@ -90,9 +93,10 @@ class FakeWorld:
 
 
     def train(self, data_module):
-        # Jmodel, mEpochs = self.models.train_WM(data_module)
-        Jwm = self.models.train_WM(data_module)
-        return Jwm#, mEpochs
+        data_module.update_dataset()
+        JTrainLog, JValLog = self.models.train_WM(data_module)
+        return JTrainLog, JValLog
+
 
     def close(self):
         pass

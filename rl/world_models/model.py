@@ -2,7 +2,12 @@
 import random
 import copy
 import typing
+
+import warnings
+warnings.filterwarnings('ignore')
+
 import logging
+logging.getLogger('lightning').setLevel(0)
 
 import numpy as np
 from numpy.random.mtrand import normal
@@ -12,23 +17,19 @@ from torch.distributions.normal import Normal
 nn = T.nn
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
+# T.multiprocessing.set_sharing_strategy('file_system')
 
 import pytorch_lightning as pl
 from pytorch_lightning import LightningModule
 
-
 from rl.networks.mlp import MLPNet
 
-import warnings
-warnings.filterwarnings('ignore')
-
-import logging
-logging.getLogger('lightning').setLevel(0)
-T.multiprocessing.set_sharing_strategy('file_system')
 
 
 LOG_SIGMA_MAX = 2
 LOG_SIGMA_MIN = -20
+
+
 
 
 
@@ -39,6 +40,7 @@ class SimpleModel(LightningModule):
         super(SimpleModel, self).__init__() # To automatically use 'def forward'
         # if seed:
         #     random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
+        self.val = False
 
         self.configs = configs
         self._device_ = configs['experiment']['device']
@@ -100,7 +102,10 @@ class SimpleModel(LightningModule):
 
         if dropout != None: self.eval()
 
-        return self.Jmean, self.J #, mEpochs
+        if self.val:
+            return self.train_log, self.val_log
+        else:
+            return self.train_log, None
 
 
 	### PyTorch Lightning ###
@@ -111,60 +116,34 @@ class SimpleModel(LightningModule):
         optimizer = eval(opt)(self.parameters(), lr=lr)
         return optimizer
 
-	# def compute_model_loss(self, batch):
-	# 	device = self.configs['Experiment']['device']
-	# 	O, A, R, O_next, D = batch
-	# 	D = T.as_tensor(D, dtype=T.bool).to(device)
-
-	# 	Prediction, mean, log_std, std, inv_std = self(O, A) # dyn_delta, reward
-	# 	mean_target = T.cat([O_next - O, R], dim=-1)
-
-
-	# 	Jmean = T.mean(T.mean(T.square(mean - mean_target) * inv_std, dim=-1), dim=-1) # batch loss
-	# 	Jstd = T.mean(T.mean(log_std, dim=-1), dim=-1)
-	# 	pass
 
     def training_step(self, batch, batch_idx):
-        device = self._device_
-        O, A, R, O_next, D = batch
-        D = T.as_tensor(D, dtype=T.bool).to(device)
+        self.train_log = dict()
 
-        _, mean, log_std, std, inv_std = self(O, A) # dyn_delta, reward
-        mean_target = T.cat([O_next - O, R], dim=-1)
+        Jmean, Jsigma, J = self.compute_objective(batch)
 
-        # 2 Compute obj function
-        Jmean = T.mean(T.mean(T.square(mean - mean_target) * inv_std * ~D, dim=-1), dim=-1) # batch loss
-        Jstd = T.mean(T.mean(log_std * ~D, dim=-1), dim=-1)
-        Jwl2 = self.weight_l2_loss()
-        J = Jmean + Jstd + Jwl2
-        J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
-        # print('J=', J)
+        # self.log(f'Model {self.m+1}, Jmean_train', Jmean.item(), prog_bar=True)
+        self.log(f'Model {self.m+1}, J_train', J.item(), prog_bar=True)
 
-
-        self.log(f'Model {self.m+1}, Jmean_train', Jmean.item(), prog_bar=True)
-        self.Jmean = Jmean.item()
-        self.J = J.item() # We no longer need it; bc it's auto optimized
-        # print('self.J=', self.J)
+        self.train_log['mean'] = Jmean.item()
+        # self.train_log['sigma'] = Jsigma.item()
+        self.train_log['total'] = J.item()
 
         return J
 
 
     def validation_step(self, batch, batch_idx):
-        device = self._device_
-        O, A, R, O_next, D = batch
-        D = T.as_tensor(D, dtype=T.bool).to(device)
+        self.val = True
+        self.val_log = dict()
 
-        _, mean, log_std, std, inv_std = self(O, A) # dyn_delta, reward
-        mean_target = T.cat([O_next - O, R], dim=-1)
+        Jmean, Jsigma, J = self.compute_objective(batch)
 
-        # 2 Compute obj function
-        Jmean = T.mean(T.mean(T.square(mean - mean_target) * inv_std * ~D, dim=-1), dim=-1) # batch loss
-        Jstd = T.mean(T.mean(log_std * ~D, dim=-1), dim=-1)
-        Jwl2 = self.weight_l2_loss()
-        J = Jmean + Jstd + Jwl2
-        J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
+        # self.log("Jmean_val", Jmean.item(), prog_bar=True)
+        self.log("J_val", J.item(), prog_bar=True)
 
-        self.log("Jmean_val", Jmean.item(), prog_bar=True)
+        self.val_log['mean'] = Jmean.item()
+        # self.val_log['sigma'] = Jsigma.item()
+        self.val_log['total'] = J.item()
 
 
     def get_progress_bar_dict(self):
@@ -172,6 +151,22 @@ class SimpleModel(LightningModule):
         items = super().get_progress_bar_dict()
         items.pop("loss", None)
         return items
+
+
+    def compute_objective(self, batch):
+        O, A, R, O_next, D = batch
+        D = T.as_tensor(D, dtype=T.bool).to(self._device_)
+
+        _, mean, log_sigma, _, inv_sigma = self(O, A) # dyn_delta, reward
+        mean_target = T.cat([O_next - O, R], dim=-1)
+
+        Jmean = T.mean(T.mean(T.square(mean - mean_target) * inv_sigma * ~D, dim=-1), dim=-1) # batch loss
+        Jsigma = T.mean(T.mean(log_sigma * ~D, dim=-1), dim=-1)
+        Jwl2 = self.weight_l2_loss()
+        J = Jmean + Jsigma + Jwl2
+        J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
+
+        return Jmean, Jsigma, J
 
 
     # def compute_l2_loss(self, l2_loss_coefs: Union[float, List[float]]):

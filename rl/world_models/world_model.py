@@ -2,6 +2,12 @@
 import random
 from typing import Type, List, Tuple
 
+import warnings
+warnings.filterwarnings('ignore')
+
+import logging
+logging.getLogger('lightning').setLevel(0)
+
 import numpy as np
 import torch as T
 from torch.distributions.normal import Normal
@@ -16,16 +22,14 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from rl.world_models.model import SimpleModel#, BayesianModel
 # from fusion.data.buffer.norm import RunningNormalizer
 
-# from rl.networks.mlp import MLPNet
+# T.multiprocessing.set_sharing_strategy('file_system')
 
-
-import logging
-logging.getLogger('lightning').setLevel(0)
-T.multiprocessing.set_sharing_strategy('file_system')
 
 
 LOG_SIGMA_MAX = 2
 LOG_SIGMA_MIN = -20
+
+
 
 
 
@@ -137,6 +141,8 @@ class WorldModel(LightningModule):
         num_elites = self.configs['world_model']['num_elites']
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
 
+        JTrainLog, JValLog = dict(), dict()
+
         checkpoint_callback = False
         enable_model_summary = False
         # callbacks_list = [enable_model_summary=False, checkpoint_callback = False]
@@ -157,21 +163,31 @@ class WorldModel(LightningModule):
         	# self.models.to(device) # bc pl-training detatchs models
         	# Jwm = Jdyns
         elif model_type == 'PE':
-        	JMean, JM = [], []
+        	JMeanTrain, JTrain = [], []
+        	JMeanVal, JVal = [], []
+
         	for m in range(M):
         		# Jm, mEpochs = self.models[m].train_Model(env_buffer, batch_size, m)
-        		Jmean, Jm = self.models[m].train_Model(trainer, data_module, m)
+        		# Jmean, Jm, Jmean_val, Jm_val = self.models[m].train_Model(trainer, data_module, m)
+        		train_log, val_log = self.models[m].train_Model(trainer, data_module, m)
         		# print(f'modle {m}: Jdyn = {Jdyn}')
-        		JMean.append(Jmean)
-        		JM.append(Jm)
-        		self.models[m].to(device) # bc pl-training detatchs models
-        	inx_model = np.argsort(JM)
-        	self.inx_elites = inx_model[:num_elites]
-        	# print(f'Jdyns = {Jdyns}')
-        	Jmean = sum(JMean) / M
-        	Jwm = sum(JM) / M
+        		JMeanTrain.append(train_log['mean'])
+        		JTrain.append(train_log['total'])
+        		JMeanVal.append(val_log['mean'])
+        		JVal.append(val_log['total'])
 
-        print('Jmean: ', round(Jmean, 5))
+        		self.models[m].to(device) # bc pl-training detatchs models
+
+        	# inx_model = np.argsort(JTrain)
+        	inx_model = np.argsort(JVal)
+        	self.inx_elites = inx_model[:num_elites]
+
+        	JTrainLog['mean'] = sum(JMeanTrain) / M
+        	JTrainLog['total'] = sum(JTrain) / M
+        	JValLog['mean'] = sum(JMeanVal) / M
+        	JValLog['total'] = sum(JVal) / M
+
+        # print('Jmean: ', round(Jmean, 5))
         print('Elite Models: ', self.inx_elites)
 
-        return Jmean, Jwm#, mEpochs
+        return JTrainLog, JValLog
