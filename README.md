@@ -14,9 +14,16 @@ Algorithms we are re-implementing/plannning to re-implement:
 
 2. Model-Based Policy Optimization (MBPO) [Paper](https://arxiv.org/abs/1812.05905) (Now)
 
-3. Model Predictive Control-Soft Actor Critic (MPC-SAC) [Paper](https://ieeexplore.ieee.org/document/9429677) (Next; Future work)
+3. Natural Policy Gradient (NPG) [Paper](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) (Now)
 
-4. Model Predictive Actor-Critic (MoPAC) [Paper](https://arxiv.org/abs/2103.13842) (Next; Future work)
+4. Model-Based Natural Policy Gradient (MB-NPG) [Paper](https://www.google.com/url?q=https%3A%2F%2Farxiv.org%2Fpdf%2F2004.07804.pdf&sa=D&sntz=1&usg=AFQjCNHD-jeaBoWiamUhN0zP8bHLWsYysQ) (Now)
+
+5. Probabilistic Ensembles with Trajectory Sampling (PETS) [Paper](https://arxiv.org/abs/1805.12114) (Next)
+
+6. Model Predictive Actor-Critic (MoPAC) [Paper](https://arxiv.org/abs/2103.13842) (Next)
+
+7. Model Predictive Control-Soft Actor Critic (MPC-SAC) [Paper](https://ieeexplore.ieee.org/document/9429677) (Next; Future work)
+
 
 
 
