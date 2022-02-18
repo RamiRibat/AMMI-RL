@@ -11,7 +11,7 @@ configurations = {
         },
 
     'algorithm': {
-        'name': 'MBPO',
+        'name': 'PAL-NPG',
         'learning': {
             'epochs': 125, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
@@ -20,7 +20,7 @@ configurations = {
             'real_epochs': 0, # Nr epochs
 
             'env_steps' : 1, # E: interact E times then train
-            'grad_WM_steps': 1, # G: ac grad
+            'grad_WM_steps': 50, # G: ac grad
             'grad_SAC_steps': 20, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
@@ -48,16 +48,15 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 3, # 7
+        'num_ensembles': 2, # 7
         'num_elites': 2, # 5
         'sample_type': 'Random',
         'learn_reward': True,
-        'model_train_freq': 250, # Mf
+        'model_train_freq': 250,#250, # Mf
         'model_retain_epochs': 1,
         'rollout_schedule': [20, 100, 1, 15],
         'network': {
-            # 'arch': [200,200,200,200], #@#
-            'arch': [100,100,100,100],
+            'arch': [200,200,200,200], #@#
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'LeakyReLU',
@@ -78,8 +77,7 @@ configurations = {
         'automatic_entropy': False, # trainer_kwargs
         'target_entropy': "auto",
         'network': {
-            # 'arch': [256,256], #@#
-            'arch': [64,64],
+            'arch': [256,256], #@#
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
@@ -100,8 +98,7 @@ configurations = {
         'gamma': 0.99,
         'tau': 5e-3,
         'network': {
-            # 'arch': [256,256], #@#
-            'arch': [64,64], #@#
+            'arch': [256,256], #@#
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
@@ -122,7 +119,7 @@ configurations = {
         'buffer_size': int(5e5),
         'model_buffer_size': int(1e7),
         'real_ratio': 0.05,
-        'model_val_ratio': 0.2,
+        'model_val_ratio': 0.15,
         'rollout_batch_size': 400,
         'model_batch_size': 256,
         'batch_size': 256,
@@ -135,7 +132,7 @@ configurations = {
         'device': "cpu",
         # 'device': "cuda:0",
         # 'WandB': True,
-        'WandB': False,
+        # 'WandB': False,
         'print_logs': True,
     }
 }
