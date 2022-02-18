@@ -12,7 +12,7 @@ This Deep RL course was taught at **The African Master's in Machine Intelligence
 Algorithms we are re-implementing/plannning to re-implement:
 1. Soft Actor-Critic (SAC) [Paper](https://arxiv.org/abs/1812.05905) (Done)
 
-2. Model-Based Policy Optimization (MBPO) [Paper](https://arxiv.org/abs/1812.05905) (Now)
+2. Model-Based Policy Optimization (MBPO) [Paper](https://arxiv.org/abs/1812.05905) (Now; Almost Done)
 
 3. Natural Policy Gradient (NPG) [Paper](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) (Now)
 
