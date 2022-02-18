@@ -80,6 +80,12 @@ class DataBuffer:
         self.ptr, self.size, self.max_size = 0, 0, size
 
 
+    # def calc_normz(self):
+    #
+    #     return obs_bias, obs_scale, act_bias, act_scale, out_bias, out_scal
+    #     pass
+
+
     def store_transition(self, obs, act, rew, obs_next, ter):
         self.obs_buf[self.ptr] = obs
         self.act_buf[self.ptr] = act
