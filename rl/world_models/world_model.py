@@ -19,7 +19,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 ## Fusion
-from rl.world_models.model import SimpleModel#, BayesianModel
+from rl.world_models.model import DynamicsModel#, BayesianModel
 # from fusion.data.buffer.norm import RunningNormalizer
 
 # T.multiprocessing.set_sharing_strategy('file_system')
@@ -30,45 +30,64 @@ LOG_SIGMA_MAX = 2
 LOG_SIGMA_MIN = -20
 
 
+art_zero = 1e-8
 
 
 
 class WorldModel(LightningModule):
 
-    def __init__(self, obs_dim, act_dim, rew_dim, configs, seed):
+    def __init__(self, obs_dim, act_dim, rew_dim, configs, seed,
+                # obs_bias=None, obs_scale=None,
+                # act_bias=None, act_scale=None,
+                # out_bias=None, out_scale=None
+                ):
         # print('init World Model!')
         super(WorldModel, self).__init__() # To automatically use 'def forward'
         # Set a random seed, se whenever we call crtics they will be consistent
-        # random.seed(seed)###########
-        if seed: np.random.seed(seed), T.manual_seed(seed)
+        # if seed: np.random.seed(seed), T.manual_seed(seed)
 
         device = self._device_ = configs['experiment']['device']
 
-        self.models = []
+        # self.obs_dim = obs_dim
+        # self.act_dim = act_dim
+        # self.out_dim = obs_dim + rew_dim
+        # self.normalization(obs_bias, obs_scale, act_bias, act_scale, out_bias, out_scale)
 
         if configs['world_model']['type'] == 'P':
-        	self.models = SimpleModel(obs_dim,
+        	self.models = DynamicsModel(obs_dim,
         							 act_dim,
         							 rew_dim,
         							 config
         							 ).to(device)
         elif configs['world_model']['type'] == 'PE':
-        	M = configs['world_model']['num_ensembles']
-        	for m in range(M):
-        		model = SimpleModel(obs_dim, act_dim, rew_dim, configs).to(device)
-        		self.models.append(model)
-        # elif configs['world_model']['type'] == 'BE':
-        # 	M = configs['world_model']['Ensembles']
-        # 	for m in range(M):
-        # 		dyn_model = BayesianModel(obs_dim,
-        # 								act_dim,
-        # 								rew_dim,
-        # 								config
-        # 								).to(device)
-        # 		self.models.append(dyn_model)
+            M = configs['world_model']['num_ensembles']
+            self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs).to(device) for m in range(M)]
 
         self.configs = configs
         # print(self.models)
+
+
+    # def normalization(self, obs_bias=None, obs_scale=None,
+    #                         act_bias=None, act_scale=None,
+    #                         out_bias=None, out_scale=None):
+    #
+    #     device = self._device_
+    #
+    #     if obs_bias is None:
+    #         self.obs_bias   = np.zeros(self.obs_dim)
+    #         self.obs_scale  = np.ones(self.obs_dim)
+    #         self.act_bias   = np.zeros(self.act_dim)
+    #         self.act_scale  = np.ones(self.act_dim)
+    #         self.out_bias   = np.zeros(self.out_dim)
+    #         self.out_scale  = np.ones(self.out_dim)
+    #
+    #     # self.obs_bias   = self.obs_bias.to(device)
+    #     # self.obs_scale  = self.obs_scale.to(device)
+    #     # self.act_bias   = self.act_bias.to(device)
+    #     # self.act_scale  = self.act_scale.to(device)
+    #     # self.out_bias   = self.out_bias.to(device)
+    #     # self.out_scale  = self.out_scale.to(device)
+    #     self.mask = self.out_scale >= art_zero
 
 
     def sample(self, obs, act, determenistic, sample_type):
@@ -111,25 +130,26 @@ class WorldModel(LightningModule):
 
 
     def forward(self, obs, act, determenistic=False, sample_type='Average'):
-    	normed_obs = obs#self.obs_norm(obs)
-    	normed_act = act#self.act_norm(act)
+        # print('obs: ', obs)
+        # normed_obs = (obs - self.obs_bias)/(self.obs_scale + art_zero)
+        # normed_act = (act - self.act_bias)/(self.act_scale + art_zero)
 
-    	M = self.configs['world_model']['num_ensembles']
-    	modelType = self.configs['world_model']['type']
-    	device = self._device_  # self.configs['experiment']['device']
+        M = self.configs['world_model']['num_ensembles']
+        modelType = self.configs['world_model']['type']
+        device = self._device_  # self.configs['experiment']['device']
 
-    	if modelType == 'P':
-    		prediction, mean, log_std, std, inv_std = self.sample(normed_obs, normed_act, determenistic, sample_type)
-    	elif modelType == 'PE':
-    		prediction, mean, log_std, std, inv_std = self.sample(normed_obs, normed_act, determenistic, sample_type)
+        if modelType == 'P':
+        	prediction, mean, log_std, std, inv_std = self.sample(obs, act, determenistic, sample_type)
+        elif modelType == 'PE':
+        	prediction, mean, log_std, std, inv_std = self.sample(obs, act, determenistic, sample_type)
 
-    	obs_next = prediction[:,:-1] + obs
-    	rew = prediction[:,-1]
-    	# print('xx:', T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1).shape)
-    	mean = mean + T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1)
+        obs_next = prediction[:,:-1] + obs
+        rew = prediction[:,-1]
+        # print('xx:', T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1).shape)
+        mean = mean + T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1)
 
-    	# print(f'Models: Mean {mean}, STD {std}')
-    	return obs_next, rew, mean, std
+        # print(f'Models: Mean {mean}, STD {std}')
+        return obs_next, rew, mean, std
 
 
     ### PyTorch Lightning ###
@@ -143,51 +163,36 @@ class WorldModel(LightningModule):
 
         JTrainLog, JValLog = dict(), dict()
 
-        checkpoint_callback = False
-        enable_model_summary = False
-        # callbacks_list = [enable_model_summary=False, checkpoint_callback = False]
-        trainer = Trainer(max_epochs=wm_epochs,
-                          # log_every_n_steps=2,
-                          accelerator=device, devices='auto',
-                          gpus=0,
-                          enable_model_summary=False,
-                          enable_checkpointing=False,
-                          progress_bar_refresh_rate=20,
-                          # log_save_interval=100,
-                          logger=False, #self.pl_logger,
-                          # callbacks=[checkpoint_callback, enable_model_summary],
-                           )
+        # checkpoint_callback = False
+        # enable_model_summary = False
 
         if model_type == 'P':
         	Jm, mEpochs = self.models.train_Model(env_buffer, batch_size, 0)
-        	# self.models.to(device) # bc pl-training detatchs models
-        	# Jwm = Jdyns
         elif model_type == 'PE':
-        	JMeanTrain, JTrain = [], []
-        	JMeanVal, JVal = [], []
+            JMeanTrain, JTrain = [], []
+            JMeanVal, JVal = [], []
+            LossTest = []
 
-        	for m in range(M):
-        		# Jm, mEpochs = self.models[m].train_Model(env_buffer, batch_size, m)
-        		# Jmean, Jm, Jmean_val, Jm_val = self.models[m].train_Model(trainer, data_module, m)
-        		train_log, val_log = self.models[m].train_Model(trainer, data_module, m)
-        		# print(f'modle {m}: Jdyn = {Jdyn}')
-        		JMeanTrain.append(train_log['mean'])
-        		JTrain.append(train_log['total'])
-        		JMeanVal.append(val_log['mean'])
-        		JVal.append(val_log['total'])
+            for m in range(M):
+                train_log, val_log = self.models[m].train_Model(data_module, m)
+                test_loss = self.models[m].test_Model(data_module)
+                JMeanTrain.append(train_log['mean'])
+                JTrain.append(train_log['total'])
+                JMeanVal.append(val_log['mean'])
+                JVal.append(val_log['total'])
+                LossTest.append(test_loss)
 
-        		self.models[m].to(device) # bc pl-training detatchs models
+                self.models[m].to(device) # bc pl-training detatchs models
 
-        	# inx_model = np.argsort(JTrain)
-        	inx_model = np.argsort(JVal)
-        	self.inx_elites = inx_model[:num_elites]
+            inx_model = np.argsort(JVal)
+            self.inx_elites = inx_model[:num_elites]
 
-        	JTrainLog['mean'] = sum(JMeanTrain) / M
-        	JTrainLog['total'] = sum(JTrain) / M
-        	JValLog['mean'] = sum(JMeanVal) / M
-        	JValLog['total'] = sum(JVal) / M
+            JTrainLog['mean'] = sum(JMeanTrain) / M
+            JTrainLog['total'] = sum(JTrain) / M
+            JValLog['mean'] = sum(JMeanVal) / M
+            JValLog['total'] = sum(JVal) / M
+            LossTest = sum(LossTest) / M
 
-        # print('Jmean: ', round(Jmean, 5))
-        print('Elite Models: ', self.inx_elites)
+        print('Elite Models: ', [x+1 for x in self.inx_elites])
 
-        return JTrainLog, JValLog
+        return JTrainLog, JValLog, LossTest
