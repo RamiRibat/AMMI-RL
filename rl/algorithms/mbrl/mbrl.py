@@ -74,6 +74,7 @@ class MBRL:
 
     def _set_data_module(self):
         self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
+        pass
 
 
     def _set_world_model(self):

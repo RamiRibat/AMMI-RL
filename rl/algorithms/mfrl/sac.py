@@ -186,11 +186,11 @@ class SAC(MFRL):
                 nt += E
 
             logs['time/training                  '] = time.time() - learn_start_real
-            logs['training/objectives/sac/Jq     '] = np.mean(JQList)
-            logs['training/objectives/sac/Jpi    '] = np.mean(JPiList)
+            logs['training/sac/Jq                '] = np.mean(JQList)
+            logs['training/sac/Jpi               '] = np.mean(JPiList)
             if self.configs['actor']['automatic_entropy']:
-                logs['training/objectives/sac/Jalpha '] = np.mean(JAlphaList)
-                logs['training/objectives/sac/alpha  '] = np.mean(AlphaList)
+                logs['training/sac/Jalpha            '] = np.mean(JAlphaList)
+                logs['training/sac/alpha             '] = np.mean(AlphaList)
 
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate()
@@ -357,6 +357,23 @@ def main(exp_prefix, config, seed):
     print('\n')
 
     configs = config.configurations
+
+    alg_name = configs['algorithm']['name']
+    env_name = configs['environment']['name']
+    env_type = configs['environment']['type']
+
+    group_name = f"{env_name}-{alg_name}"
+    exp_prefix = f"seed:{seed}"
+
+    if configs['experiment']['WandB']:
+        # print('WandB')
+        wandb.init(
+            name=exp_prefix,
+            group=group_name,
+            # project='test',
+            project='AMMI-RL-2022',
+            config=configs
+        )
 
     agent = SAC(exp_prefix, configs, seed)
 

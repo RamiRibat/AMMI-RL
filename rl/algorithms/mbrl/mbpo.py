@@ -17,6 +17,7 @@ from rl.algorithms.mbrl.mbrl import MBRL
 from rl.algorithms.mfrl.sac import SAC
 from rl.world_models.fake_world import FakeWorld
 import rl.environments.mbpo.static as mbpo_static
+# from rl.data.dataset import RLDataModule
 
 
 
@@ -92,6 +93,7 @@ class MBPO(MBRL, SAC):
         oldJs = [0, 0, 0]
         JQList, JAlphaList, JPiList = [0]*Ni, [0]*Ni, [0]*Ni
         JMeanTrainList, JTrainList, JMeanValList, JValList = [0]*Ni, [0]*Ni, [0]*Ni, [0]*Ni
+        LossTestList = [0]*Ni
         AlphaList = [self.alpha]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
@@ -124,13 +126,15 @@ class MBPO(MBRL, SAC):
                         print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
                         # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}                                             ')
                         # Jwm, mEpochs = self.fake_world.train(self.data_module)
-                        JTrainLog, JValLog = self.fake_world.train(self.data_module)
+                        # self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
+                        JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
                         # JWM_Mean_List.append(Jmean)
                         # JWM_List.append(Jwm)
-                        JMeanTrainList.append(JTrainLog['mean'])
+                        # JMeanTrainList.append(JTrainLog['mean'])
                         JTrainList.append(JTrainLog['total'])
-                        JMeanValList.append(JValLog['mean'])
+                        # JMeanValList.append(JValLog['mean'])
                         JValList.append(JValLog['total'])
+                        LossTestList.append(LossTest)
 
                         # Update K-steps length
                         K = self.set_rollout_length(n)
@@ -159,23 +163,24 @@ class MBPO(MBRL, SAC):
 
                 nt += E
 
-            logs['time/training                  '] = time.time() - learn_start_real
+            # logs['time/training                  '] = time.time() - learn_start_real
 
-            logs['training/obj/wm/Jmean_train     '] = np.mean(JMeanTrainList)
-            logs['training/obj/wm/Jtrain     '] = np.mean(JTrainList)
-            logs['validation/obj/wm/Jmean_val     '] = np.mean(JMeanValList)
-            logs['validation/obj/wm/Jval     '] = np.mean(JValList)
+            # logs['training/wm/Jtrain_mean        '] = np.mean(JMeanTrainList)
+            logs['training/wm/Jtrain             '] = np.mean(JTrainList)
+            # logs['training/wm/Jval_mean          '] = np.mean(JMeanValList)
+            logs['training/wm/Jval               '] = np.mean(JValList)
+            logs['training/wm/mse_loss           '] = np.mean(LossTestList)
 
-            logs['training/obj/sac/Jq     '] = np.mean(JQList)
-            logs['training/obj/sac/Jpi    '] = np.mean(JPiList)
+            logs['training/sac/Jq                '] = np.mean(JQList)
+            logs['training/sac/Jpi               '] = np.mean(JPiList)
             if self.configs['actor']['automatic_entropy']:
-                logs['training/obj/sac/Jalpha '] = np.mean(JAlphaList)
-                logs['training/obj/sac/alpha  '] = np.mean(AlphaList)
+                logs['training/obj/sac/Jalpha        '] = np.mean(JAlphaList)
+                logs['training/obj/sac/alpha         '] = np.mean(AlphaList)
 
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate()
 
-            logs['time/evaluation                '] = time.time() - eval_start_real
+            # logs['time/evaluation                '] = time.time() - eval_start_real
 
             if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
                 logs['evaluation/episodic_score_mean '] = np.mean(ES)
@@ -290,8 +295,27 @@ def main(exp_prefix, config, seed):
     print('\n')
 
     configs = config.configurations
+
     if seed:
         random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
+
+    alg_name = configs['algorithm']['name']
+    env_name = configs['environment']['name']
+    env_type = configs['environment']['type']
+    wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
+
+    group_name = f"{env_name}-{alg_name}-{wm_epochs}-Normz"
+    exp_prefix = f"seed:{seed}"
+
+    if configs['experiment']['WandB']:
+        # print('WandB')
+        wandb.init(
+            name=exp_prefix,
+            group=group_name,
+            # project='test',
+            project='AMMI-RL-2022',
+            config=configs
+        )
 
     agent = MBPO(exp_prefix, configs, seed)
 
