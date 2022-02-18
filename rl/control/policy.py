@@ -11,6 +11,8 @@ from rl.control.distributions import TanhNormal
 LOG_STD_MAX = 2
 LOG_STD_MIN = -20
 
+art_zero = 1e-8
+
 
 
 class StochasticPolicy(nn.Module):
@@ -19,8 +21,7 @@ class StochasticPolicy(nn.Module):
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
 		# print('init Policy!')
-		if seed:
-			random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
+		# if seed: random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
 		self.device = device
 		net_arch = net_configs['arch']
@@ -36,6 +37,9 @@ class StochasticPolicy(nn.Module):
 
 		# Define optimizer
 		self.optimizer = eval(optimizer)(self.parameters(), lr)
+
+		self.obs_bias   = np.zeros(obs_dim)
+		self.obs_scale  = np.ones(obs_dim)
 
 		self.act_dim = act_dim
 		self.action_scale = T.FloatTensor( 0.5 * (act_up_lim - act_low_lim) ).to(device)
@@ -58,7 +62,9 @@ class StochasticPolicy(nn.Module):
 			pi, pre_tanh_value = tanh_normal.rsample()
 		else:
 			pi, pre_tanh_value = tanh_normal.sample()
+		# print('pi b4: ', T.mean(pi, dim=0))
 		pi = (pi * self.action_scale) + self.action_bias
+		# print('pi af: ', T.mean(pi, dim=0))
 		return pi, pre_tanh_value
 
 
@@ -80,6 +86,9 @@ class StochasticPolicy(nn.Module):
 				deterministic=False, # Default: False
 				return_log_pi=False # Default: False
 				):
+
+		obs = (obs - self.obs_bias) / (self.obs_scale + art_zero)
+
 		mean, std = self.get_act_dist_params(T.as_tensor(obs, dtype=T.float32).to(self.device))
 		# print('STD: ', std)
 		log_pi = None
