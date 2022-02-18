@@ -15,6 +15,7 @@ import torch as T
 from torch._C import dtype
 from torch.distributions.normal import Normal
 nn = T.nn
+F = nn.functional
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import IterableDataset
 # T.multiprocessing.set_sharing_strategy('file_system')
@@ -74,11 +75,26 @@ class DynamicsModel(LightningModule):
     def get_model_dist_params(self, ips):
         net_out = self.mu_log_sigma_net(ips)
         mu = self.mu(net_out)
+
         log_sigma = self.log_sigma(net_out)
-        log_sigma = self.max_log_sigma - (self.max_log_sigma - log_sigma)
-        log_sigma = self.min_log_sigma + (log_sigma - self.min_log_sigma)
+        log_sigma = self.max_log_sigma - F.softplus(self.max_log_sigma - log_sigma)
+        log_sigma = self.min_log_sigma + F.softplus(log_sigma - self.min_log_sigma)
+        # print('log_sigma: ', log_sigma)
+        # print(f'log_sigma_mean={T.mean(T.mean(log_sigma, dim=0))}')
+
         sigma = T.exp(log_sigma)
+        # print('sigma: ', sigma)
         sigma_inv = T.exp(-log_sigma)
+        # print('sigma_inv: ', sigma_inv)
+
+        # if T.mean(T.mean(sigma, dim=0)) > 1e2:
+        #     # print(f'normed_o={normed_o}')
+        #     # print(f'mu={mu}')
+        #     print('log_sigma: ', log_sigma)
+        #     # print('sigma: ', sigma)
+        #     print(f'sigma_mean={T.mean(T.mean(sigma, dim=0))}')
+        #     exit()
+
         return mu, log_sigma, sigma, sigma_inv
 
 
@@ -120,15 +136,24 @@ class DynamicsModel(LightningModule):
             T.as_tensor(ips, dtype=T.float32).to(self._device_))
 
         if self.normalize_out:
-            print('\nmu mean bf', T.mean(mu, dim=0))
+            # print('\nmu mean bf', T.mean(mu, dim=0))
             mu = mu * (self.out_scale + art_zero) + self.out_bias
-            print('mu mean af', T.mean(mu, dim=0))
+            # print('mu mean af', T.mean(mu, dim=0))
 
         if deterministic:
             predictions = self.deterministic(mu)
         else:
             normal_ditribution = Normal(mu, sigma)
             predictions = normal_ditribution.rsample()
+        # print(f'predictions={predictions}')
+        print(f'predictions_mean={T.mean(T.mean(predictions, dim=0))}')
+
+        if T.mean(T.mean(predictions, dim=0)) > 1.0:
+            # print(f'normed_o={normed_o}')
+            # print(f'mu={mu}')
+            print(f'predictions={predictions}')
+            print(f'predictions_mean={T.mean(T.mean(predictions, dim=0))}')
+        #     exit()
 
         return predictions, mu, log_sigma, sigma, sigma_inv
 
@@ -248,15 +273,19 @@ class DynamicsModel(LightningModule):
             out_scale = T.mean(T.abs(O - O_next - out_bias), dim=0)
             self.normalization(obs_bias, obs_scale, act_bias, act_scale, out_bias, out_scale)
 
-        predictions, mean, log_sigma, _, inv_sigma = self(O, A) # dyn_delta, reward
+        predictions, mean, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
         mean_target = T.cat([O_next - O, R], dim=-1)
 
-        # Jmean = T.mean(T.mean(T.square(mean - mean_target) * inv_sigma * ~D, dim=-1), dim=-1) # batch loss
-        Jmean = self.loss(mean, mean_target)
-        Jsigma = T.tensor([0.0])#T.mean(T.mean(log_sigma * ~D, dim=-1), dim=-1)
-        # Jwl2 = self.weight_l2_loss()
-        J = Jmean #+ Jsigma + Jwl2
-        # J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
+        # print(f'sigma={sigma}')
+        # print(f'sigma_inv={sigma_inv}')
+
+        Jmean = T.mean(T.mean(T.square(mean - mean_target) * sigma_inv * ~D, dim=-1), dim=-1) # batch loss
+        # Jmean = T.mean(T.mean(T.square(mean - mean_target), dim=0)) # batch loss
+        # Jmean = self.loss(mean, mean_target)
+        Jsigma = T.mean(T.mean(log_sigma * ~D, dim=-1), dim=-1)
+        Jwl2 = self.weight_l2_loss()
+        J = Jmean + Jsigma + Jwl2
+        J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
 
         # J = self.loss(predictions, mean_target)
 

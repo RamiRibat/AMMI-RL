@@ -13,11 +13,11 @@ configurations = {
     'algorithm': {
         'name': 'MBPO',
         'learning': {
-            'epochs': 1000, # N epochs
+            'epochs': 125, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 5, # Ni epochs = 5000 exploration steps
             'expl_epochs': 10, # Nx epochs
-            'real_epochs': 0, # Nr epochs
+            # 'real_epochs': 0, # Nr epochs
 
             'env_steps' : 1, # E: interact E times then train
             'grad_WM_steps': 50, # G: ac grad
@@ -48,8 +48,8 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 7, # 7
-        'num_elites': 5, # 5
+        'num_ensembles': 3, # 7
+        'num_elites': 2, # 5
         'sample_type': 'Random',
         'learn_reward': True,
         'model_train_freq': 250,#250, # Mf
@@ -132,7 +132,7 @@ configurations = {
         'device': "cpu",
         # 'device': "cuda:0",
         'WandB': True,
-        # 'WandB': False,
+        'WandB': False,
         'print_logs': True,
     }
 }

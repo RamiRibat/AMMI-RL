@@ -47,16 +47,23 @@ class StochasticPolicy(nn.Module):
 
 
 	def get_act_dist_params(self, obs):
+		# print('get_act_dist_params')
+		# print(f'obs={obs}')
 		net_out = self.mean_and_log_std_net(obs)
+		# print(f'net_out={net_out}')
 		mean = self.mu(net_out)
+		# print(f'mean={mean}')
 		log_std = self.log_std(net_out)
 		log_std = T.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
+		# print(f'Policy log_std={log_std}')
 		std = T.exp(log_std)
+		# print(f'std={std}')
 		return mean, std
 
 
 	def prob(self, mean, std, reparameterize):
 		pre_tanh_value = None
+		# print(f'Policy prob: \nmean={mean}, \nstd={std}')
 		tanh_normal = TanhNormal(mean, std, device=self.device)
 		if reparameterize:
 			pi, pre_tanh_value = tanh_normal.rsample()
