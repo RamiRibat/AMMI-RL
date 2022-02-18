@@ -44,19 +44,18 @@ def main(cfg, seed):
 
     # configs['seed'] = seed
 
-    if configurations['experiment']['WandB']:
-        wandb.init(
-            name=exp_prefix,
-            group=group_name,
-            # project='test',
-            project='ammi-rl-2022',
-            config=configs
-        )
+    # if configurations['experiment']['WandB']:
+    #     # print('WandB')
+    #     wandb.init(
+    #         name=exp_prefix,
+    #         group=group_name,
+    #         # project='test',
+    #         project='AMMI-RL-2022',
+    #         config=configurations
+    #     )
 
     cwd = os.getcwd()
     alg_dir = cwd + f'/algorithms/'
-    # print('alg_dir: ', alg_dir)
-    # print('alg name', alg_name)
 
 
     for root, dirs, files in os.walk(alg_dir):
