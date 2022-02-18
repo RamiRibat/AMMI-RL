@@ -265,6 +265,7 @@ class SAC(MFRL):
         A = batch['actions']
         R = batch['rewards']
         O_next = batch['observations_next']
+        # print(f'\nupdateQ: \nO_next={O_next}')
         D = batch['terminals']
 
         # Calculate two Q-functions
