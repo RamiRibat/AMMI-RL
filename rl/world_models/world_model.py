@@ -175,7 +175,7 @@ class WorldModel(LightningModule):
 
             for m in range(M):
                 train_log, val_log = self.models[m].train_Model(data_module, m)
-                test_loss = self.models[m].test_Model(data_module)
+                test_loss, WMLogs = self.models[m].test_Model(data_module)
                 JMeanTrain.append(train_log['mean'])
                 JTrain.append(train_log['total'])
                 JMeanVal.append(val_log['mean'])
@@ -195,4 +195,4 @@ class WorldModel(LightningModule):
 
         print('Elite Models: ', [x+1 for x in self.inx_elites])
 
-        return JTrainLog, JValLog, LossTest
+        return JTrainLog, JValLog, LossTest, WMLogs

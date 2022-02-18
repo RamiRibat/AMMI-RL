@@ -56,7 +56,7 @@ class ActorCritic: # Done
 
 
     def _set_critic(self):
-        net_configs = self.configs['actor']['network']
+        net_configs = self.configs['critic']['network']
         return SoftQFunction(
             self.obs_dim, self.act_dim,
             net_configs, self.seed).to(self.device)

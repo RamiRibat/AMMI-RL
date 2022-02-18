@@ -13,8 +13,8 @@ import torch.nn.functional as F
 
 from rl.algorithms.mfrl.mfrl import MFRL
 from rl.control.policy import StochasticPolicy
-from rl.value_functions.q_function import SoftQFunction
-# from rl.value_functions.v_function import VFunction
+# from rl.value_functions.q_function import QFunction
+from rl.value_functions.v_function import VFunction
 
 
 
@@ -22,7 +22,7 @@ class ActorCritic: # Done
     """
     Actor-Critic
         An entity contains both the actor (policy) that acts on the environment,
-        and a critic (Q-function) that evaluate that state-action given a policy.
+        and a critic (V-function) that evaluate that state given a policy.
     """
     def __init__(self,
                  obs_dim, act_dim,
@@ -36,13 +36,13 @@ class ActorCritic: # Done
         self.configs, self.seed = configs, seed
         self.device = configs['experiment']['device']
 
-        self.actor, self.critic, self.critic_target = None, None, None
+        self.actor, self.critic = None, None
         self._build()
 
 
     def _build(self):
         self.actor = self._set_actor()
-        self.critic, self.critic_target = self._set_critic(), self._set_critic()
+        self.critic = self._set_critic()
         # parameters will be updated using a weighted average
         for p in self.critic_target.parameters():
             p.requires_grad = False
@@ -57,9 +57,9 @@ class ActorCritic: # Done
 
 
     def _set_critic(self):
-        net_configs = self.configs['actor']['network']
-        return SoftQFunction(
-            self.obs_dim, self.act_dim,
+        net_configs = self.configs['critic']['network']
+        return VFunction(
+            self.obs_dim,
             net_configs, self.seed).to(self.device)
 
 
@@ -89,7 +89,7 @@ class NPG(MFRL):
     """
     def __init__(self, exp_prefix, configs, seed) -> None:
         super(SAC, self).__init__(exp_prefix, configs, seed)
-        print('Initialize SAC Algorithm!')
+        print('Initialize NPG Algorithm!')
         self.configs = configs
         self.seed = seed
         self._build()
@@ -97,12 +97,12 @@ class NPG(MFRL):
 
     def _build(self):
         super(SAC, self)._build()
-        self._build_sac()
+        self._build_npg()
 
 
-    def _build_sac(self):
+    def _build_npg(self):
         self._set_actor_critic()
-        self._set_alpha()
+        # self._set_alpha()
 
 
     def _set_actor_critic(self):
@@ -111,27 +111,6 @@ class NPG(MFRL):
             self.act_up_lim, self.act_low_lim,
             self.configs, self.seed)
 
-
-    def _set_alpha(self):
-        if self.configs['actor']['automatic_entropy']:
-            # Learned Temprature
-            device = self.configs['experiment']['device']
-            optimizer = 'T.optim.' + self.configs['actor']['network']['optimizer']
-            lr = self.configs['actor']['network']['lr']
-            target_entropy = self.configs['actor']['target_entropy']
-
-            if target_entropy == 'auto':
-                self.target_entropy = (
-                    - 1.0 * T.prod(
-                        T.Tensor(self.learn_env.action_space.shape).to(device)
-                    ).item())
-
-            self.log_alpha = T.zeros(1, requires_grad=True, device=device)
-            self.alpha = self.log_alpha.exp().item()
-            self.alpha_optimizer = eval(optimizer)([self.log_alpha], lr)
-        else:
-            # Fixed Temprature
-            self.alpha = self.configs['actor']['alpha']
 
 
     def learn(self):
@@ -187,11 +166,11 @@ class NPG(MFRL):
                 nt += E
 
             logs['time/training                  '] = time.time() - learn_start_real
-            logs['training/sac/Jq                '] = np.mean(JQList)
-            logs['training/sac/Jpi               '] = np.mean(JPiList)
-            if self.configs['actor']['automatic_entropy']:
-                logs['training/sac/Jalpha            '] = np.mean(JAlphaList)
-                logs['training/sac/alpha             '] = np.mean(AlphaList)
+            logs['training/npg/Jq                '] = np.mean(JQList)
+            logs['training/npg/Jpi               '] = np.mean(JPiList)
+            # if self.configs['actor']['automatic_entropy']:
+            #     logs['training/npg/Jalpha            '] = np.mean(JAlphaList)
+            #     logs['training/npg/alpha             '] = np.mean(AlphaList)
 
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate()
@@ -241,19 +220,19 @@ class NPG(MFRL):
 
     def trainAC(self, g, batch, oldJs):
         AUI = self.configs['algorithm']['learning']['alpha_update_interval']
-        PUI = self.configs['algorithm']['learning']['policy_update_interval']
+        # PUI = self.configs['algorithm']['learning']['policy_update_interval']
         TUI = self.configs['algorithm']['learning']['target_update_interval']
 
-        Jq = self.updateQ(batch)
-        Jalpha = self.updateAlpha(batch)# if (g % AUI == 0) else oldJs[1]
+        Jv = self.updateV(batch)
+        # Jalpha = self.updateAlpha(batch)# if (g % AUI == 0) else oldJs[1]
         Jpi = self.updatePi(batch)# if (g % PUI == 0) else oldJs[2]
         # if g % TUI == 0:
-        self.updateTarget()
+        # self.updateTarget()
 
-        return Jq, Jalpha, Jpi
+        return Jv, Jpi
 
 
-    def updateQ(self, batch):
+    def updateV(self, batch):
         """"
         JQ(θ) = E(st,at)∼D[ 0.5 ( Qθ(st, at)
                             − r(st, at)
@@ -290,33 +269,6 @@ class NPG(MFRL):
         return Jq
 
 
-    def updateAlpha(self, batch):
-        """
-
-        αt* = arg min_αt Eat∼πt∗[ −αt log( πt*(at|st; αt) ) − αt H¯
-
-        """
-        if self.configs['actor']['automatic_entropy']:
-            # Learned Temprature
-            O = batch['observations']
-
-            with T.no_grad():
-                _, log_pi = self.actor_critic.actor(O, return_log_pi=True)
-            Jalpha = - (self.log_alpha * (log_pi + self.target_entropy)).mean()
-
-            # Gradient Descent
-            self.alpha_optimizer.zero_grad()
-            Jalpha.backward()
-            self.alpha_optimizer.step()
-
-            self.alpha = self.log_alpha.exp().item()
-
-            return Jalpha
-        else:
-            # Fixed Temprature
-            return 0.0
-
-
     def updatePi(self, batch):
         """
         Jπ(φ) = Est∼D[ Eat∼πφ[α log (πφ(at|st)) − Qθ(st, at)] ]
@@ -340,12 +292,11 @@ class NPG(MFRL):
         return Jpi
 
 
-    def updateTarget(self):
-        tau = self.configs['critic']['tau']
-        with T.no_grad():
-            for p, p_targ in zip(self.actor_critic.critic.parameters(),
-                                 self.actor_critic.critic_target.parameters()):
-                p_targ.data.copy_(tau * p.data + (1 - tau) * p_targ.data)
+    def compute_fisher(self):
+        pass
+
+    def compute_advantage(self):
+        pass
 
 
 

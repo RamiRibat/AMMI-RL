@@ -94,6 +94,7 @@ class MBPO(MBRL, SAC):
         JQList, JAlphaList, JPiList = [0]*Ni, [0]*Ni, [0]*Ni
         JMeanTrainList, JTrainList, JMeanValList, JValList = [0]*Ni, [0]*Ni, [0]*Ni, [0]*Ni
         LossTestList = [0]*Ni
+        WMList = {'mean': [0]*Ni, 'sigma': [0]*Ni}
         AlphaList = [self.alpha]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
@@ -127,7 +128,7 @@ class MBPO(MBRL, SAC):
                         # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}                                             ')
                         # Jwm, mEpochs = self.fake_world.train(self.data_module)
                         # self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
-                        JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
+                        JTrainLog, JValLog, LossTest, WMLogs = self.fake_world.train(self.data_module)
                         # JWM_Mean_List.append(Jmean)
                         # JWM_List.append(Jwm)
                         # JMeanTrainList.append(JTrainLog['mean'])
@@ -135,6 +136,8 @@ class MBPO(MBRL, SAC):
                         # JMeanValList.append(JValLog['mean'])
                         JValList.append(JValLog['total'])
                         LossTestList.append(LossTest)
+                        WMList['mean'].append(WMLogs['mean'])
+                        WMList['sigma'].append(WMLogs['sigma'])
 
                         # Update K-steps length
                         K = self.set_rollout_length(n)
@@ -169,7 +172,9 @@ class MBPO(MBRL, SAC):
             logs['training/wm/Jtrain             '] = np.mean(JTrainList)
             # logs['training/wm/Jval_mean          '] = np.mean(JMeanValList)
             logs['training/wm/Jval               '] = np.mean(JValList)
-            logs['training/wm/mse_loss           '] = np.mean(LossTestList)
+            logs['training/wm/test_mse_loss      '] = np.mean(LossTestList)
+            logs['training/wm/test_mean          '] = np.mean(WMList['mean'])
+            logs['training/wm/test_sigma         '] = np.mean(WMList['sigma'])
 
             logs['training/sac/Jq                '] = np.mean(JQList)
             logs['training/sac/Jpi               '] = np.mean(JPiList)

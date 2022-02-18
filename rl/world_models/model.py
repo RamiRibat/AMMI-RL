@@ -146,7 +146,7 @@ class DynamicsModel(LightningModule):
             normal_ditribution = Normal(mu, sigma)
             predictions = normal_ditribution.rsample()
         # print(f'predictions={predictions}')
-        print(f'predictions_mean={T.mean(T.mean(predictions, dim=0))}')
+        # print(f'predictions_mean={T.mean(T.mean(predictions, dim=0))}')
 
         if T.mean(T.mean(predictions, dim=0)) > 1.0:
             # print(f'normed_o={normed_o}')
@@ -206,7 +206,7 @@ class DynamicsModel(LightningModule):
 
     def test_Model(self, data_module):
         self.trainer.test(self, data_module)
-        return self.test_loss
+        return self.test_loss, self.WMLogs
 
 
 	### PyTorch Lightning ###
@@ -249,9 +249,10 @@ class DynamicsModel(LightningModule):
 
     def test_step(self, batch, batch_idx):
         # Model prediction performance
-        loss = self.compute_test_loss(batch)
+        loss, WMLogs = self.compute_test_loss(batch)
         self.log("mse_loss", loss.item(), prog_bar=True)
         self.test_loss = loss.item()
+        self.WMLogs = WMLogs
 
 
     def get_progress_bar_dict(self):
@@ -310,11 +311,12 @@ class DynamicsModel(LightningModule):
         O, A, R, O_next, D = batch
         D = T.as_tensor(D, dtype=T.bool).to(self._device_)
 
-        preds, _, _, _, _ = self(O, A) # dyn_delta, reward
+        preds, mean, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
         # print('preds: ', preds.shape)
         preds_target = T.cat([O_next - O, R], dim=-1)
         # print('preds_target: ', preds_target.shape)
 
         loss = self.loss(preds, preds_target)
+        WMLogs = {'mean': mean, 'sigma': sigma}
 
-        return loss
+        return loss, WMLogs
