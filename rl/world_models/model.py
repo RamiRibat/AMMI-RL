@@ -6,8 +6,8 @@ import typing
 import warnings
 warnings.filterwarnings('ignore')
 
-import logging
-logging.getLogger('lightning').setLevel(0)
+# import logging
+# logging.getLogger('lightning').setLevel(0)
 
 import numpy as np
 from numpy.random.mtrand import normal
@@ -22,6 +22,7 @@ from torch.utils.data.dataset import IterableDataset
 
 import pytorch_lightning as pl
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from rl.networks.mlp import MLPNet
 
@@ -30,8 +31,36 @@ from rl.networks.mlp import MLPNet
 LOG_SIGMA_MAX = 2
 LOG_SIGMA_MIN = -20
 
+epsilon = 1e-8
 
-art_zero = 1e-8
+
+
+
+
+
+
+def init_weights_(l):
+    """
+    source: https://github.com/Xingyu-Lin/mbpo_pytorch/blob/main/model.py#L64
+    """
+
+    def truncated_normal_(w, mean=0.0, std=1.0):
+        nn.init.normal_(w, mean=mean, std=std)
+        while True:
+            i = T.logical_or(w < mean - 2*std, w > mean + 2*std)
+            bound = T.sum(i).item()
+            if bound == 0: break
+            w[i] = T.normal(mean, std, size=(bound, ), device=w.device)
+        return w
+
+    if isinstance(l, nn.Linear):
+        ip_dim = l.weight.data.shape[0]
+        std = 1 / (2 * np.sqrt(ip_dim))
+        truncated_normal_(l.weight.data, std=std)
+        l.bias.data.fill_(0.0)
+
+
+
 
 
 class DynamicsModel(LightningModule):
@@ -51,41 +80,44 @@ class DynamicsModel(LightningModule):
 
         self.obs_dim = obs_dim
         self.act_dim = act_dim
-        self.out_dim = obs_dim + rew_dim
+        self.inp_dim = inp_dim = obs_dim + act_dim
+        self.out_dim = out_dim = obs_dim + rew_dim
         self.normalization(obs_bias, obs_scale, act_bias, act_scale, out_bias, out_scale)
 
         net_configs = configs['world_model']['network']
         net_arch = net_configs['arch']
 
-        self.mu_log_sigma_net = MLPNet(obs_dim + act_dim, 0, net_configs)
-        self.mu = nn.Linear(net_arch[-1], obs_dim + rew_dim)
-        self.log_sigma = nn.Linear(net_arch[-1], obs_dim + rew_dim)
+        self.mu_log_sigma_net = MLPNet(inp_dim, 0, net_configs)
+        self.mu = nn.Linear(net_arch[-1], out_dim)
+        if configs['world_model']['type'][0] == 'P':
+            self.log_sigma = nn.Linear(net_arch[-1], out_dim)
 
-        self.max_log_sigma = nn.Parameter( T.ones([1, obs_dim + rew_dim]) / 2, requires_grad=False)
-        self.min_log_sigma = nn.Parameter( -T.ones([1, obs_dim + rew_dim]) * 10, requires_grad=False)
+        self.min_log_sigma = nn.Parameter( -10.0 * T.ones([1, out_dim]),
+                                          requires_grad=configs['world_model']['learn_log_sigma_limits'])
+        self.max_log_sigma = nn.Parameter(T.ones([1, out_dim]) / 2.0,
+                                          requires_grad=configs['world_model']['learn_log_sigma_limits'])
         self.reparam_noise = 1e-6
+
+        self.apply(init_weights_)
 
         self.normalize = True
         self.normalize_out = True
 
-        self.loss = nn.MSELoss()
+        self.gnll_loss = nn.GaussianNLLLoss()
+        self.mse_loss = nn.MSELoss()
+
+        # self.to(self._device_)
 
 
 
     def get_model_dist_params(self, ips):
         net_out = self.mu_log_sigma_net(ips)
-        mu = self.mu(net_out)
-
-        log_sigma = self.log_sigma(net_out)
+        mu, log_sigma = self.mu(net_out), self.log_sigma(net_out)
         log_sigma = self.max_log_sigma - F.softplus(self.max_log_sigma - log_sigma)
         log_sigma = self.min_log_sigma + F.softplus(log_sigma - self.min_log_sigma)
-        # print('log_sigma: ', log_sigma)
-        # print(f'log_sigma_mean={T.mean(T.mean(log_sigma, dim=0))}')
 
         sigma = T.exp(log_sigma)
-        # print('sigma: ', sigma)
-        sigma_inv = T.exp(-log_sigma)
-        # print('sigma_inv: ', sigma_inv)
+        sigma_inv = T.tensor([0.0]) #T.exp(-log_sigma)
 
         # if T.mean(T.mean(sigma, dim=0)) > 1e2:
         #     # print(f'normed_o={normed_o}')
@@ -122,13 +154,13 @@ class DynamicsModel(LightningModule):
         self.act_scale  = self.act_scale.to(device)
         self.out_bias   = self.out_bias.to(device)
         self.out_scale  = self.out_scale.to(device)
-        self.mask = self.out_scale >= art_zero
+        self.mask = self.out_scale >= epsilon
 
 
     def forward(self, o, a, deterministic= False):
 
-        normed_o = (o - self.obs_bias)/(self.obs_scale + art_zero)
-        normed_a = (a - self.act_bias)/(self.act_scale + art_zero)
+        normed_o = (o - self.obs_bias)/(self.obs_scale + epsilon)
+        normed_a = (a - self.act_bias)/(self.act_scale + epsilon)
 
         ips = T.as_tensor(T.cat([normed_o, normed_a], dim=-1), dtype=T.float32).to(self._device_)
 
@@ -136,26 +168,22 @@ class DynamicsModel(LightningModule):
             T.as_tensor(ips, dtype=T.float32).to(self._device_))
 
         if self.normalize_out:
-            # print('\nmu mean bf', T.mean(mu, dim=0))
-            mu = mu * (self.out_scale + art_zero) + self.out_bias
-            # print('mu mean af', T.mean(mu, dim=0))
+            mu = mu * (self.out_scale + epsilon) + self.out_bias
 
-        if deterministic:
-            predictions = self.deterministic(mu)
-        else:
-            normal_ditribution = Normal(mu, sigma)
-            predictions = normal_ditribution.rsample()
-        # print(f'predictions={predictions}')
-        # print(f'predictions_mean={T.mean(T.mean(predictions, dim=0))}')
+        # if deterministic:
+        #     predictions = self.deterministic(mu)
+        # else:
+        #     normal_ditribution = Normal(mu, sigma)
+        #     predictions = normal_ditribution.rsample()
 
-        if T.mean(T.mean(predictions, dim=0)) > 1.0:
-            # print(f'normed_o={normed_o}')
-            # print(f'mu={mu}')
-            print(f'predictions={predictions}')
-            print(f'predictions_mean={T.mean(T.mean(predictions, dim=0))}')
+        # if T.mean(T.mean(predictions, dim=0)) > 1.0:
+        #     print(f'normed_o={normed_o}')
+        #     print(f'mu={mu}')
+        #     print(f'predictions={predictions}')
+        #     print(f'predictions_mean={T.mean(T.mean(predictions, dim=0))}')
         #     exit()
 
-        return predictions, mu, log_sigma, sigma, sigma_inv
+        return mu, log_sigma, sigma, sigma_inv
 
 
     def train_Model(self, data_module, m):
@@ -175,16 +203,24 @@ class DynamicsModel(LightningModule):
         # data = DataModule(env_buffer, batch_size)
         # if dropout != None: self.train()
 
-        self.trainer = Trainer(max_epochs=wm_epochs,
+        early_stop_callback = EarlyStopping(monitor="J_val",
+                                            min_delta=0.0,
+                                            patience=5,
+                                            # verbose=False,
+                                            mode="max"
+                                            )
+
+        self.trainer = Trainer(
+                          # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
-                          accelerator=device, devices='auto',
-                          gpus=0,
+                          # accelerator=device, devices='auto',
+                          # gpus=0,
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
                           # log_save_interval=100,
                           logger=False, #self.pl_logger,
-                          # callbacks=[checkpoint_callback, enable_model_summary],
+                          callbacks=[early_stop_callback],
                           )
 
         self.normalize_out = False
@@ -206,7 +242,7 @@ class DynamicsModel(LightningModule):
 
     def test_Model(self, data_module):
         self.trainer.test(self, data_module)
-        return self.test_loss, self.WMLogs
+        return self.test_loss, self.wm_mu, self.wm_sigma
 
 
 	### PyTorch Lightning ###
@@ -221,12 +257,12 @@ class DynamicsModel(LightningModule):
     def training_step(self, batch, batch_idx):
         self.train_log = dict()
 
-        Jmean, Jsigma, J = self.compute_objective(batch)
+        Jmu, Jsigma, J = self.compute_objective(batch)
 
         # self.log(f'Model {self.m+1}, Jmean_train', Jmean.item(), prog_bar=True)
         self.log(f'Model {self.m+1}, J_train', J.item(), prog_bar=True)
 
-        self.train_log['mean'] = Jmean.item()
+        self.train_log['mu'] = Jmu.item()
         # self.train_log['sigma'] = Jsigma.item()
         self.train_log['total'] = J.item()
 
@@ -242,17 +278,18 @@ class DynamicsModel(LightningModule):
         # self.log("Jmean_val", Jmean.item(), prog_bar=True)
         self.log("J_val", J.item(), prog_bar=True)
 
-        self.val_log['mean'] = Jmean.item()
+        self.val_log['mu'] = Jmean.item()
         # self.val_log['sigma'] = Jsigma.item()
         self.val_log['total'] = J.item()
 
 
     def test_step(self, batch, batch_idx):
         # Model prediction performance
-        loss, WMLogs = self.compute_test_loss(batch)
+        loss, wm_mu, wm_sigma = self.compute_test_loss(batch)
         self.log("mse_loss", loss.item(), prog_bar=True)
         self.test_loss = loss.item()
-        self.WMLogs = WMLogs
+        self.wm_mu = wm_mu
+        self.wm_sigma = wm_sigma
 
 
     def get_progress_bar_dict(self):
@@ -274,23 +311,19 @@ class DynamicsModel(LightningModule):
             out_scale = T.mean(T.abs(O - O_next - out_bias), dim=0)
             self.normalization(obs_bias, obs_scale, act_bias, act_scale, out_bias, out_scale)
 
-        predictions, mean, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
-        mean_target = T.cat([O_next - O, R], dim=-1)
+        mu, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
+        mu_target = T.cat([O_next - O, R], dim=-1)
 
-        # print(f'sigma={sigma}')
-        # print(f'sigma_inv={sigma_inv}')
-
-        Jmean = T.mean(T.mean(T.square(mean - mean_target) * sigma_inv * ~D, dim=-1), dim=-1) # batch loss
-        # Jmean = T.mean(T.mean(T.square(mean - mean_target), dim=0)) # batch loss
-        # Jmean = self.loss(mean, mean_target)
-        Jsigma = T.mean(T.mean(log_sigma * ~D, dim=-1), dim=-1)
+        # Gaussian NLL loss
+        Jmu = T.tensor([0.0]) #T.mean(T.mean(T.square(mu - mu_target) * sigma_inv * ~D, dim=-1), dim=-1) # batch loss
+        Jsigma = T.tensor([0.0]) #T.mean(T.mean(log_sigma * ~D, dim=-1), dim=-1)
+        # Jgnll = Jmu + Jsigma
+        Jgnll = self.gnll_loss(mu, mu_target, sigma)
         Jwl2 = self.weight_l2_loss()
-        J = Jmean + Jsigma + Jwl2
-        J += 0.01 * (T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma))
+        J = Jgnll + Jwl2
+        J += 0.01 * ( T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma) ) # optimize bounds
 
-        # J = self.loss(predictions, mean_target)
-
-        return Jmean, Jsigma, J
+        return Jmu, Jsigma, J
 
 
     # def compute_l2_loss(self, l2_loss_coefs: Union[float, List[float]]):
@@ -311,12 +344,12 @@ class DynamicsModel(LightningModule):
         O, A, R, O_next, D = batch
         D = T.as_tensor(D, dtype=T.bool).to(self._device_)
 
-        preds, mean, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
-        # print('preds: ', preds.shape)
-        preds_target = T.cat([O_next - O, R], dim=-1)
-        # print('preds_target: ', preds_target.shape)
+        mu, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
+        mu_target = T.cat([O_next - O, R], dim=-1)
 
-        loss = self.loss(preds, preds_target)
-        WMLogs = {'mean': mean, 'sigma': sigma}
+        loss = self.mse_loss(mu, mu_target)
 
-        return loss, WMLogs
+        wm_mu = T.mean(T.mean(mu, dim=0))
+        wm_sigma = T.mean(T.mean(sigma, dim=0))
+
+        return loss, wm_mu, wm_sigma

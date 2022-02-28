@@ -33,7 +33,7 @@ class FakeWorld:
         # Predictions
         sample_type = self.configs['world_model']['sample_type']
         with T.no_grad():
-            Os_next, Rs, Means, STDs = self.models(Os, As, deterministic, sample_type)
+            Os_next, Rs, MEANs, SIGMAs = self.models(Os, As, deterministic, sample_type)
 
         # Terminations
         if self.env_name[:4] == 'pddm':
@@ -46,7 +46,7 @@ class FakeWorld:
                                                 As.detach().cpu().numpy(),
                                                 Os_next.detach().cpu().numpy())
 
-        INFOs = {'mean': Means.detach().cpu().numpy(), 'std': STDs.detach().cpu().numpy()}
+        INFOs = {'mu': MEANs.detach().cpu().numpy(), 'sigma': SIGMAs.detach().cpu().numpy()}
         # INFOs = None
 
         return Os_next, Rs, Ds, INFOs ###
@@ -66,7 +66,7 @@ class FakeWorld:
         # Predictions
         sample_type = m
         with T.no_grad():
-            Os_next, Rs, Means, STDs = self.models(Os, As, deterministic, sample_type)
+            Os_next, Rs, MEANs, SIGMAs = self.models(Os, As, deterministic, sample_type)
 
         # Terminations
         if self.env_name[:4] == 'pddm':
@@ -79,7 +79,7 @@ class FakeWorld:
                                                 As.detach().cpu().numpy(),
                                                 Os_next.detach().cpu().numpy())
 
-        INFOs = {'mean': Means.detach().cpu().numpy(), 'std': STDs.detach().cpu().numpy()}
+        INFOs = {'mu': Means.detach().cpu().numpy(), 'sigma': SIGMAs.detach().cpu().numpy()}
         # INFOs = None
 
         return Os_next, Rs, Ds, INFOs ###

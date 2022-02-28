@@ -6,6 +6,18 @@ nn = T.nn
 from rl.networks.mlp import MLPNet
 
 
+
+
+
+def init_weights_(l):
+	if isinstance(l, nn.Linear):
+		nn.init.xavier_uniform_(l.weight, 1.0)
+		nn.init.uniform_(l.bias, 0.0)
+
+
+
+
+
 class QFunction(nn.Module):
     """
     Q-Function
@@ -17,11 +29,13 @@ class QFunction(nn.Module):
         optimizer = 'T.optim.' + net_configs['optimizer']
         lr = net_configs['lr']
 
-        super().__init__() # To automatically use forward
+        super(QFunction, self).__init__() # To automatically use forward
 
         self.q1 = MLPNet(obs_dim + act_dim, 1, net_configs)
 
         self.optimizer = eval(optimizer)(self.parameters(), lr)
+
+        self.apply(init_weights_)
 
 
     def forward(self, o, a):
@@ -40,11 +54,13 @@ class SoftQFunction(nn.Module):
         optimizer = 'T.optim.' + net_configs['optimizer']
         lr = net_configs['lr']
 
-        super().__init__() # To automatically use forward
+        super(SoftQFunction, self).__init__() # To automatically use forward
 
         self.q1 = MLPNet(obs_dim + act_dim, 1, net_configs)
         self.q2 = MLPNet(obs_dim + act_dim, 1, net_configs)
         self.Qs = [self.q1, self.q2]
+
+        self.apply(init_weights_)
 
         self.optimizer = eval(optimizer)(self.parameters(), lr)
 

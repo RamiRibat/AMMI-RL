@@ -92,10 +92,15 @@ class MBPO(MBRL, SAC):
         # o, Z, el, t = self.initialize_learning(NT, Ni)
         oldJs = [0, 0, 0]
         JQList, JAlphaList, JPiList = [0]*Ni, [0]*Ni, [0]*Ni
+        AlphaList = [self.alpha]*Ni
+
         JMeanTrainList, JTrainList, JMeanValList, JValList = [0]*Ni, [0]*Ni, [0]*Ni, [0]*Ni
         LossTestList = [0]*Ni
-        WMList = {'mean': [0]*Ni, 'sigma': [0]*Ni}
-        AlphaList = [self.alpha]*Ni
+        WMList = {'mu': [0]*Ni, 'sigma': [0]*Ni}
+        # JMeanTrainList, JTrainList, JMeanValList, JValList = [], [], [], []
+        # LossTestList = []
+        # WMList = {'mu': [], 'sigma': []}
+
         logs = dict()
         lastEZ, lastES = 0, -2
         K = 1
@@ -121,6 +126,7 @@ class MBPO(MBRL, SAC):
 
                 # Taking gradient steps after exploration
                 if n > Ni:
+
                     if nt % model_train_frequency == 0:
                         #03. Train model pθ on Denv via maximum likelihood
                         # PyTorch Lightning Model Training
@@ -136,7 +142,7 @@ class MBPO(MBRL, SAC):
                         # JMeanValList.append(JValLog['mean'])
                         JValList.append(JValLog['total'])
                         LossTestList.append(LossTest)
-                        WMList['mean'].append(WMLogs['mean'])
+                        WMList['mu'].append(WMLogs['mu'])
                         WMList['sigma'].append(WMLogs['sigma'])
 
                         # Update K-steps length
@@ -166,15 +172,16 @@ class MBPO(MBRL, SAC):
 
                 nt += E
 
+            print('\n')
             # logs['time/training                  '] = time.time() - learn_start_real
 
             # logs['training/wm/Jtrain_mean        '] = np.mean(JMeanTrainList)
             logs['training/wm/Jtrain             '] = np.mean(JTrainList)
             # logs['training/wm/Jval_mean          '] = np.mean(JMeanValList)
             logs['training/wm/Jval               '] = np.mean(JValList)
-            logs['training/wm/test_mse_loss      '] = np.mean(LossTestList)
-            logs['training/wm/test_mean          '] = np.mean(WMList['mean'])
-            logs['training/wm/test_sigma         '] = np.mean(WMList['sigma'])
+            logs['training/wm/test_mse           '] = np.mean(LossTestList)
+            # logs['training/wm/test_mu            '] = np.mean(WMList['mu'])
+            # logs['training/wm/test_sigma         '] = np.mean(WMList['sigma'])
 
             logs['training/sac/Jq                '] = np.mean(JQList)
             logs['training/sac/Jpi               '] = np.mean(JPiList)
@@ -183,6 +190,7 @@ class MBPO(MBRL, SAC):
                 logs['training/obj/sac/alpha         '] = np.mean(AlphaList)
 
             eval_start_real = time.time()
+            # EZ, ES, EL = self.evaluate()
             EZ, ES, EL = self.evaluate()
 
             # logs['time/evaluation                '] = time.time() - eval_start_real
@@ -308,8 +316,9 @@ def main(exp_prefix, config, seed):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
+    DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{wm_epochs}-Normz"
+    group_name = f"{env_name}-{alg_name}-DE{DE}-V6"
     exp_prefix = f"seed:{seed}"
 
     if configs['experiment']['WandB']:

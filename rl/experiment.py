@@ -5,7 +5,7 @@ import datetime
 import random
 
 import torch as T
-T.multiprocessing.set_sharing_strategy('file_system')
+# T.multiprocessing.set_sharing_strategy('file_system')
 
 import wandb
 

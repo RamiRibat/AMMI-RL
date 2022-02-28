@@ -5,8 +5,8 @@ from typing import Type, List, Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
-import logging
-logging.getLogger('lightning').setLevel(0)
+# import logging
+# logging.getLogger('lightning').setLevel(0)
 
 import numpy as np
 import torch as T
@@ -62,6 +62,7 @@ class WorldModel(LightningModule):
         elif configs['world_model']['type'] == 'PE':
             M = configs['world_model']['num_ensembles']
             self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs).to(device) for m in range(M)]
+            # self.elit_models = []
 
         self.configs = configs
         # print(self.models)
@@ -90,66 +91,76 @@ class WorldModel(LightningModule):
     #     self.mask = self.out_scale >= art_zero
 
 
-    def sample(self, obs, act, determenistic, sample_type):
+    def sample(self, obs, act, sample_type='Random'):
     	num_elites = self.configs['world_model']['num_elites']
 
     	if num_elites == 1:
-    		prediction, mean, log_std, std, inv_std = self.models(obs, act, determenistic)
+    		mu, log_sigma, sigma, inv_sigma = self.models(obs, act)
     	else:
     		dyn_models_elites = [ self.models[i] for i in self.inx_elites ]
-    		dyn_models_preds = [dyn_model(obs, act, determenistic) for dyn_model in dyn_models_elites]
+    		dyn_models_outs = [dyn_model(obs, act) for dyn_model in dyn_models_elites]
 
     		if sample_type == 'Average':
-    			prediction = [dyn_models_preds[i][0] for i in range(len(dyn_models_preds))]
-    			mean = [dyn_models_preds[i][1] for i in range(len(dyn_models_preds))]
-    			log_std = [dyn_models_preds[i][2] for i in range(len(dyn_models_preds))]
-    			std = [dyn_models_preds[i][3] for i in range(len(dyn_models_preds))]
-    			inv_std = [dyn_models_preds[i][4] for i in range(len(dyn_models_preds))]
-
-    			prediction = sum(prediction) / num_elites
-    			mean = sum(mean) / num_elites
-    			std = sum(std) / num_elites
+    			# prediction = [dyn_models_outs[i][0] for i in range(len(dyn_models_outs))]
+    			# mean = [dyn_models_outs[i][1] for i in range(len(dyn_models_outs))]
+    			# log_std = [dyn_models_outs[i][2] for i in range(len(dyn_models_outs))]
+    			# std = [dyn_models_outs[i][3] for i in range(len(dyn_models_outs))]
+    			# inv_std = [dyn_models_outs[i][4] for i in range(len(dyn_models_outs))]
+                #
+    			# prediction = sum(prediction) / num_elites
+    			# mean = sum(mean) / num_elites
+    			# std = sum(std) / num_elites
+    			pass
 
     		elif sample_type == 'Random':
     			indx = random.randint(1, num_elites)
-    			prediction, mean, log_std, std, inv_std = dyn_models_preds[indx-1]
+    			mu, log_sigma, sigma, inv_sigma = dyn_models_outs[indx-1]
+
     		elif sample_type == 'All':
-    			prediction = [dyn_models_preds[i][0] for i in range(len(dyn_models_preds))]
-    			mean = [dyn_models_preds[i][1] for i in range(len(dyn_models_preds))]
-    			log_std = [dyn_models_preds[i][2] for i in range(len(dyn_models_preds))]
-    			std = [dyn_models_preds[i][3] for i in range(len(dyn_models_preds))]
-    			inv_std = [dyn_models_preds[i][4] for i in range(len(dyn_models_preds))]
+    			# prediction = [dyn_models_outs[i][0] for i in range(len(dyn_models_outs))]
+    			# mean = [dyn_models_outs[i][1] for i in range(len(dyn_models_outs))]
+    			# log_std = [dyn_models_outs[i][2] for i in range(len(dyn_models_outs))]
+    			# std = [dyn_models_outs[i][3] for i in range(len(dyn_models_outs))]
+    			# inv_std = [dyn_models_outs[i][4] for i in range(len(dyn_models_outs))]
+    			pass
+
     		elif type(sample_type) == int:
-    			prediction = dyn_models_preds[sample_type][0]
-    			mean = dyn_models_preds[sample_type][1]
-    			log_std = dyn_models_preds[sample_type][2]
-    			std = dyn_models_preds[sample_type][3]
-    			inv_std = dyn_models_preds[sample_type][4]
+    			# prediction = dyn_models_outs[sample_type][0]
+    			# mean = dyn_models_outs[sample_type][1]
+    			# log_std = dyn_models_outs[sample_type][2]
+    			# std = dyn_models_outs[sample_type][3]
+    			# inv_std = dyn_models_outs[sample_type][4]
+    			pass
 
-    	return prediction, mean, log_std, std, inv_std
+    	return mu, log_sigma, sigma, inv_sigma
 
 
-    def forward(self, obs, act, determenistic=False, sample_type='Average'):
+    def forward(self, obs, act, deterministic=False, sample_type='Average'):
         # print('obs: ', obs)
         # normed_obs = (obs - self.obs_bias)/(self.obs_scale + art_zero)
         # normed_act = (act - self.act_bias)/(self.act_scale + art_zero)
 
         M = self.configs['world_model']['num_ensembles']
         modelType = self.configs['world_model']['type']
-        device = self._device_  # self.configs['experiment']['device']
+        device = self._device_
 
         if modelType == 'P':
-        	prediction, mean, log_std, std, inv_std = self.sample(obs, act, determenistic, sample_type)
+        	mu, log_sigma, sigma, inv_sigma = self.sample(obs, act, sample_type)
         elif modelType == 'PE':
-        	prediction, mean, log_std, std, inv_std = self.sample(obs, act, determenistic, sample_type)
+        	mu, log_sigma, sigma, inv_sigma = self.sample(obs, act, sample_type)
+
+        if deterministic:
+            prediction = mu
+        else:
+            normal_ditribution = Normal(mu, sigma)
+            # prediction = normal_ditribution.rsample()
+            prediction = normal_ditribution.sample()
 
         obs_next = prediction[:,:-1] + obs
         rew = prediction[:,-1]
-        # print('xx:', T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1).shape)
-        mean = mean + T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1)
+        mu = mu + T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1) # delta + obs | rew + 0
 
-        # print(f'Models: Mean {mean}, STD {std}')
-        return obs_next, rew, mean, std
+        return obs_next, rew, mu, sigma
 
 
     ### PyTorch Lightning ###
@@ -162,6 +173,7 @@ class WorldModel(LightningModule):
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
 
         JTrainLog, JValLog = dict(), dict()
+        WMLogs = dict()
 
         # checkpoint_callback = False
         # enable_model_summary = False
@@ -172,26 +184,31 @@ class WorldModel(LightningModule):
             JMeanTrain, JTrain = [], []
             JMeanVal, JVal = [], []
             LossTest = []
+            WMMu, WMSigma = [], []
 
             for m in range(M):
                 train_log, val_log = self.models[m].train_Model(data_module, m)
-                test_loss, WMLogs = self.models[m].test_Model(data_module)
-                JMeanTrain.append(train_log['mean'])
+                test_loss, wm_mean, wm_sigma = self.models[m].test_Model(data_module)
+                JMeanTrain.append(train_log['mu'])
                 JTrain.append(train_log['total'])
-                JMeanVal.append(val_log['mean'])
+                JMeanVal.append(val_log['mu'])
                 JVal.append(val_log['total'])
                 LossTest.append(test_loss)
+                WMMu.append(wm_mean)
+                WMSigma.append(wm_sigma)
 
                 self.models[m].to(device) # bc pl-training detatchs models
 
             inx_model = np.argsort(JVal)
             self.inx_elites = inx_model[:num_elites]
 
-            JTrainLog['mean'] = sum(JMeanTrain) / M
+            JTrainLog['mu'] = sum(JMeanTrain) / M
             JTrainLog['total'] = sum(JTrain) / M
-            JValLog['mean'] = sum(JMeanVal) / M
+            JValLog['mu'] = sum(JMeanVal) / M
             JValLog['total'] = sum(JVal) / M
             LossTest = sum(LossTest) / M
+            WMLogs['mu'] = sum(WMMu) / M
+            WMLogs['sigma'] = sum(WMSigma) / M
 
         print('Elite Models: ', [x+1 for x in self.inx_elites])
 

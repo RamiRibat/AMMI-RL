@@ -246,8 +246,8 @@ class SAC(MFRL):
         Jq = self.updateQ(batch)
         Jalpha = self.updateAlpha(batch)# if (g % AUI == 0) else oldJs[1]
         Jpi = self.updatePi(batch)# if (g % PUI == 0) else oldJs[2]
-        # if g % TUI == 0:
-        self.updateTarget()
+        if g % TUI == 0:
+            self.updateTarget()
 
         return Jq, Jalpha, Jpi
 
@@ -265,7 +265,6 @@ class SAC(MFRL):
         A = batch['actions']
         R = batch['rewards']
         O_next = batch['observations_next']
-        # print(f'\nupdateQ: \nO_next={O_next}')
         D = batch['terminals']
 
         # Calculate two Q-functions
@@ -274,7 +273,6 @@ class SAC(MFRL):
         with T.no_grad():
             pi_next, log_pi_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
             A_next = pi_next
-            # Qs_targ = T.cat(self.actor_critic.critic(O_next, A_next), dim=1) # WRONG!! :"D
             Qs_targ = T.cat(self.actor_critic.critic_target(O_next, A_next), dim=1)
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
@@ -341,6 +339,7 @@ class SAC(MFRL):
 
 
     def updateTarget(self):
+        # print('updateTarget')
         tau = self.configs['critic']['tau']
         with T.no_grad():
             for p, p_targ in zip(self.actor_critic.critic.parameters(),
@@ -363,7 +362,7 @@ def main(exp_prefix, config, seed):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}"
+    group_name = f"{env_name}-{alg_name}-NoInit"
     exp_prefix = f"seed:{seed}"
 
     if configs['experiment']['WandB']:

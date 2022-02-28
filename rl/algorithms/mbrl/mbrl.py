@@ -189,8 +189,9 @@ class MBRL:
 
                 while not(d or (el == max_el)):
                     # Take deterministic actions at evaluation time
-                    pi, _ = self.actor_critic.actor(o, deterministic=True)
-                    a = pi.cpu().numpy()
+                    # pi, _ = self.actor_critic.actor(o, deterministic=True)
+                    # a = pi.cpu().numpy()
+                    a, _ = self.actor_critic.actor.step_np(o, deterministic=True)
                     o, r, d, info = self.eval_env.step(a)
                     Z += r
                     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': S += info['score']
