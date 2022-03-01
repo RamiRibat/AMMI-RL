@@ -26,14 +26,14 @@ class ActorCritic: # Done
     def __init__(self,
                  obs_dim, act_dim,
                  act_up_lim, act_low_lim,
-                 configs, seed
+                 configs, seed, device
                  ) -> None:
         # print('Initialize AC!')
         # Initialize parameters
         self.obs_dim, self.act_dim = obs_dim, act_dim
         self.act_up_lim, self.act_low_lim = act_up_lim, act_low_lim
         self.configs, self.seed = configs, seed
-        self.device = configs['experiment']['device']
+        self._device_ = device
 
         self.actor, self.critic, self.critic_target = None, None, None
         self._build()
@@ -52,14 +52,14 @@ class ActorCritic: # Done
         return StochasticPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
-            net_configs, self.device, self.seed).to(self.device)
+            net_configs, self._device_, self.seed).to(self._device_)
 
 
     def _set_critic(self):
         net_configs = self.configs['critic']['network']
         return SoftQFunction(
             self.obs_dim, self.act_dim,
-            net_configs, self.seed).to(self.device)
+            net_configs, self.seed).to(self._device_)
 
 
 
@@ -86,11 +86,13 @@ class SAC(MFRL):
         17. Output: θ1, θ2, φ                                   > Optimized parameters
 
     """
-    def __init__(self, exp_prefix, configs, seed) -> None:
-        super(SAC, self).__init__(exp_prefix, configs, seed)
+    def __init__(self, exp_prefix, configs, seed, device, WandB) -> None:
+        super(SAC, self).__init__(exp_prefix, configs, seed, device)
         print('Initialize SAC Algorithm!')
         self.configs = configs
         self.seed = seed
+        self._device_ = device
+        self.WandB = WandB
         self._build()
 
 
@@ -108,13 +110,13 @@ class SAC(MFRL):
         self.actor_critic = ActorCritic(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
-            self.configs, self.seed)
+            self.configs, self.seed, self._device_)
 
 
     def _set_alpha(self):
         if self.configs['actor']['automatic_entropy']:
             # Learned Temprature
-            device = self.configs['experiment']['device']
+            device = self._device_
             optimizer = 'T.optim.' + self.configs['actor']['network']['optimizer']
             lr = self.configs['actor']['network']['lr']
             target_entropy = self.configs['actor']['target_entropy']
@@ -351,7 +353,7 @@ class SAC(MFRL):
 
 
 
-def main(exp_prefix, config, seed):
+def main(exp_prefix, config, seed, device, WandB):
 
     print('Start an SAC experiment...')
     print('\n')
@@ -365,7 +367,7 @@ def main(exp_prefix, config, seed):
     group_name = f"{env_name}-{alg_name}-NoInit"
     exp_prefix = f"seed:{seed}"
 
-    if configs['experiment']['WandB']:
+    if WandB:
         # print('WandB')
         wandb.init(
             name=exp_prefix,
@@ -375,7 +377,7 @@ def main(exp_prefix, config, seed):
             config=configs
         )
 
-    agent = SAC(exp_prefix, configs, seed)
+    agent = SAC(exp_prefix, configs, seed, device, WandB)
 
     agent.learn()
 
@@ -391,6 +393,8 @@ if __name__ == "__main__":
     parser.add_argument('-exp_prefix', type=str)
     parser.add_argument('-cfg', type=str)
     parser.add_argument('-seed', type=str)
+    parser.add_argument('-device', type=str)
+    parser.add_argument('-wandb', type=str)
 
     args = parser.parse_args()
 
@@ -398,5 +402,7 @@ if __name__ == "__main__":
     sys.path.append(f"{os.getcwd()}/configs")
     config = importlib.import_module(args.cfg)
     seed = int(args.seed)
+    device = args.device
+    WandB = eval(args.wandb)
 
-    main(exp_prefix, config, seed)
+    main(exp_prefix, config, seed, device, WandB)

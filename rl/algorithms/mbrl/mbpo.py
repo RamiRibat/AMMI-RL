@@ -39,11 +39,13 @@ class MBPO(MBRL, SAC):
         10:             Update policy parameters on model data: φ ← φ − λπ ˆ∇φ Jπ(φ, Dmodel)
 
     """
-    def __init__(self, exp_prefix, configs, seed) -> None:
-        super(MBPO, self).__init__(exp_prefix, configs, seed)
+    def __init__(self, exp_prefix, configs, seed, device, WandB) -> None:
+        super(MBPO, self).__init__(exp_prefix, configs, seed, device)
         # print('init MBPO Algorithm!')
         self.configs = configs
         self.seed = seed
+        self._device_ = device
+        self.WandB = WandB
         self._build()
 
 
@@ -62,12 +64,12 @@ class MBPO(MBRL, SAC):
     ## FakeEnv
     def _set_fake_world(self):
         env_name = self.configs['environment']['name']
-        device = self.configs['experiment']['device']
+        device = self._device_
         if self.configs['environment']['name'][:4] == 'pddm':
         	static_fns = None
         else:
         	static_fns = mbpo_static[env_name[:-3].lower()]
-        self.fake_world = FakeWorld(self.world_model, static_fns, env_name, self.learn_env, self.configs)
+        self.fake_world = FakeWorld(self.world_model, static_fns, env_name, self.learn_env, self.configs, device)
 
 
     def learn(self):
@@ -229,7 +231,7 @@ class MBPO(MBRL, SAC):
                     print(f'{k}  {round(v, 2)}')
 
             # WandB
-            if self.configs['experiment']['WandB']:
+            if self.WandB:
                 wandb.log(logs)
 
         self.learn_env.close()
@@ -255,7 +257,7 @@ class MBPO(MBRL, SAC):
 
     def rollout_world_model(self, batch_size_ro, K, n):
     	#07. Sample st uniformly from Denv
-    	device = self.configs['experiment']['device']
+    	device = self._device_
     	batch_size = min(batch_size_ro, self.env_buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
     	B_ro = self.env_buffer.sample_batch(batch_size)
@@ -302,7 +304,7 @@ class MBPO(MBRL, SAC):
 
 
 
-def main(exp_prefix, config, seed):
+def main(exp_prefix, config, seed, device, WandB):
 
     print('Start an MBPO experiment...')
     print('\n')
@@ -321,7 +323,7 @@ def main(exp_prefix, config, seed):
     group_name = f"{env_name}-{alg_name}-DE{DE}"
     exp_prefix = f"seed:{seed}"
 
-    if configs['experiment']['WandB']:
+    if WandB:
         # print('WandB')
         wandb.init(
             name=exp_prefix,
@@ -331,7 +333,7 @@ def main(exp_prefix, config, seed):
             config=configs
         )
 
-    agent = MBPO(exp_prefix, configs, seed)
+    agent = MBPO(exp_prefix, configs, seed, device, WandB)
 
     agent.learn()
 
@@ -348,6 +350,8 @@ if __name__ == "__main__":
     parser.add_argument('-exp_prefix', type=str)
     parser.add_argument('-cfg', type=str)
     parser.add_argument('-seed', type=str)
+    parser.add_argument('-device', type=str)
+    parser.add_argument('-wandb', type=str)
 
     args = parser.parse_args()
 
@@ -355,5 +359,7 @@ if __name__ == "__main__":
     sys.path.append(f"{os.getcwd()}/configs")
     config = importlib.import_module(args.cfg)
     seed = int(args.seed)
+    device = args.device
+    WandB = eval(args.wandb)
 
-    main(exp_prefix, config, seed)
+    main(exp_prefix, config, seed, device, WandB)

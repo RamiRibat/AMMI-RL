@@ -17,12 +17,13 @@ class MBRL:
     """
     Model-Based Reinforcement Learning
     """
-    def __init__(self, exp_prefix, configs, seed):
+    def __init__(self, exp_prefix, configs, seed, device):
         # super(MFRL, self).__init__(configs, seed)
         # print('init MBRL!')
         self.exp_prefix = exp_prefix
         self.configs = configs
         self.seed = seed
+        self._device_ = device
 
 
     def _build(self):
@@ -65,7 +66,7 @@ class MBRL:
 
     def _set_env_buffer(self):
         max_size = self.configs['data']['buffer_size']
-        device = self.configs['experiment']['device']
+        device = self._device_
         # self.env_buffer = ReplayBuffer(self.obs_dim, self.act_dim,
         #                                   max_size, self.seed, device)
         self.env_buffer = DataBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
@@ -77,14 +78,15 @@ class MBRL:
 
 
     def _set_world_model(self):
-        self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed)
+        device = self._device_
+        self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
 
     def reallocate_model_buffer(self, batch_size_ro, K, NT, model_train_frequency):
         # print('Rellocate Model Buffer..')
 
         seed = self.seed
-        device = self.configs['experiment']['device']
+        device = self._device_
         model_retain_epochs = self.configs['world_model']['model_retain_epochs']
 
         rollouts_per_epoch = batch_size_ro * NT / model_train_frequency

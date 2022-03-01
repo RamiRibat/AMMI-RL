@@ -9,12 +9,13 @@ class MFRL:
     """
     Model-Free Reinforcement Learning
     """
-    def __init__(self, exp_prefix, configs, seed) -> None:
+    def __init__(self, exp_prefix, configs, seed, device) -> None:
         # super(MFRL, self).__init__(configs, seed)
         # print('init MFRL!')
         self.exp_prefix = exp_prefix
         self.configs = configs
         self.seed = seed
+        self._device_
 
 
     def _build(self):
@@ -53,7 +54,7 @@ class MFRL:
 
     def _set_replay_buffer(self):
         max_size = self.configs['data']['buffer_size']
-        device = self.configs['experiment']['device']
+        device = self._device_
         self.replay_buffer = ReplayBuffer(self.obs_dim, self.act_dim,
                                           max_size, self.seed, device)
 
