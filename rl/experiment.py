@@ -69,7 +69,7 @@ def main(cfg, seed, device, wb):
                     '-cfg', cfg,
                     '-seed', str(seed),
                     '-device', device,
-                    '-wandb', str(wb) ])
+                    '-wb', str(wb) ])
 
     # T.save(agent.actor_critic.actor,
     # f'./agents/agent-{env_name}-{alg_name}-seed:{seed}.pth.tar')
