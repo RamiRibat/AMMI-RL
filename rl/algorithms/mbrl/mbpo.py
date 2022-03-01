@@ -39,13 +39,13 @@ class MBPO(MBRL, SAC):
         10:             Update policy parameters on model data: φ ← φ − λπ ˆ∇φ Jπ(φ, Dmodel)
 
     """
-    def __init__(self, exp_prefix, configs, seed, device, WandB) -> None:
+    def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
         super(MBPO, self).__init__(exp_prefix, configs, seed, device)
         # print('init MBPO Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
-        self.WandB = WandB
+        self.WandB = wb
         self._build()
 
 
@@ -304,7 +304,7 @@ class MBPO(MBRL, SAC):
 
 
 
-def main(exp_prefix, config, seed, device, WandB):
+def main(exp_prefix, config, seed, device, wb):
 
     print('Start an MBPO experiment...')
     print('\n')
@@ -323,7 +323,7 @@ def main(exp_prefix, config, seed, device, WandB):
     group_name = f"{env_name}-{alg_name}-DE{DE}"
     exp_prefix = f"seed:{seed}"
 
-    if WandB:
+    if wb:
         # print('WandB')
         wandb.init(
             name=exp_prefix,
@@ -333,7 +333,7 @@ def main(exp_prefix, config, seed, device, WandB):
             config=configs
         )
 
-    agent = MBPO(exp_prefix, configs, seed, device, WandB)
+    agent = MBPO(exp_prefix, configs, seed, device, wb)
 
     agent.learn()
 
@@ -351,7 +351,7 @@ if __name__ == "__main__":
     parser.add_argument('-cfg', type=str)
     parser.add_argument('-seed', type=str)
     parser.add_argument('-device', type=str)
-    parser.add_argument('-wandb', type=str)
+    parser.add_argument('-wb', type=str)
 
     args = parser.parse_args()
 
@@ -360,6 +360,6 @@ if __name__ == "__main__":
     config = importlib.import_module(args.cfg)
     seed = int(args.seed)
     device = args.device
-    WandB = eval(args.wandb)
+    wb = eval(args.wandb)
 
-    main(exp_prefix, config, seed, device, WandB)
+    main(exp_prefix, config, seed, device, wb)

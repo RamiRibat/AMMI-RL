@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 
 
 
-def main(cfg, seed, device, WandB):
+def main(cfg, seed, device, wb):
     print('\n')
     sys.path.append("./configs")
     # print('cfg: ', cfg)
@@ -69,7 +69,7 @@ def main(cfg, seed, device, WandB):
                     '-cfg', cfg,
                     '-seed', str(seed),
                     '-device', device,
-                    '-wandb', str(WandB) ])
+                    '-wandb', str(wb) ])
 
     # T.save(agent.actor_critic.actor,
     # f'./agents/agent-{env_name}-{alg_name}-seed:{seed}.pth.tar')
@@ -88,15 +88,15 @@ if __name__ == "__main__":
     parser.add_argument('-seed', type=int)
     # parser.add_argument('-device', type=str, default='cpu')
     parser.add_argument('-gpu', type=str, nargs='?', default=False, const=True)
-    parser.add_argument('-wandb', action='store_true')
+    parser.add_argument('-wb', action='store_true')
 
     args = parser.parse_args()
 
-    
+
     cfg = args.cfg
     seed = args.seed
     device = 'cuda' if args.gpu else 'cpu'
-    WandB = args.wandb
+    wb = args.wandb
 
 
-    main(cfg, seed, device, WandB)
+    main(cfg, seed, device, wb)
