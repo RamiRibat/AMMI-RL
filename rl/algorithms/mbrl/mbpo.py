@@ -360,6 +360,6 @@ if __name__ == "__main__":
     config = importlib.import_module(args.cfg)
     seed = int(args.seed)
     device = args.device
-    wb = eval(args.wandb)
+    wb = eval(args.wb)
 
     main(exp_prefix, config, seed, device, wb)
