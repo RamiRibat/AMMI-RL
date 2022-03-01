@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 
 
 
-def main(cfg, seed):
+def main(cfg, seed, device, WandB):
     print('\n')
     sys.path.append("./configs")
     # print('cfg: ', cfg)
@@ -64,11 +64,12 @@ def main(cfg, seed):
                 alg = os.path.join(root, f)
     # print('alg', alg)
 
-    subprocess.run(['python', alg, '-exp_prefix', exp_prefix, '-cfg', cfg, '-seed', str(seed)])
-
-    # agent = SAC(exp_prefix, configs, seed)
-    #
-    # agent.learn()
+    subprocess.run(['python', alg,
+                    '-exp_prefix', exp_prefix,
+                    '-cfg', cfg,
+                    '-seed', str(seed),
+                    '-device', device,
+                    '-wandb', str(WandB) ])
 
     # T.save(agent.actor_critic.actor,
     # f'./agents/agent-{env_name}-{alg_name}-seed:{seed}.pth.tar')
@@ -85,13 +86,17 @@ if __name__ == "__main__":
 
     parser.add_argument('-cfg', type=str)
     parser.add_argument('-seed', type=int)
+    # parser.add_argument('-device', type=str, default='cpu')
+    parser.add_argument('-gpu', type=str, nargs='?', default=False, const=True)
+    parser.add_argument('-wandb', action='store_true')
 
     args = parser.parse_args()
 
-    # sys.path.append("./configs")
-    # config = importlib.import_module(args.cfg)
+    
+    cfg = args.cfg
     seed = args.seed
+    device = 'cuda' if args.gpu else 'cpu'
+    WandB = args.wandb
 
-    # main(config.configurations, seed)
-    main(args.cfg, args.seed)
-    # main(cfg, seed)
+
+    main(cfg, seed, device, WandB)
