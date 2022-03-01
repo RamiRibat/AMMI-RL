@@ -213,7 +213,7 @@ class DynamicsModel(LightningModule):
         self.trainer = Trainer(
                           # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
-                          # accelerator=device, devices='auto',
+                          accelerator=device, devices='auto',
                           # gpus=0,
                           enable_model_summary=False,
                           enable_checkpointing=False,
