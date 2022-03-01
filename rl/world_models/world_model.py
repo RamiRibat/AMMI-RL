@@ -36,7 +36,7 @@ art_zero = 1e-8
 
 class WorldModel(LightningModule):
 
-    def __init__(self, obs_dim, act_dim, rew_dim, configs, seed,
+    def __init__(self, obs_dim, act_dim, rew_dim, configs, seed, device
                 # obs_bias=None, obs_scale=None,
                 # act_bias=None, act_scale=None,
                 # out_bias=None, out_scale=None
@@ -46,7 +46,8 @@ class WorldModel(LightningModule):
         # Set a random seed, se whenever we call crtics they will be consistent
         # if seed: np.random.seed(seed), T.manual_seed(seed)
 
-        device = self._device_ = configs['experiment']['device']
+        # device = self._device_ = configs['experiment']['device']
+        self._device_ = device
 
         # self.obs_dim = obs_dim
         # self.act_dim = act_dim
@@ -61,7 +62,7 @@ class WorldModel(LightningModule):
         							 ).to(device)
         elif configs['world_model']['type'] == 'PE':
             M = configs['world_model']['num_ensembles']
-            self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs).to(device) for m in range(M)]
+            self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device).to(device) for m in range(M)]
             # self.elit_models = []
 
         self.configs = configs

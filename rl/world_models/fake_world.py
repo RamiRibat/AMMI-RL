@@ -11,17 +11,18 @@ import torch as T
 
 class FakeWorld:
 
-    def __init__(self, dyn_models, static_fns, env_name, train_env, configs):
+    def __init__(self, dyn_models, static_fns, env_name, train_env, configs, device):
         # print('init FakeWorld!')
         self.models = dyn_models
         self.static_fns = static_fns
         self.env_name = env_name
         self.train_env = train_env
         self.configs = configs
+        self._device_ = device
 
 
     def step(self, Os, As, deterministic=False): ###
-        device = self.configs['experiment']['device']
+        device = self._device_
         # assert len(Os.shape) == len(As.shape) ###
         if len(Os.shape) != len(As.shape) or len(Os.shape) == 1: # not a batch
             Os = Os[None]
@@ -54,7 +55,7 @@ class FakeWorld:
 
 
     def step_model(self, Os, As, m, deterministic=False): ###
-        device = self.configs['experiment']['device']
+        device = self._device_
         # assert len(Os.shape) == len(As.shape) ###
         if len(Os.shape) != len(As.shape) or len(Os.shape) == 1: # not a batch
             Os = Os[None]
@@ -79,7 +80,7 @@ class FakeWorld:
                                                 As.detach().cpu().numpy(),
                                                 Os_next.detach().cpu().numpy())
 
-        INFOs = {'mu': Means.detach().cpu().numpy(), 'sigma': SIGMAs.detach().cpu().numpy()}
+        INFOs = {'mu': Means.detach().cpu().numpy(), 'sigma': SIGMA.detach().cpu().numpy()}
         # INFOs = None
 
         return Os_next, Rs, Ds, INFOs ###

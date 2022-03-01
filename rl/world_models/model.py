@@ -65,7 +65,7 @@ def init_weights_(l):
 
 class DynamicsModel(LightningModule):
 
-    def __init__(self, obs_dim, act_dim, rew_dim, configs,
+    def __init__(self, obs_dim, act_dim, rew_dim, configs, device,
                     obs_bias=None, obs_scale=None,
                     act_bias=None, act_scale=None,
                     out_bias=None, out_scale=None) -> None:
@@ -76,7 +76,7 @@ class DynamicsModel(LightningModule):
         self.val = False
 
         self.configs = configs
-        self._device_ = configs['experiment']['device']
+        self._device_ = device
 
         self.obs_dim = obs_dim
         self.act_dim = act_dim
