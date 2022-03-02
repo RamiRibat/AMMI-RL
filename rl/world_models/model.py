@@ -244,6 +244,7 @@ class DynamicsModel(LightningModule):
 
 
     def training_step(self, batch, batch_idx):
+        print('\ntraining_step')
         self.train_log = dict()
 
         Jmu, Jsigma, J = self.compute_objective(batch)
