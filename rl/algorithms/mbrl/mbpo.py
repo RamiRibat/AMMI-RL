@@ -96,8 +96,7 @@ class MBPO(MBRL, SAC):
         JQList, JAlphaList, JPiList = [0]*Ni, [0]*Ni, [0]*Ni
         AlphaList = [self.alpha]*Ni
 
-        JMeanTrainList, JTrainList, JMeanValList, JValList = [0]*Ni, [0]*Ni, [0]*Ni, [0]*Ni
-        LossTestList = [0]*Ni
+        JTrainList, JValList, LossTestList = [0]*Ni, [0]*Ni, [0]*Ni
         # WMList = {'mu': [0]*Ni, 'sigma': [0]*Ni}
         # JMeanTrainList, JTrainList, JMeanValList, JValList = [], [], [], []
         # LossTestList = []
@@ -121,14 +120,14 @@ class MBPO(MBRL, SAC):
             print(f'[ Replay Buffer ] Size: {self.env_buffer.size}')
             nt = 0
             learn_start_real = time.time()
-            while nt < NT:
+            while nt < NT: # full epoch
                 # Interaction steps
                 for e in range(1, E+1):
                     o, Z, el, t = self.internact(n, o, Z, el, t)
 
                 # Taking gradient steps after exploration
                 if n > Ni:
-
+                    JTrainList, JValList, LossTestList = [], [], []
                     if nt % model_train_frequency == 0:
                         #03. Train model pθ on Denv via maximum likelihood
                         # PyTorch Lightning Model Training
@@ -149,6 +148,8 @@ class MBPO(MBRL, SAC):
                         # Generate M k-steps imaginary rollouts for SAC traingin
                         self.rollout_world_model(batch_size_ro, K, n)
 
+                    JQList, JPiList = [], []
+                    # AlphaList = [self.alpha]*G_sac
                     for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't know!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
                         print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}', end='\r')
