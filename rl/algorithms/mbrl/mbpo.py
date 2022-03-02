@@ -267,13 +267,14 @@ class MBPO(MBRL, SAC):
     	for k in range(1, K+1):
     		print('k=', k)
     		with T.no_grad():
-    			A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
+    			# A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
+                A, _ = self.actor_critic.actor.step_np(O) # ip:Tensor, op:Numpy
 
     		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
     		O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
 
     		O = O.detach().cpu().numpy()
-    		A = A.detach().cpu().numpy()
+    		# A = A.detach().cpu().numpy()
 
     		self.model_buffer.store_batch(O, A, R, O_next, D) # ip:Numpy
     		# print('model buff ptr: ', self.model_buffer.ptr)
