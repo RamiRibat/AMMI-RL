@@ -323,7 +323,7 @@ class SAC(MFRL):
         """
 
         O = batch['observations']
-
+        print('sac.updatePi.O: ', type(O))
         # Policy Evaluation
         pi, log_pi = self.actor_critic.actor(O, return_log_pi=True)
         Qs_pi = T.cat(self.actor_critic.critic(O, pi), dim=1)
