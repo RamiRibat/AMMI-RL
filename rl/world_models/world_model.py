@@ -193,8 +193,6 @@ class WorldModel(LightningModule):
                 JTrain.append(Jtrain)
                 JVal.append(Jval)
                 LossTest.append(test_loss)
-                # WMMu.append(wm_mean)
-                # WMSigma.append(wm_sigma)
 
                 self.models[m].to(device) # bc pl-training detatchs models
 

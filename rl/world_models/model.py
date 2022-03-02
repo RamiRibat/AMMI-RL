@@ -277,7 +277,7 @@ class DynamicsModel(LightningModule):
 
 
     def validation_epoch_end(self, outputs) -> None:
-        self.Jval = T.stack(outputs).mean()
+        self.Jval = T.stack(outputs).mean().item()
 
 
     def test_step(self, batch, batch_idx):
