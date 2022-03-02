@@ -202,7 +202,7 @@ class DynamicsModel(LightningModule):
                           # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
-                          gpus=2,
+                          gpus=2, strategy="dp",
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
@@ -214,11 +214,6 @@ class DynamicsModel(LightningModule):
         self.normalize_out = False
         self.trainer.fit(self, data_module)
         self.normalize_out = True
-
-        # print('\nNormalized:')
-        # print(f'obs_bias={self.obs_bias}, \nobs_scale={self.obs_scale}')
-        # print(f'act_bias={self.act_bias}, \nact_scale={self.act_scale}')
-        # print(f'out_bias={self.out_bias}, \nout_scale={self.out_scale}')
 
         # if dropout != None: self.eval()
 
@@ -249,7 +244,7 @@ class DynamicsModel(LightningModule):
         Jmu, Jsigma, J = self.compute_objective(batch)
 
         # self.log(f'Model {self.m+1}, Jmean_train', Jmean.item(), prog_bar=True)
-        self.log(f'Model {self.m+1}, J_train', J.item(), prog_bar=True, sync_dist=True)
+        self.log(f'Model {self.m+1}, J_train', J.item(), prog_bar=True)
 
         self.train_log['mu'] = Jmu.item()
         # self.train_log['sigma'] = Jsigma.item()
@@ -277,7 +272,7 @@ class DynamicsModel(LightningModule):
     def test_step(self, batch, batch_idx):
         # Model prediction performance
         loss, wm_mu, wm_sigma = self.compute_test_loss(batch)
-        self.log("mse_loss", loss.item(), prog_bar=True)
+        self.log("mse_loss", loss.item(), prog_bar=True, sync_dist=True)
         self.test_loss = loss.item()
         self.wm_mu = wm_mu
         self.wm_sigma = wm_sigma
