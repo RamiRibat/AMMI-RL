@@ -173,18 +173,11 @@ class WorldModel(LightningModule):
         num_elites = self.configs['world_model']['num_elites']
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
 
-        JTrainLog, JValLog = dict(), dict()
-        WMLogs = dict()
-
-        # checkpoint_callback = False
-        # enable_model_summary = False
-
         if model_type == 'P':
         	Jm, mEpochs = self.models.train_Model(env_buffer, batch_size, 0)
         elif model_type == 'PE':
             JTrain, JVal = [], []
             LossTest = []
-            # WMMu, WMSigma = [], []
 
             for m in range(M):
                 Jtrain, Jval = self.models[m].train_Model(data_module, m)
@@ -202,9 +195,7 @@ class WorldModel(LightningModule):
             JTrainLog = sum(JTrain) / M
             JValLog = sum(JVal) / M
             LossTest = sum(LossTest) / M
-            # WMLogs['mu'] = sum(WMMu) / M
-            # WMLogs['sigma'] = sum(WMSigma) / M
 
         print('Elite Models: ', [x+1 for x in self.inx_elites])
 
-        return JTrainLog, JValLog, LossTest#, WMLogs
+        return JTrainLog, JValLog, LossTest

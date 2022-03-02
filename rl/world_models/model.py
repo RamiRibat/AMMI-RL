@@ -217,7 +217,7 @@ class DynamicsModel(LightningModule):
 
         # if dropout != None: self.eval()
 
-        if self.Jval:
+        if self.val:
             return self.Jtrain, self.Jval
         else:
             return self.Jtrain, None
@@ -238,15 +238,9 @@ class DynamicsModel(LightningModule):
 
 
     def training_step(self, batch, batch_idx):
-        # print('\ntraining_step')
-
         Jmu, Jsigma, J = self.compute_objective(batch)
-
-        # self.log(f'Model {self.m+1}, Jmean_train', Jmean.item(), prog_bar=True)
         self.log(f'Model {self.m+1}, Jtrain', J.item(), prog_bar=True)
-
         return J
-
 
     def training_step_end(self, batch_parts):
         if batch_parts.shape == T.Size([]):
@@ -254,27 +248,18 @@ class DynamicsModel(LightningModule):
         else:
             return sum(batch_parts) / len(batch_parts)
 
-
     def training_epoch_end(self, outputs) -> None:
-        # print('training_epoch_end, op: ', outputs)
         outputs_list = []
         for out in outputs:
-            # print('out: ', out)
             outputs_list.append(out['loss'])
-        self.Jtrain = T.stack(outputs_list).mean()
+        self.Jtrain = T.stack(outputs_list).mean().item()
 
 
     def validation_step(self, batch, batch_idx):
         self.val = True
-        self.val_log = dict()
-
         Jmean, Jsigma, J = self.compute_objective(batch)
-
-        # self.log("Jmean_val", Jmean.item(), prog_bar=True)
         self.log("Jval", J.item(), prog_bar=True)
-
         return J
-
 
     def validation_epoch_end(self, outputs) -> None:
         self.Jval = T.stack(outputs).mean().item()
@@ -284,12 +269,10 @@ class DynamicsModel(LightningModule):
         # Model prediction performance
         loss = self.compute_test_loss(batch)
         self.log("mse_loss", loss.item(), prog_bar=True)
-
         return loss
 
-
     def test_epoch_end(self, outputs) -> None:
-        self.test_loss = T.stack(outputs).mean()
+        self.test_loss = T.stack(outputs).mean().item()
 
 
     def get_progress_bar_dict(self):
