@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     cfg = args.cfg
     seed = args.seed
-    device = 'gpu' if args.gpu else 'cpu'
+    device = 'cuda' if args.gpu else 'cpu'
     wb = args.wb
 
 

@@ -188,6 +188,7 @@ class DynamicsModel(LightningModule):
 
     def train_Model(self, data_module, m):
         device = self._device_
+        device = 'gpu' if self._device_=='cuda' else self._device_
 
         self.m = m
 
