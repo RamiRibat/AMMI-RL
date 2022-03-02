@@ -119,8 +119,9 @@ class StochasticPolicy(nn.Module):
 				deterministic=False, # Default: False
 				return_log_pi=False # Default: False
 				):
-
+		print('a.policy.forward: obs: ', type(obs))
 		obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
+		print('z.policy.forward: obs: ', type(obs))
 
 		mean, std = self.pi_mean_std(T.as_tensor(obs, dtype=T.float32).to(self._device_))
 
