@@ -50,11 +50,11 @@ class StochasticPolicy(nn.Module):
 		# Define optimizer
 		self.optimizer = eval(optimizer)(self.parameters(), lr)
 
-		# self.obs_bias   = np.zeros(obs_dim)
-		# self.obs_scale  = np.ones(obs_dim)
+		self.obs_bias   = np.zeros(obs_dim)
+		self.obs_scale  = np.ones(obs_dim)
 
-		self.obs_bias   = T.zeros(obs_dim)
-		self.obs_scale  = T.ones(obs_dim)
+		# self.obs_bias   = T.zeros(obs_dim)
+		# self.obs_scale  = T.ones(obs_dim)
 
 		self.act_dim = act_dim
 		self.act_bias =  T.FloatTensor( (act_up_lim + act_low_lim) / 2.0 ).to(device)
