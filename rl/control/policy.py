@@ -123,7 +123,7 @@ class StochasticPolicy(nn.Module):
 				return_log_pi=False # Default: False
 				):
 		print('a.policy.forward: obs: ', type(obs))
-		obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
+		# obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
 		print('z.policy.forward: obs: ', type(obs))
 
 		mean, std = self.pi_mean_std(T.as_tensor(obs, dtype=T.float32).to(self._device_))
@@ -135,15 +135,9 @@ class StochasticPolicy(nn.Module):
 
 		else: # Stochastic | Interaction
 			pi, log_pi = self.pi_prob(mean, std, reparameterize, return_log_pi)
-			# if return_log_pi:
-			# 	pi, pre_tanh_value = self.prob(mean, std, reparameterize)
-			# 	log_pi = self.logprob(pi, mean, std, pre_tanh_value)
-			# 	# print('LogPi:	', log_pi.shape)
-			# else:
-			# 	# pi, pre_tanh_value = self.prob(mean, std, reparameterize)
-			# 	pi = self.prob(mean, std, reparameterize)
 
 		pi = (pi * self.act_scale) + self.act_bias
+
 		return pi, log_pi
 
 
