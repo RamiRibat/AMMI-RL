@@ -50,11 +50,11 @@ class StochasticPolicy(nn.Module):
 		# Define optimizer
 		self.optimizer = eval(optimizer)(self.parameters(), lr)
 
-		self.obs_bias   = np.zeros(obs_dim)
-		self.obs_scale  = np.ones(obs_dim)
+		# self.obs_bias   = np.zeros(obs_dim)
+		# self.obs_scale  = np.ones(obs_dim)
 
-		# self.obs_bias   = T.zeros(obs_dim)
-		# self.obs_scale  = T.ones(obs_dim)
+		self.obs_bias   = T.zeros(obs_dim)
+		self.obs_scale  = T.ones(obs_dim)
 
 		self.act_dim = act_dim
 		self.act_bias =  T.FloatTensor( (act_up_lim + act_low_lim) / 2.0 ).to(device)
@@ -124,6 +124,10 @@ class StochasticPolicy(nn.Module):
 				):
 		print('a.policy.forward: obs: ', type(obs))
 		# obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
+		if type(obs) == 'torch.Tensor':
+			obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
+		else:
+			obs = (obs - self.obs_bias.numpy()) / (self.obs_scale.numpy() + epsilon)
 		print('z.policy.forward: obs: ', type(obs))
 
 		mean, std = self.pi_mean_std(T.as_tensor(obs, dtype=T.float32).to(self._device_))

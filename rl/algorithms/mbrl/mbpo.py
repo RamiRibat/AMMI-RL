@@ -265,10 +265,8 @@ class MBPO(MBRL, SAC):
 
     	#08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	for k in range(1, K+1):
-    		print('k=', k, '\nO: ', O)
     		with T.no_grad():
     			A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
-    			# A, _ = self.actor_critic.actor.step_np(O) # ip:Tensor, op:Numpy
 
     		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
     		O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
