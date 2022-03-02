@@ -202,7 +202,7 @@ class DynamicsModel(LightningModule):
                           # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
-                          gpus=[eval(device[-1])+1] if device[:-2]=='cuda' else 0,
+                          gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
@@ -238,7 +238,7 @@ class DynamicsModel(LightningModule):
 
 
     def training_step(self, batch, batch_idx):
-        print('\ntraining_step')
+        # print('\ntraining_step')
         self.train_log = dict()
 
         Jmu, Jsigma, J = self.compute_objective(batch)
@@ -250,7 +250,7 @@ class DynamicsModel(LightningModule):
         # self.train_log['sigma'] = Jsigma.item()
         self.train_log['total'] = J.item()
 
-        print("self.train_log['total']", self.train_log['total'])
+        # print("self.train_log['total']", self.train_log['total'])
 
         return J
 
