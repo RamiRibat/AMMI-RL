@@ -316,7 +316,7 @@ class DynamicsModel(LightningModule):
         weight_norms = []
         print('self.named_parameters(): ', self.named_parameters())
         for name, weight in self.named_parameters():
-            print('name: ', name)
+        	print('name: ', name)
         	if "weight" in name:
         		weight_norms.append(weight.norm(2))
         weight_norms = T.stack(weight_norms, dim=0)
