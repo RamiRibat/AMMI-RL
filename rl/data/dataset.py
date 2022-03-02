@@ -24,12 +24,13 @@ class RLDataset_iter(IterableDataset): # Take env_buffer, return all samples in 
 
     def __iter__(self):
         data = self.buffer.return_all()
+        Os, As, Rs, Os_next, Ds = data.values()
 
-        Os = data['observations']
-        As = data['actions']
-        Rs = data['rewards']
-        Os_next = data['observations_next']
-        Ds = data['terminals']
+        # Os = data['observations']
+        # As = data['actions']
+        # Rs = data['rewards']
+        # Os_next = data['observations_next']
+        # Ds = data['terminals']
 
         for i in range(len(Ds)):
         	yield Os[i], As[i], Rs[i], Os_next[i], Ds[i]
