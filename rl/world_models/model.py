@@ -217,15 +217,15 @@ class DynamicsModel(LightningModule):
 
         # if dropout != None: self.eval()
 
-        if self.val:
-            return self.train_log, self.val_log
+        if self.Jval:
+            return self.Jtrain, self.Jval
         else:
-            return self.train_log, None
+            return self.Jtrain, None
 
 
     def test_Model(self, data_module):
         self.trainer.test(self, data_module)
-        return self.test_loss, self.wm_mu, self.wm_sigma
+        return self.test_loss#, self.wm_mu, self.wm_sigma
 
 
 	### PyTorch Lightning ###
@@ -239,20 +239,29 @@ class DynamicsModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         # print('\ntraining_step')
-        self.train_log = dict()
 
         Jmu, Jsigma, J = self.compute_objective(batch)
 
         # self.log(f'Model {self.m+1}, Jmean_train', Jmean.item(), prog_bar=True)
-        self.log(f'Model {self.m+1}, J_train', J.item(), prog_bar=True)
-
-        self.train_log['mu'] = Jmu.item()
-        # self.train_log['sigma'] = Jsigma.item()
-        self.train_log['total'] = J.item()
-
-        # print("self.train_log['total']", self.train_log['total'])
+        self.log(f'Model {self.m+1}, Jtrain', J.item(), prog_bar=True)
 
         return J
+
+
+    def training_step_end(self, batch_parts):
+        if batch_parts.shape == T.Size([]):
+            return batch_parts
+        else:
+            return sum(batch_parts) / len(batch_parts)
+
+
+    def training_epoch_end(self, outputs) -> None:
+        # print('training_epoch_end, op: ', outputs)
+        outputs_list = []
+        for out in outputs:
+            # print('out: ', out)
+            outputs_list.append(out['loss'])
+        self.Jtrain = T.stack(outputs_list).mean()
 
 
     def validation_step(self, batch, batch_idx):
@@ -262,20 +271,25 @@ class DynamicsModel(LightningModule):
         Jmean, Jsigma, J = self.compute_objective(batch)
 
         # self.log("Jmean_val", Jmean.item(), prog_bar=True)
-        self.log("J_val", J.item(), prog_bar=True)
+        self.log("Jval", J.item(), prog_bar=True)
 
-        self.val_log['mu'] = Jmean.item()
-        # self.val_log['sigma'] = Jsigma.item()
-        self.val_log['total'] = J.item()
+        return J
+
+
+    def validation_epoch_end(self, outputs) -> None:
+        self.Jval = T.stack(outputs).mean()
 
 
     def test_step(self, batch, batch_idx):
         # Model prediction performance
-        loss, wm_mu, wm_sigma = self.compute_test_loss(batch)
+        loss = self.compute_test_loss(batch)
         self.log("mse_loss", loss.item(), prog_bar=True)
-        self.test_loss = loss.item()
-        self.wm_mu = wm_mu
-        self.wm_sigma = wm_sigma
+
+        return loss
+
+
+    def test_epoch_end(self, outputs) -> None:
+        self.test_loss = T.stack(outputs).mean()
 
 
     def get_progress_bar_dict(self):
@@ -335,7 +349,4 @@ class DynamicsModel(LightningModule):
 
         loss = self.mse_loss(mu, mu_target)
 
-        wm_mu = T.mean(T.mean(mu, dim=0))
-        wm_sigma = T.mean(T.mean(sigma, dim=0))
-
-        return loss, wm_mu, wm_sigma
+        return loss

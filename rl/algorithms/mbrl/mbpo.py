@@ -98,7 +98,7 @@ class MBPO(MBRL, SAC):
 
         JMeanTrainList, JTrainList, JMeanValList, JValList = [0]*Ni, [0]*Ni, [0]*Ni, [0]*Ni
         LossTestList = [0]*Ni
-        WMList = {'mu': [0]*Ni, 'sigma': [0]*Ni}
+        # WMList = {'mu': [0]*Ni, 'sigma': [0]*Ni}
         # JMeanTrainList, JTrainList, JMeanValList, JValList = [], [], [], []
         # LossTestList = []
         # WMList = {'mu': [], 'sigma': []}
@@ -136,16 +136,17 @@ class MBPO(MBRL, SAC):
                         # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}                                             ')
                         # Jwm, mEpochs = self.fake_world.train(self.data_module)
                         # self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
-                        JTrainLog, JValLog, LossTest, WMLogs = self.fake_world.train(self.data_module)
+                        # JTrainLog, JValLog, LossTest, WMLogs = self.fake_world.train(self.data_module)
+                        JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
                         # JWM_Mean_List.append(Jmean)
                         # JWM_List.append(Jwm)
                         # JMeanTrainList.append(JTrainLog['mean'])
-                        JTrainList.append(JTrainLog['total'])
+                        JTrainList.append(JTrainLog)
                         # JMeanValList.append(JValLog['mean'])
-                        JValList.append(JValLog['total'])
+                        JValList.append(JValLog)
                         LossTestList.append(LossTest)
-                        WMList['mu'].append(WMLogs['mu'])
-                        WMList['sigma'].append(WMLogs['sigma'])
+                        # WMList['mu'].append(WMLogs['mu'])
+                        # WMList['sigma'].append(WMLogs['sigma'])
 
                         # Update K-steps length
                         K = self.set_rollout_length(n)

@@ -95,8 +95,9 @@ class FakeWorld:
 
     def train(self, data_module):
         data_module.update_dataset()
-        JTrainLog, JValLog, LossTest, WMLogs = self.models.train_WM(data_module)
-        return JTrainLog, JValLog, LossTest, WMLogs
+        # JTrainLog, JValLog, LossTest, WMLogs = self.models.train_WM(data_module)
+        JTrainLog, JValLog, LossTest = self.models.train_WM(data_module)
+        return JTrainLog, JValLog, LossTest#, WMLogs
 
 
     def close(self):

@@ -182,35 +182,31 @@ class WorldModel(LightningModule):
         if model_type == 'P':
         	Jm, mEpochs = self.models.train_Model(env_buffer, batch_size, 0)
         elif model_type == 'PE':
-            JMeanTrain, JTrain = [], []
-            JMeanVal, JVal = [], []
+            JTrain, JVal = [], []
             LossTest = []
-            WMMu, WMSigma = [], []
+            # WMMu, WMSigma = [], []
 
             for m in range(M):
-                train_log, val_log = self.models[m].train_Model(data_module, m)
-                test_loss, wm_mean, wm_sigma = self.models[m].test_Model(data_module)
-                JMeanTrain.append(train_log['mu'])
-                JTrain.append(train_log['total'])
-                JMeanVal.append(val_log['mu'])
-                JVal.append(val_log['total'])
+                Jtrain, Jval = self.models[m].train_Model(data_module, m)
+                # test_loss, wm_mean, wm_sigma = self.models[m].test_Model(data_module)
+                test_loss = self.models[m].test_Model(data_module)
+                JTrain.append(Jtrain)
+                JVal.append(Jval)
                 LossTest.append(test_loss)
-                WMMu.append(wm_mean)
-                WMSigma.append(wm_sigma)
+                # WMMu.append(wm_mean)
+                # WMSigma.append(wm_sigma)
 
                 self.models[m].to(device) # bc pl-training detatchs models
 
             inx_model = np.argsort(JVal)
             self.inx_elites = inx_model[:num_elites]
 
-            JTrainLog['mu'] = sum(JMeanTrain) / M
-            JTrainLog['total'] = sum(JTrain) / M
-            JValLog['mu'] = sum(JMeanVal) / M
-            JValLog['total'] = sum(JVal) / M
+            JTrainLog = sum(JTrain) / M
+            JValLog = sum(JVal) / M
             LossTest = sum(LossTest) / M
-            WMLogs['mu'] = sum(WMMu) / M
-            WMLogs['sigma'] = sum(WMSigma) / M
+            # WMLogs['mu'] = sum(WMMu) / M
+            # WMLogs['sigma'] = sum(WMSigma) / M
 
         print('Elite Models: ', [x+1 for x in self.inx_elites])
 
-        return JTrainLog, JValLog, LossTest, WMLogs
+        return JTrainLog, JValLog, LossTest#, WMLogs
