@@ -325,7 +325,7 @@ class DynamicsModel(LightningModule):
             weight_decay = (T.tensor(l2_loss_coefs, device=weight_norms.device) * weight_norms).sum()
             return weight_decay
         else:
-            return T.tensor([0.0])
+            return T.tensor([0.0]).to(self._device_)
 
 
     def compute_test_loss(self, batch):
