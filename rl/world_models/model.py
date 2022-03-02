@@ -191,7 +191,7 @@ class DynamicsModel(LightningModule):
         # data = DataModule(env_buffer, batch_size)
         # if dropout != None: self.train()
 
-        early_stop_callback = EarlyStopping(monitor="J_val",
+        early_stop_callback = EarlyStopping(monitor="Jval",
                                             min_delta=0.0,
                                             patience=5,
                                             # verbose=False,
