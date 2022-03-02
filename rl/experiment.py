@@ -86,8 +86,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-cfg', type=str)
     parser.add_argument('-seed', type=int)
-    # parser.add_argument('-device', type=str, default='cpu')
-    parser.add_argument('-gpu', type=str, nargs='?', default=False, const=True)
+    parser.add_argument('-device', type=str, default='cpu')
+    # parser.add_argument('-gpu', type=str, nargs='?', default=False, const=True)
     parser.add_argument('-wb', action='store_true')
 
     args = parser.parse_args()
@@ -95,7 +95,8 @@ if __name__ == "__main__":
 
     cfg = args.cfg
     seed = args.seed
-    device = 'cuda' if args.gpu else 'cpu'
+    # device = 'cuda' if args.gpu else 'cpu'
+    device = args.gpu
     wb = args.wb
 
 

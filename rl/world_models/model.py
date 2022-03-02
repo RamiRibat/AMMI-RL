@@ -188,7 +188,7 @@ class DynamicsModel(LightningModule):
 
     def train_Model(self, data_module, m):
         device = self._device_
-        device = 'gpu' if self._device_=='cuda' else self._device_
+        # device = 'gpu' if self._device_=='cuda' else self._device_
 
         self.m = m
 
@@ -215,7 +215,7 @@ class DynamicsModel(LightningModule):
                           # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
-                          gpus=2,
+                          gpus=1,
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
