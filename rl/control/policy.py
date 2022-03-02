@@ -124,7 +124,7 @@ class StochasticPolicy(nn.Module):
 				):
 		print('a.policy.forward: obs: ', type(obs))
 		# obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
-		if type(obs) == 'torch.Tensor':
+		if isinstance(obs, T.Tensor):
 			obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
 		else:
 			obs = (obs - self.obs_bias.numpy()) / (self.obs_scale.numpy() + epsilon)
