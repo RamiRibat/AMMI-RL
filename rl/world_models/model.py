@@ -202,8 +202,8 @@ class DynamicsModel(LightningModule):
                           # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
-                          # gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
-                          gpus=2, strategy='ddp',
+                          gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
+                          # gpus=2, strategy='ddp',
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
@@ -214,6 +214,7 @@ class DynamicsModel(LightningModule):
 
         self.normalize_out = False
         self.trainer.fit(self, data_module)
+
         self.normalize_out = True
 
         # if dropout != None: self.eval()
