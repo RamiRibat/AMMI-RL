@@ -170,19 +170,6 @@ class DynamicsModel(LightningModule):
         if self.normalize_out:
             mu = mu * (self.out_scale + epsilon) + self.out_bias
 
-        # if deterministic:
-        #     predictions = self.deterministic(mu)
-        # else:
-        #     normal_ditribution = Normal(mu, sigma)
-        #     predictions = normal_ditribution.rsample()
-
-        # if T.mean(T.mean(predictions, dim=0)) > 1.0:
-        #     print(f'normed_o={normed_o}')
-        #     print(f'mu={mu}')
-        #     print(f'predictions={predictions}')
-        #     print(f'predictions_mean={T.mean(T.mean(predictions, dim=0))}')
-        #     exit()
-
         return mu, log_sigma, sigma, sigma_inv
 
 

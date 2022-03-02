@@ -66,7 +66,7 @@ configurations = {
             'wd': 1e-5,
             'dropout': None,
             'batch_size': 256,
-            'device': "auto",
+            # 'device': "auto",
         }
     },
 
@@ -87,7 +87,7 @@ configurations = {
             'wd': 1e-5,
             'dropout': None,
             'batch_size': 256,
-            'device': "auto",
+            # 'device': "auto",
         }
     },
 
@@ -107,7 +107,7 @@ configurations = {
             'wd': 1e-5,
             'dropout': None,
             'batch_size': 256,
-            'device': "auto",
+            # 'device': "auto",
         }
     },
 
@@ -122,7 +122,7 @@ configurations = {
         'rollout_batch_size': 400,
         'model_batch_size': 256,
         'batch_size': 256,
-        'device': "auto",
+        # 'device': "auto",
     },
 
 
