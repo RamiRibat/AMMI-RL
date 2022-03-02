@@ -127,7 +127,7 @@ class StochasticPolicy(nn.Module):
 		if isinstance(obs, T.Tensor):
 			obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
 		else:
-			obs = (obs - self.obs_bias.numpy()) / (self.obs_scale.numpy() + epsilon)
+			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
 		print('z.policy.forward: obs: ', type(obs))
 
 		mean, std = self.pi_mean_std(T.as_tensor(obs, dtype=T.float32).to(self._device_))
