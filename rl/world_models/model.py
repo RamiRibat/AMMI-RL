@@ -202,8 +202,8 @@ class DynamicsModel(LightningModule):
         self.trainer = Trainer(
                           # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
-                          accelerator=device, devices='auto',
-                          # gpus=1,
+                          # accelerator=device, devices='auto',
+                          gpus=2,
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
@@ -249,7 +249,7 @@ class DynamicsModel(LightningModule):
         Jmu, Jsigma, J = self.compute_objective(batch)
 
         # self.log(f'Model {self.m+1}, Jmean_train', Jmean.item(), prog_bar=True)
-        self.log(f'Model {self.m+1}, J_train', J.item(), prog_bar=True)
+        self.log(f'Model {self.m+1}, J_train', J.item(), prog_bar=True, sync_dist=True)
 
         self.train_log['mu'] = Jmu.item()
         # self.train_log['sigma'] = Jsigma.item()
@@ -265,7 +265,7 @@ class DynamicsModel(LightningModule):
         Jmean, Jsigma, J = self.compute_objective(batch)
 
         # self.log("Jmean_val", Jmean.item(), prog_bar=True)
-        self.log("J_val", J.item(), prog_bar=True)
+        self.log("J_val", J.item(), prog_bar=True, sync_dist=True)
 
         self.val_log['mu'] = Jmean.item()
         # self.val_log['sigma'] = Jsigma.item()
