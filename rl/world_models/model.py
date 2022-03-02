@@ -158,7 +158,7 @@ class DynamicsModel(LightningModule):
 
 
     def forward(self, o, a, deterministic= False):
-        
+
         normed_o = (o - self.obs_bias)/(self.obs_scale + epsilon)
         normed_a = (a - self.act_bias)/(self.act_scale + epsilon)
 
@@ -254,6 +254,8 @@ class DynamicsModel(LightningModule):
         self.train_log['mu'] = Jmu.item()
         # self.train_log['sigma'] = Jsigma.item()
         self.train_log['total'] = J.item()
+
+        print("self.train_log['total']", self.train_log['total'])
 
         return J
 
