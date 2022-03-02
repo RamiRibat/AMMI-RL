@@ -320,11 +320,12 @@ class DynamicsModel(LightningModule):
         	if "weight" in name:
         		weight_norms.append(weight.norm(2))
         print('weight_norms: ', len(weight_norms))
-        weight_norms = T.stack(weight_norms, dim=0)
-        # print('l2_loss_coefs: ', T.tensor(l2_loss_coefs, device=weight_norms.device))
-        # print('weight_norms: ', weight_norms)
-        weight_decay = (T.tensor(l2_loss_coefs, device=weight_norms.device) * weight_norms).sum()
-        return weight_decay
+        if len(weight_norms) > 0:
+            weight_norms = T.stack(weight_norms, dim=0)
+            weight_decay = (T.tensor(l2_loss_coefs, device=weight_norms.device) * weight_norms).sum()
+            return weight_decay
+        else:
+            return T.tensor([0.0])
 
 
     def compute_test_loss(self, batch):
