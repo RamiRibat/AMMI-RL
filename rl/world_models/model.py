@@ -202,7 +202,7 @@ class DynamicsModel(LightningModule):
                           # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
-                          gpus=2, strategy="dp",
+                          gpus=[eval(device[-1])+1] if device[:-2]=='cuda' else 0,
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
@@ -262,7 +262,7 @@ class DynamicsModel(LightningModule):
         Jmean, Jsigma, J = self.compute_objective(batch)
 
         # self.log("Jmean_val", Jmean.item(), prog_bar=True)
-        self.log("J_val", J.item(), prog_bar=True, sync_dist=True)
+        self.log("J_val", J.item(), prog_bar=True)
 
         self.val_log['mu'] = Jmean.item()
         # self.val_log['sigma'] = Jsigma.item()
@@ -272,7 +272,7 @@ class DynamicsModel(LightningModule):
     def test_step(self, batch, batch_idx):
         # Model prediction performance
         loss, wm_mu, wm_sigma = self.compute_test_loss(batch)
-        self.log("mse_loss", loss.item(), prog_bar=True, sync_dist=True)
+        self.log("mse_loss", loss.item(), prog_bar=True)
         self.test_loss = loss.item()
         self.wm_mu = wm_mu
         self.wm_sigma = wm_sigma
