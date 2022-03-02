@@ -202,7 +202,8 @@ class DynamicsModel(LightningModule):
                           # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
-                          gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
+                          # gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
+                          gpus=2, strategy='dp',
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
@@ -258,7 +259,7 @@ class DynamicsModel(LightningModule):
     def validation_step(self, batch, batch_idx):
         self.val = True
         Jmean, Jsigma, J = self.compute_objective(batch)
-        self.log("Jval", J.item(), prog_bar=True)
+        self.log("Jval", J.item(), prog_bar=True, sync_dist=True)
         return J
 
     def validation_epoch_end(self, outputs) -> None:
@@ -268,7 +269,7 @@ class DynamicsModel(LightningModule):
     def test_step(self, batch, batch_idx):
         # Model prediction performance
         loss = self.compute_test_loss(batch)
-        self.log("mse_loss", loss.item(), prog_bar=True)
+        self.log("mse_loss", loss.item(), prog_bar=True, sync_dist=True)
         return loss
 
     def test_epoch_end(self, outputs) -> None:

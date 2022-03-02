@@ -133,20 +133,12 @@ class MBPO(MBRL, SAC):
                         #03. Train model pθ on Denv via maximum likelihood
                         # PyTorch Lightning Model Training
                         print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
-                        # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}                                             ')
-                        # Jwm, mEpochs = self.fake_world.train(self.data_module)
+                        # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}
                         # self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
-                        # JTrainLog, JValLog, LossTest, WMLogs = self.fake_world.train(self.data_module)
                         JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
-                        # JWM_Mean_List.append(Jmean)
-                        # JWM_List.append(Jwm)
-                        # JMeanTrainList.append(JTrainLog['mean'])
                         JTrainList.append(JTrainLog)
-                        # JMeanValList.append(JValLog['mean'])
                         JValList.append(JValLog)
                         LossTestList.append(LossTest)
-                        # WMList['mu'].append(WMLogs['mu'])
-                        # WMList['sigma'].append(WMLogs['sigma'])
 
                         # Update K-steps length
                         K = self.set_rollout_length(n)
@@ -156,8 +148,6 @@ class MBPO(MBRL, SAC):
 
                         # Generate M k-steps imaginary rollouts for SAC traingin
                         self.rollout_world_model(batch_size_ro, K, n)
-                        # print(f'[after training] Train env: {self.train_env.env.state_vector()[0]}')
-                        # print(f'[after training] Train env: {list(self.actor_critic.actor.parameters())[0][0]}')
 
                     for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't know!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
@@ -180,11 +170,8 @@ class MBPO(MBRL, SAC):
 
             # logs['training/wm/Jtrain_mean        '] = np.mean(JMeanTrainList)
             logs['training/wm/Jtrain             '] = np.mean(JTrainList)
-            # logs['training/wm/Jval_mean          '] = np.mean(JMeanValList)
             logs['training/wm/Jval               '] = np.mean(JValList)
             logs['training/wm/test_mse           '] = np.mean(LossTestList)
-            # logs['training/wm/test_mu            '] = np.mean(WMList['mu'])
-            # logs['training/wm/test_sigma         '] = np.mean(WMList['sigma'])
 
             logs['training/sac/Jq                '] = np.mean(JQList)
             logs['training/sac/Jpi               '] = np.mean(JPiList)
@@ -193,7 +180,6 @@ class MBPO(MBRL, SAC):
                 logs['training/obj/sac/alpha         '] = np.mean(AlphaList)
 
             eval_start_real = time.time()
-            # EZ, ES, EL = self.evaluate()
             EZ, ES, EL = self.evaluate()
 
             # logs['time/evaluation                '] = time.time() - eval_start_real
