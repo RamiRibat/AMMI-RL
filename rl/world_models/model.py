@@ -203,7 +203,7 @@ class DynamicsModel(LightningModule):
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
                           # gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
-                          gpus=2, strategy='dp',
+                          gpus=2, strategy='ddp',
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
@@ -314,12 +314,16 @@ class DynamicsModel(LightningModule):
     def weight_l2_loss(self): # must have 4 hid-layers in the WorldModel
         l2_loss_coefs = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001, 0.0001]
         weight_norms = []
+
         print('self.named_parameters(): ', self.named_parameters())
+
         for name, weight in self.named_parameters():
         	print('name: ', name)
         	if "weight" in name:
         		weight_norms.append(weight.norm(2))
+
         print('weight_norms: ', len(weight_norms))
+
         if len(weight_norms) > 0:
             weight_norms = T.stack(weight_norms, dim=0)
             weight_decay = (T.tensor(l2_loss_coefs, device=weight_norms.device) * weight_norms).sum()
