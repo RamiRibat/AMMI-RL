@@ -314,6 +314,7 @@ class DynamicsModel(LightningModule):
     def weight_l2_loss(self): # must have 4 hid-layers in the WorldModel
         l2_loss_coefs = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001, 0.0001]
         weight_norms = []
+        print('self.named_parameters(): ', self.named_parameters())
         for name, weight in self.named_parameters():
         	if "weight" in name:
         		weight_norms.append(weight.norm(2))
