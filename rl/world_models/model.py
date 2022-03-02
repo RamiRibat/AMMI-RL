@@ -319,6 +319,7 @@ class DynamicsModel(LightningModule):
         	print('name: ', name)
         	if "weight" in name:
         		weight_norms.append(weight.norm(2))
+        print('weight_norms: ', len(weight_norms))
         weight_norms = T.stack(weight_norms, dim=0)
         # print('l2_loss_coefs: ', T.tensor(l2_loss_coefs, device=weight_norms.device))
         # print('weight_norms: ', weight_norms)
