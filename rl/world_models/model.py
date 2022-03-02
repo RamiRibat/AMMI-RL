@@ -158,8 +158,7 @@ class DynamicsModel(LightningModule):
 
 
     def forward(self, o, a, deterministic= False):
-        print('self.obs_bias: ', self.obs_bias)
-        print('self.o: ', o)
+        
         normed_o = (o - self.obs_bias)/(self.obs_scale + epsilon)
         normed_a = (a - self.act_bias)/(self.act_scale + epsilon)
 
@@ -291,7 +290,6 @@ class DynamicsModel(LightningModule):
 
     def compute_objective(self, batch):
         O, A, R, O_next, D = batch
-        print('compute_objective, O: ', O)
         D = T.as_tensor(D, dtype=T.bool).to(self._device_)
 
         if self.normalize:
