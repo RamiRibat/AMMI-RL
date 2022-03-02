@@ -53,8 +53,8 @@ class StochasticPolicy(nn.Module):
 		# self.obs_bias   = np.zeros(obs_dim)
 		# self.obs_scale  = np.ones(obs_dim)
 
-		self.obs_bias   = T.zeros(obs_dim)
-		self.obs_scale  = T.ones(obs_dim)
+		self.obs_bias   = T.zeros(obs_dim).to(device)
+		self.obs_scale  = T.ones(obs_dim).to(device)
 
 		self.act_dim = act_dim
 		self.act_bias =  T.FloatTensor( (act_up_lim + act_low_lim) / 2.0 ).to(device)
