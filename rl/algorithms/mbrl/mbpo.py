@@ -92,11 +92,11 @@ class MBPO(MBRL, SAC):
 
         o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
-        oldJs = [0, 0, 0]
-        JQList, JAlphaList, JPiList = [0]*Ni, [0]*Ni, [0]*Ni
-        AlphaList = [self.alpha]*Ni
+        # oldJs = [0, 0, 0]
+        # JQList, JAlphaList, JPiList = [0], [0], [0]
+        # AlphaList = [self.alpha]*Ni
 
-        JTrainList, JValList, LossTestList = [0]*Ni, [0]*Ni, [0]*Ni
+        # JTrainList, JValList, LossTestList = [0], [0], [0]
         # WMList = {'mu': [0]*Ni, 'sigma': [0]*Ni}
         # JMeanTrainList, JTrainList, JMeanValList, JValList = [], [], [], []
         # LossTestList = []
@@ -112,10 +112,17 @@ class MBPO(MBRL, SAC):
                 print('=' * 50)
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
+                    JQList, JPiList = [], []
+                    JTrainList, JValList, LossTestList = [], [], []
                 elif n > Ni:
                     print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
+                    JQList, JPiList = [], []
+                    JTrainList, JValList, LossTestList = [], [], []
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
+                    oldJs = [0, 0, 0]
+                    JQList, JAlphaList, JPiList = [0], [0], [0]
+                    JTrainList, JValList, LossTestList = [0], [0], [0]
 
             print(f'[ Replay Buffer ] Size: {self.env_buffer.size}')
             nt = 0
@@ -127,7 +134,6 @@ class MBPO(MBRL, SAC):
 
                 # Taking gradient steps after exploration
                 if n > Ni:
-                    JTrainList, JValList, LossTestList = [], [], []
                     if nt % model_train_frequency == 0:
                         #03. Train model pθ on Denv via maximum likelihood
                         # PyTorch Lightning Model Training
@@ -148,7 +154,7 @@ class MBPO(MBRL, SAC):
                         # Generate M k-steps imaginary rollouts for SAC traingin
                         self.rollout_world_model(batch_size_ro, K, n)
 
-                    JQList, JPiList = [], []
+                    # JQList, JPiList = [], []
                     # AlphaList = [self.alpha]*G_sac
                     for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't know!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
