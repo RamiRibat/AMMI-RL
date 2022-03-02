@@ -290,6 +290,7 @@ class DynamicsModel(LightningModule):
 
     def compute_objective(self, batch):
         O, A, R, O_next, D = batch
+        print('compute_objective, O: ', O)
         D = T.as_tensor(D, dtype=T.bool).to(self._device_)
 
         if self.normalize:
