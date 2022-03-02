@@ -268,7 +268,7 @@ class MBPO(MBRL, SAC):
     		print('k=', k)
     		with T.no_grad():
     			# A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
-                A, _ = self.actor_critic.actor.step_np(O) # ip:Tensor, op:Numpy
+    			A, _ = self.actor_critic.actor.step_np(O) # ip:Tensor, op:Numpy
 
     		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
     		O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
