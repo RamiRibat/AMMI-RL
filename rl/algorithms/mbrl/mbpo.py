@@ -186,6 +186,13 @@ class MBPO(MBRL, SAC):
                 logs['training/obj/sac/Jalpha        '] = np.mean(JAlphaList)
                 logs['training/obj/sac/alpha         '] = np.mean(AlphaList)
 
+            logs['data/env_buffer                '] = self.env_buffer.size
+            if hasattr(self, 'model_buffer'):
+                logs['data/model_buffer              '] = self.model_buffer.size
+            else:
+                logs['data/model_buffer              '] = 0
+            logs['data/rollout_length            '] = K
+
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate()
 
