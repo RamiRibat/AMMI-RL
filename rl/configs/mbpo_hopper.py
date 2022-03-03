@@ -13,7 +13,7 @@ configurations = {
     'algorithm': {
         'name': 'MBPO',
         'learning': {
-            'epochs': 150, # N epochs
+            'epochs': 125, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 5, # Ni epochs = 5000 exploration steps
             'expl_epochs': 5, # Nx epochs
@@ -47,8 +47,8 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 2, # 7
-        'num_elites': 2, # 5
+        'num_ensembles': 7, # 7
+        'num_elites': 5, # 5
         'sample_type': 'Random',
         'learn_reward': True,
         'learn_log_sigma_limits': False,
