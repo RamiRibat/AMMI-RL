@@ -92,9 +92,9 @@ class DynamicsModel(LightningModule):
         if configs['world_model']['type'][0] == 'P':
             self.log_sigma = nn.Linear(net_arch[-1], out_dim)
 
-        self.min_log_sigma = nn.Parameter( -10.0 * T.ones([1, out_dim]),
-                                          requires_grad=configs['world_model']['learn_log_sigma_limits'])
-        self.max_log_sigma = nn.Parameter(T.ones([1, out_dim]) / 2.0,
+            self.min_log_sigma = nn.Parameter( -10.0 * T.ones([1, out_dim]),
+                                              requires_grad=configs['world_model']['learn_log_sigma_limits'])
+            self.max_log_sigma = nn.Parameter(T.ones([1, out_dim]) / 2.0,
                                           requires_grad=configs['world_model']['learn_log_sigma_limits'])
         self.reparam_noise = 1e-6
 
@@ -286,7 +286,7 @@ class DynamicsModel(LightningModule):
 
     def compute_objective(self, batch):
         O, A, R, O_next, D = batch
-        D = T.as_tensor(D, dtype=T.bool).to(self._device_)
+        # D = T.as_tensor(D, dtype=T.bool).to(self._device_)
 
         if self.normalize:
             # print('compute_objective: normalize')
@@ -325,7 +325,7 @@ class DynamicsModel(LightningModule):
 
     def compute_test_loss(self, batch):
         O, A, R, O_next, D = batch
-        D = T.as_tensor(D, dtype=T.bool).to(self._device_)
+        # D = T.as_tensor(D, dtype=T.bool).to(self._device_)
 
         mu, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
         mu_target = T.cat([O_next - O, R], dim=-1)

@@ -24,8 +24,8 @@ class ReplayBuffer: # Done !
     """
     def __init__(self, obs_dim, act_dim, max_size, seed, device):
         # print('Initialize ReplayBuffer!')
-        if seed:
-            random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
+        # if seed:
+        #     random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
         self.device = device
 
         self.observation_buffer = np.zeros((max_size, obs_dim), dtype=np.float32)
@@ -65,8 +65,8 @@ class DataBuffer:
 
     def __init__(self, obs_dim, act_dim, size, seed, device):
 
-        np.random.seed(seed)
-        T.manual_seed(seed)
+        # np.random.seed(seed)
+        # T.manual_seed(seed)
 
         # self.name = None
         self.device = device
@@ -106,8 +106,6 @@ class DataBuffer:
         self.ter_buf[self.ptr:self.ptr+available_size] = D[:available_size]
         self.ptr = (self.ptr+available_size) % self.max_size # 0
         remain_size = batch_size - available_size # 316
-        # print('available_size=', available_size)
-        # print('remain_size=', remain_size)
         # print('ptr=', self.ptr)
 
         if self.ptr+remain_size > self.max_size:
@@ -141,6 +139,7 @@ class DataBuffer:
     		self.ptr = (self.ptr+batch_size) % self.max_size
 
     		self.size = min(self.size+batch_size, self.max_size)
+        # print('ptr=', self.ptr)
 
 
     def sample_batch(self, batch_size=32):
@@ -166,9 +165,7 @@ class DataBuffer:
 
 
     def return_all(self):
-    	# print('Return All')
     	device = self.device
-
     	idxs = np.random.randint(0, self.size, size=self.size)
     	buffer = dict(observations=self.obs_buf[idxs],
     				actions=self.act_buf[idxs],
@@ -179,9 +176,7 @@ class DataBuffer:
 
 
     def return_all_np(self):
-    	# print('Return All')
     	device = self.device
-
     	idxs = np.random.randint(0, self.size, size=self.size)
     	buffer = dict(observations=self.obs_buf[idxs],
                       actions=self.act_buf[idxs],
