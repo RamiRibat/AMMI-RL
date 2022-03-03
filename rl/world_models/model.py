@@ -235,7 +235,9 @@ class DynamicsModel(LightningModule):
     def configure_optimizers(self):
         opt = 'T.optim.' + self.configs['world_model']['network']['optimizer']
         lr = self.configs['world_model']['network']['lr']
-        optimizer = eval(opt)(self.parameters(), lr=lr)
+        wd = self.configs['world_model']['network']['wd']
+        eps = self.configs['world_model']['network']['eps']
+        optimizer = eval(opt)(self.parameters(), lr=lr, weight_decay=wd, eps=eps)
         return optimizer
 
 

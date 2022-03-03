@@ -13,7 +13,7 @@ configurations = {
     'algorithm': {
         'name': 'MBPO',
         'learning': {
-            'epochs': 125, # N epochs
+            'epochs': 150, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 5, # Ni epochs = 5000 exploration steps
             'expl_epochs': 5, # Nx epochs
@@ -64,6 +64,7 @@ configurations = {
             'optimizer': "Adam", #@#
             'lr': 1e-3, #@#
             'wd': 1e-5,
+            'eps': 1e-8,
             'dropout': None,
             'batch_size': 256,
             # 'device': "auto",

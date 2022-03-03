@@ -15,4 +15,5 @@ class StaticFns:
 
         done = ~not_done
         done = done[:,None]
+        
         return done
