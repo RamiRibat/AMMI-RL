@@ -208,23 +208,23 @@ class MBPO(MBRL, SAC):
 
             logs['time/total                     '] = time.time() - start_time_real
 
-            if n > (N - 50):
-                if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
-                    if np.mean(ES) > lastES:
-                        print(f'[ Epoch {n}   Agent Saving ]                    ')
-                        env_name = self.configs['environment']['name']
-                        alg_name = self.configs['algorithm']['name']
-                        T.save(self.actor_critic.actor,
-                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pTtar')
-                        lastES = np.mean(ES)
-                else:
-                    if np.mean(EZ) > lastEZ:
-                        print(f'[ Epoch {n}   Agent Saving ]                    ')
-                        env_name = self.configs['environment']['name']
-                        alg_name = self.configs['algorithm']['name']
-                        T.save(self.actor_critic.actor,
-                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pTtar')
-                        lastEZ = np.mean(EZ)
+            # if n > (N - 50):
+            #     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
+            #         if np.mean(ES) > lastES:
+            #             print(f'[ Epoch {n}   Agent Saving ]                    ')
+            #             env_name = self.configs['environment']['name']
+            #             alg_name = self.configs['algorithm']['name']
+            #             T.save(self.actor_critic.actor,
+            #             f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pTtar')
+            #             lastES = np.mean(ES)
+            #     else:
+            #         if np.mean(EZ) > lastEZ:
+            #             print(f'[ Epoch {n}   Agent Saving ]                    ')
+            #             env_name = self.configs['environment']['name']
+            #             alg_name = self.configs['algorithm']['name']
+            #             T.save(self.actor_critic.actor,
+            #             f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pTtar')
+            #             lastEZ = np.mean(EZ)
 
             # Printing logs
             if self.configs['experiment']['print_logs']:
@@ -327,7 +327,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-DE{DE}-G"
+    group_name = f"{env_name}-{alg_name}-DE{DE}-H"
     exp_prefix = f"seed:{seed}"
 
     if wb:
