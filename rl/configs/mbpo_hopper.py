@@ -16,7 +16,7 @@ configurations = {
             'epochs': 125, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 5, # Ni epochs = 5000 exploration steps
-            'expl_epochs': 5, # Nx epochs
+            'expl_epochs': 0, # Nx epochs
             # 'real_epochs': 0, # Nr epochs
 
             'env_steps' : 1, # E: interact E times then train

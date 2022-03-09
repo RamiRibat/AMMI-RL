@@ -112,8 +112,11 @@ class MBPO(MBRL, SAC):
                 print('=' * 50)
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
-                    JQList, JPiList = [], []
-                    JTrainList, JValList, LossTestList = [], [], []
+                    # JQList, JPiList = [], []
+                    # JTrainList, JValList, LossTestList = [], [], []
+                    oldJs = [0, 0, 0]
+                    JQList, JAlphaList, JPiList = [0], [0], [0]
+                    JTrainList, JValList, LossTestList = [0], [0], [0]
                 elif n > Ni:
                     print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
                     JQList, JPiList = [], []
@@ -264,7 +267,7 @@ class MBPO(MBRL, SAC):
     	B_ro = self.env_buffer.sample_batch(batch_size)
     	O = B_ro['observations']
     	# print('rollout_world_model, O.shape: ', O.shape)
-    	print('a.ptr=', self.model_buffer.ptr)
+    	# print('a.ptr=', self.model_buffer.ptr)
 
     	#08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	for k in range(1, K+1):
@@ -291,7 +294,7 @@ class MBPO(MBRL, SAC):
     		O = O_next[nonD].reshape(-1,len(O[0,:]))
     		O = T.as_tensor(O, dtype=T.float32).to(device)
 
-    	print('z.ptr=', self.model_buffer.ptr)
+    	# print('z.ptr=', self.model_buffer.ptr)
 
 
     def sac_batch(self, real_ratio, batch_size):

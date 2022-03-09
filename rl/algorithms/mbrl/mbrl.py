@@ -155,6 +155,7 @@ class MBRL:
         max_el = self.configs['environment']['horizon']
 
         if n > Nx:
+            # print('actor')
             a, _ = self.actor_critic.actor.step_np(o)
         else:
             a = self.learn_env.action_space.sample()

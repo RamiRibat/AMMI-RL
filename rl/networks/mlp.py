@@ -9,7 +9,13 @@ Sequential = nn.Sequential
 
 
 
-
+# class Swish(nn.Module):
+#     def __init__(self):
+#         super(Swish, self).__init__()
+#
+#     def forward(self, x):
+#         x = x * F.sigmoid(x)
+#         return x
 
 
 class MLPNet(nn.Module):
