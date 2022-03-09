@@ -20,7 +20,7 @@ configurations = {
             # 'real_epochs': 0, # Nr epochs
 
             'env_steps' : 1, # E: interact E times then train
-            'grad_WM_steps': 10, # G: ac grad
+            'grad_WM_steps': 25, # G: ac grad
             'grad_SAC_steps': 20, #20, # ACG: ac grad, 40
 
             'policy_update_interval': 1,

@@ -199,7 +199,7 @@ class DynamicsModel(LightningModule):
                                             )
 
         self.trainer = Trainer(
-                          # max_epochs=wm_epochs,
+                          max_epochs=wm_epochs,
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
                           gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
@@ -209,7 +209,7 @@ class DynamicsModel(LightningModule):
                           progress_bar_refresh_rate=20,
                           # log_save_interval=100,
                           logger=False, #self.pl_logger,
-                          callbacks=[early_stop_callback],
+                          # callbacks=[early_stop_callback],
                           )
 
         self.normalize_out = False
@@ -306,8 +306,8 @@ class DynamicsModel(LightningModule):
         Jsigma = T.tensor([0.0]) #T.mean(T.mean(log_sigma, dim=-1), dim=-1)
         # Jgnll = Jmu + Jsigma
         Jgnll = self.gnll_loss(mu, mu_target, sigma)
-        Jwl2 = T.tensor([0.0]) #self.weight_l2_loss()
-        J = Jgnll# + Jwl2
+        Jwl2 = self.weight_l2_loss()
+        J = Jgnll + Jwl2
 
         J += 0.01 * ( T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma) ) # optimize bounds
 
