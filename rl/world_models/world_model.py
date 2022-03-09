@@ -155,11 +155,16 @@ class WorldModel(LightningModule):
         else:
             normal_ditribution = Normal(mu, sigma)
             # prediction = normal_ditribution.rsample()
+            # prediction = normal_ditribution.sample()
             prediction = normal_ditribution.sample()
 
-        obs_next = prediction[:,:-1] + obs
-        rew = prediction[:,-1]
-        mu = mu + T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1) # delta + obs | rew + 0
+        # obs_next = prediction[:,:-1] + obs
+        obs_next = prediction + obs
+        rew = 0 #prediction[:,-1]
+        # print('obs_next ', obs_next.shape)
+        # print('rew ', rew.shape)
+        # mu = mu + T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1) # delta + obs | rew + 0
+        mu = mu + obs # delta + obs | rew + 0
 
         return obs_next, rew, mu, sigma
 

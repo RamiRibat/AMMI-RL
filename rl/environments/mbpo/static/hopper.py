@@ -15,5 +15,21 @@ class StaticFns:
 
         done = ~not_done
         done = done[:,None]
-        
+
         return done
+
+
+# class StaticFns:
+
+    @staticmethod
+    def reward_fn(obs, act):
+        # obs = np.clip(paths["observations"], -10.0, 10.0)
+        # act = paths["actions"].clip(-1.0, 1.0)
+        vel_x = obs[:, -6] / 0.02
+        power = np.square(act).sum(axis=-1)
+        height = obs[:, 0]
+        ang = obs[:, 1]
+        alive_bonus = 1.0 * (height > 0.7) * (np.abs(ang) <= 0.2)
+        rewards = vel_x + alive_bonus - 1e-3*power
+
+        return rewards

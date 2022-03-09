@@ -81,7 +81,7 @@ class DynamicsModel(LightningModule):
         self.obs_dim = obs_dim
         self.act_dim = act_dim
         self.inp_dim = inp_dim = obs_dim + act_dim
-        self.out_dim = out_dim = obs_dim + rew_dim
+        self.out_dim = out_dim = obs_dim #+ rew_dim
         self.normalization(obs_bias, obs_scale, act_bias, act_scale, out_bias, out_scale)
 
         net_configs = configs['world_model']['network']
@@ -99,6 +99,8 @@ class DynamicsModel(LightningModule):
         self.reparam_noise = 1e-6
 
         self.apply(init_weights_)
+
+        # print('DynamicsModel: ', self)
 
         self.normalize = True
         self.normalize_out = True
@@ -124,7 +126,7 @@ class DynamicsModel(LightningModule):
         #     # print(f'mu={mu}')
         #     print('log_sigma: ', log_sigma)
         #     # print('sigma: ', sigma)
-        #     print(f'sigma_mean={T.mean(T.mean(sigma, dim=0))}')
+            # print(f'sigma_mean={T.mean(T.mean(sigma, dim=0))}')
         #     exit()
 
         return mu, log_sigma, sigma, sigma_inv
@@ -199,7 +201,7 @@ class DynamicsModel(LightningModule):
                                             )
 
         self.trainer = Trainer(
-                          max_epochs=wm_epochs,
+                          # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
                           gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
@@ -209,7 +211,7 @@ class DynamicsModel(LightningModule):
                           progress_bar_refresh_rate=20,
                           # log_save_interval=100,
                           logger=False, #self.pl_logger,
-                          # callbacks=[early_stop_callback],
+                          callbacks=[early_stop_callback],
                           )
 
         self.normalize_out = False
@@ -299,7 +301,11 @@ class DynamicsModel(LightningModule):
             self.normalization(obs_bias, obs_scale, act_bias, act_scale, out_bias, out_scale)
 
         mu, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
-        mu_target = T.cat([O_next - O, R], dim=-1)
+        # print('mu: ', mu.shape)
+        # print('sigma: ', sigma.shape)
+        # mu_target = T.cat([O_next - O, R], dim=-1)
+        mu_target = O_next - O
+        # print('mu_target: ', mu_target.shape)
 
         # Gaussian NLL loss
         Jmu = T.tensor([0.0]) #T.mean(T.mean(T.square(mu - mu_target) * sigma_inv, dim=-1), dim=-1) # batch loss
@@ -342,7 +348,8 @@ class DynamicsModel(LightningModule):
         # D = T.as_tensor(D, dtype=T.bool).to(self._device_)
 
         mu, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
-        mu_target = T.cat([O_next - O, R], dim=-1)
+        # mu_target = T.cat([O_next - O, R], dim=-1)
+        mu_target = O_next - O
 
         loss = self.mse_loss(mu, mu_target)
 

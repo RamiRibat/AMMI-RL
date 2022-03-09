@@ -34,7 +34,8 @@ class FakeWorld:
         # Predictions
         sample_type = self.configs['world_model']['sample_type']
         with T.no_grad():
-            Os_next, Rs, MEANs, SIGMAs = self.world_model(Os, As, deterministic, sample_type)
+            # Os_next, Rs, MEANs, SIGMAs = self.world_model(Os, As, deterministic, sample_type)
+            Os_next, _, MEANs, SIGMAs = self.world_model(Os, As, deterministic, sample_type)
 
         # Terminations
         if self.env_name[:4] == 'pddm':
@@ -43,6 +44,8 @@ class FakeWorld:
                                              As.detach().cpu().numpy())
             Ds[:,0] = D[:]
         else:
+            Rs = self.static_fns.reward_fn(Os.detach().cpu().numpy(), As.detach().cpu().numpy())
+
             Ds = self.static_fns.termination_fn(Os.detach().cpu().numpy(),
                                                 As.detach().cpu().numpy(),
                                                 Os_next.detach().cpu().numpy())
@@ -88,7 +91,7 @@ class FakeWorld:
 
     def step_np(self, Os, As, deterministic=False):
         Os_next, Rs, Ds, INFOs = self.step(Os, As, deterministic)
-        Rs = Rs.detach().cpu().numpy()
+        # Rs = Rs.detach().cpu().numpy()
         Os_next = Os_next.detach().cpu().numpy()
         return Os_next, Rs, Ds, INFOs
 
