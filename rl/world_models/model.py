@@ -107,7 +107,7 @@ class DynamicsModel(LightningModule):
 
         self.gnll_loss = nn.GaussianNLLLoss()
         self.mse_loss = nn.MSELoss()
-
+        # self..to(device)
         # self.to(self._device_)
 
 

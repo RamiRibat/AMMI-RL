@@ -47,8 +47,7 @@ class StochasticPolicy(nn.Module):
 
 		self.apply(init_weights_)
 
-		# Define optimizer
-		self.optimizer = eval(optimizer)(self.parameters(), lr)
+		self.to(device)
 
 		# self.obs_bias   = np.zeros(obs_dim)
 		# self.obs_scale  = np.ones(obs_dim)
@@ -59,6 +58,9 @@ class StochasticPolicy(nn.Module):
 		self.act_dim = act_dim
 		self.act_bias =  T.FloatTensor( (act_up_lim + act_low_lim) / 2.0 ).to(device)
 		self.act_scale = T.FloatTensor( (act_up_lim - act_low_lim) / 2.0 ).to(device)
+
+		# Define optimizer
+		self.optimizer = eval(optimizer)(self.parameters(), lr)
 
 
 	def pi_mean_std(self, obs):
@@ -122,7 +124,7 @@ class StochasticPolicy(nn.Module):
 				deterministic=False, # Default: False
 				return_log_pi=False # Default: False
 				):
-				
+
 		if isinstance(obs, T.Tensor):
 			obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
 		else:
