@@ -153,9 +153,9 @@ class WorldModel(LightningModule):
         if deterministic:
             prediction = mu
         else:
-            normal_ditribution = Normal(mu, sigma)
-            # prediction = normal_ditribution.rsample()
+            # normal_ditribution = Normal(mu, sigma)
             # prediction = normal_ditribution.sample()
+            normal_ditribution = Normal(mu, T.sqrt(sigma))
             prediction = normal_ditribution.sample()
 
         # obs_next = prediction[:,:-1] + obs
