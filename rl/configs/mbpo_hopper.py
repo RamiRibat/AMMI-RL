@@ -20,8 +20,8 @@ configurations = {
             # 'real_epochs': 0, # Nr epochs
 
             'env_steps' : 1, # E: interact E times then train
-            'grad_WM_steps': 25, # G: ac grad
-            'grad_SAC_steps': 40, #20, # ACG: ac grad, 40
+            'grad_WM_steps': 0, # G: ac grad
+            'grad_SAC_steps': 20, #20, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -118,10 +118,9 @@ configurations = {
         'optimize_memory_usage': False,
         'buffer_size': int(5e5),
         'model_buffer_size': int(1e7),
-        # 'real_ratio': 0.05,
-        'real_ratio': 0.0,
+        'real_ratio': 0.05,
+        # 'real_ratio': 0.0,
         'model_val_ratio': 0.2,
-        # 'rollout_batch_size': 400,
         'rollout_batch_size': 100000,
         'model_batch_size': 256,
         'batch_size': 256,
