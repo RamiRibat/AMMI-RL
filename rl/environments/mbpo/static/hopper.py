@@ -23,8 +23,6 @@ class StaticFns:
 
     @staticmethod
     def reward_fn(obs, act):
-        # obs = np.clip(paths["observations"], -10.0, 10.0)
-        # act = paths["actions"].clip(-1.0, 1.0)
         vel_x = obs[:, -6] / 0.02
         power = np.square(act).sum(axis=-1)
         height = obs[:, 0]

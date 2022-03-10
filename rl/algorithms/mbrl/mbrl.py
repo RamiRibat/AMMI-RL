@@ -89,7 +89,7 @@ class MBRL:
         device = self._device_
         model_retain_epochs = self.configs['world_model']['model_retain_epochs']
 
-        rollouts_per_epoch = batch_size_ro * NT / model_train_frequency
+        rollouts_per_epoch = batch_size_ro * (NT / model_train_frequency)
         model_steps_per_epoch = int(K * rollouts_per_epoch)
         new_buffer_size = model_retain_epochs * model_steps_per_epoch
 

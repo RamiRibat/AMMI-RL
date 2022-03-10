@@ -25,7 +25,7 @@ configurations = {
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
-            'target_update_interval': 4,
+            'target_update_interval': 1,
 
 
             'n_episodes_rollout': -1,
@@ -120,7 +120,8 @@ configurations = {
         'model_buffer_size': int(1e7),
         'real_ratio': 0.05,
         'model_val_ratio': 0.2,
-        'rollout_batch_size': 400,
+        # 'rollout_batch_size': 400,
+        'rollout_batch_size': 100000,
         'model_batch_size': 256,
         'batch_size': 256,
         # 'device': "auto",

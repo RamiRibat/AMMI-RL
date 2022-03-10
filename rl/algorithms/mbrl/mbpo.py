@@ -149,10 +149,12 @@ class MBPO(MBRL, SAC):
                         LossTestList.append(LossTest)
 
                         # Update K-steps length
-                        K = self.set_rollout_length(n)
+                        K_new = self.set_rollout_length(n)
 
                         # Reallocate model buffer
-                        self.reallocate_model_buffer(batch_size_ro, K, NT, model_train_frequency)
+                        if K != K_new:
+                            K = K_new
+                            self.reallocate_model_buffer(batch_size_ro, K, NT, model_train_frequency)
 
                         # Generate M k-steps imaginary rollouts for SAC traingin
                         self.rollout_world_model(batch_size_ro, K, n)

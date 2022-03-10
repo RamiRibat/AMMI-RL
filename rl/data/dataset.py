@@ -92,7 +92,7 @@ class RLDataModule(LightningDataModule):
 
 
     def update_dataset(self):
-        print('update_dataset, self.data_buffer.size', self.data_buffer.size)
+        # print('update_dataset, self.data_buffer.size', self.data_buffer.size)
         # print(f'RLDataModule.update_dataset={self.d}')
         # self.d +=1
 
