@@ -149,7 +149,7 @@ class MBPO(MBRL, SAC):
                         LossTestList.append(LossTest)
 
                         # Update K-steps length
-                        K_new = self.set_rollout_length(n)
+                        K = self.set_rollout_length(n)
 
                         # Reallocate model buffer
                         # if K != K_new:
@@ -332,7 +332,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-DE{DE}-L"
+    group_name = f"{env_name}-{alg_name}-DE{DE}-M"
     exp_prefix = f"seed:{seed}"
 
     if wb:
