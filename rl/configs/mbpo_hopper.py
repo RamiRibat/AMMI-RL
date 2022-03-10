@@ -25,7 +25,7 @@ configurations = {
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
-            'target_update_interval': 4,
+            'target_update_interval': 1,
 
 
             'n_episodes_rollout': -1,
