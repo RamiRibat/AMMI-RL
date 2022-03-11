@@ -165,8 +165,6 @@ class DynamicsModel(LightningModule):
         normed_a = (a - self.act_bias)/(self.act_scale + epsilon)
 
         ips = T.as_tensor(T.cat([normed_o, normed_a], dim=-1), dtype=T.float32)#.to(self._device_)
-        print('ips: ', ips)
-        print('self.device: ', self.device)
 
         mu, log_sigma, sigma, sigma_inv = self.get_model_dist_params(
             T.as_tensor(ips, dtype=T.float32)#.to(self._device_)
