@@ -151,8 +151,8 @@ class MBPO(MBRL, SAC):
                         # JValList.append(JValLog)
                         # LossTestList.append(LossTest)
 
-                        self.fake_world.train_fake_world(self.env_buffer)
-                        # JTrainList.append(LossList)
+                        ho_mean = self.fake_world.train_fake_world(self.env_buffer)
+                        JValList.append(ho_mean)
 
                         # Update K-steps length
                         K = self.set_rollout_length(n)
@@ -188,7 +188,7 @@ class MBPO(MBRL, SAC):
 
             # logs['training/wm/Jtrain_mean        '] = np.mean(JMeanTrainList)
             # logs['training/wm/Jtrain             '] = np.mean(JTrainList)
-            # logs['training/wm/Jval               '] = np.mean(JValList)
+            logs['training/wm/Jval               '] = np.mean(JValList)
             # logs['training/wm/test_mse           '] = np.mean(LossTestList)
 
             logs['training/sac/Jq                '] = np.mean(JQList)

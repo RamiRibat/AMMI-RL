@@ -146,9 +146,9 @@ class FakeWorld:
         # print('inputs: ', inputs)
         # print('labels: ', labels)
 
-        self.model.train(inputs, labels, batch_size=256, holdout_ratio=0.2)
+        holdout_mse_mean = self.model.train(inputs, labels, batch_size=256, holdout_ratio=0.2)
 
-        # return LossList#, JValLog, LossTest
+        return holdout_mse_mean
 
 
 
