@@ -162,6 +162,8 @@ class EnsembleFC(nn.Module):
 
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
+        print('input: ', input)
+        print('self.weight: ', self.weight)
         w_times_x = torch.bmm(input, self.weight)
         return torch.add(w_times_x, self.bias[:, None, :])  # w times x + b
 
