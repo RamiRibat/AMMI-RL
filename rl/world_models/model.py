@@ -159,8 +159,8 @@ class DynamicsModel(LightningModule):
 
 
     def forward(self, o, a, deterministic= False):
-        print('\nself.obs_bias: ', self.obs_bias)
-        print('self.device: ', self.device)
+        # print('\nself.obs_bias: ', self.obs_bias)
+        # print('self.device: ', self.device)
         # print('o: ', o)
         normed_o = (o - self.obs_bias)/(self.obs_scale + epsilon)
         normed_a = (a - self.act_bias)/(self.act_scale + epsilon)

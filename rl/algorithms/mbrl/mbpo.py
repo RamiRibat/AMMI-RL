@@ -266,7 +266,7 @@ class MBPO(MBRL, SAC):
     	device = self._device_
     	batch_size = min(batch_size_ro, self.env_buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-    	B_ro = self.env_buffer.sample_batch(batch_size)
+    	B_ro = self.env_buffer.sample_batch(batch_size, device)
     	O = B_ro['observations']
     	# print('rollout_world_model, O.shape: ', O.shape)
     	# print('a.ptr=', self.model_buffer.ptr)
@@ -294,7 +294,7 @@ class MBPO(MBRL, SAC):
     		# print('rollout_world_model, nonD.shape: ', nonD.shape)
 
     		O = O_next[nonD].reshape(-1,len(O[0,:]))
-    		O = T.as_tensor(O, dtype=T.float32).to(device)
+    		O = T.as_tensor(O, dtype=T.float32)#.to(device)
 
     	# print('z.ptr=', self.model_buffer.ptr)
 
