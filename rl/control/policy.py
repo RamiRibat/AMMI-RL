@@ -36,6 +36,7 @@ class StochasticPolicy(nn.Module):
 		super(StochasticPolicy, self).__init__() # To automatically use 'def forward'
 
 		self.device = device
+		
 		net_arch = net_configs['arch']
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
