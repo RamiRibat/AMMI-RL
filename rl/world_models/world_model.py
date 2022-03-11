@@ -62,8 +62,8 @@ class WorldModel(LightningModule):
         							 ).to(device)
         elif configs['world_model']['type'] == 'PE':
             M = configs['world_model']['num_ensembles']
-            self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device).to(device) for m in range(M)]
-            # self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device) for m in range(M)]
+            # self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device).to(device) for m in range(M)]
+            self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device) for m in range(M)]
             # self.elit_models = []
 
         self.configs = configs
