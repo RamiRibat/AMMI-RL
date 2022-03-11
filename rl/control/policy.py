@@ -47,12 +47,6 @@ class StochasticPolicy(nn.Module):
 
 		self.apply(init_weights_)
 
-
-
-
-		# self.obs_bias   = np.zeros(obs_dim)
-		# self.obs_scale  = np.ones(obs_dim)
-
 		self.obs_bias   = T.zeros(obs_dim)#.to(device)
 		self.obs_scale  = T.ones(obs_dim)#.to(device)
 
@@ -101,7 +95,7 @@ class StochasticPolicy(nn.Module):
 				):
 
 		if isinstance(obs, T.Tensor):
-			obs = (obs - self.obs_bias) / (self.obs_scale + epsilon)
+			obs = (obs.to(self.device) - self.obs_bias) / (self.obs_scale + epsilon)
 		else:
 			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
 
