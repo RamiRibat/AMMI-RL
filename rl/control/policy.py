@@ -35,7 +35,7 @@ class StochasticPolicy(nn.Module):
 		# if seed: random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 		super(StochasticPolicy, self).__init__() # To automatically use 'def forward'
 
-		self._device_ = device
+		self.device = device
 		net_arch = net_configs['arch']
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
