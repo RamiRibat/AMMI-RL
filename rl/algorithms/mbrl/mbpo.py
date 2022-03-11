@@ -266,7 +266,7 @@ class MBPO(MBRL, SAC):
     	device = self._device_
     	batch_size = min(batch_size_ro, self.env_buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-    	B_ro = self.env_buffer.sample_batch(batch_size, device)
+    	B_ro = self.env_buffer.sample_batch(batch_size)
     	O = B_ro['observations']
     	# print('rollout_world_model, O.shape: ', O.shape)
     	# print('a.ptr=', self.model_buffer.ptr)
@@ -274,16 +274,17 @@ class MBPO(MBRL, SAC):
     	#08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	for k in range(1, K+1):
     		with T.no_grad():
-    			A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
+    			# A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
+    			A, _ = self.actor_critic.actor.step_np(O) # ip:Tensor, op:Numpy
 
     		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
     		O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
     		# print('rollout_world_model, O_next.shape: ', O_next.shape)
 
-    		O = O.detach().cpu().numpy()
-    		A = A.detach().cpu().numpy()
+    		# O = O.detach().cpu().numpy()
+    		# A = A.detach().cpu().numpy()
 
-    		self.model_buffer.store_batch(O, A, R, O_next, D) # ip:Numpy
+    		self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip:Numpy
     		# print('model buff ptr: ', self.model_buffer.ptr)
 
     		nonD = ~D

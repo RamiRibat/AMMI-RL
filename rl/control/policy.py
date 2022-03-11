@@ -106,7 +106,7 @@ class StochasticPolicy(nn.Module):
 			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
 
 		mean, std = self.pi_mean_std(
-		T.as_tensor(obs, dtype=T.float32).to(self._device_)
+		T.as_tensor(obs, dtype=T.float32).to(self.device)
 		)
 
 		log_pi = None
