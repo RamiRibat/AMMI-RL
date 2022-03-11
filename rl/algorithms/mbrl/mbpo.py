@@ -302,10 +302,10 @@ class MBPO(MBRL, SAC):
     def sac_batch(self, real_ratio, batch_size):
     	batch_size_real = int(real_ratio * batch_size) # 0.05*256
     	batch_size_img = batch_size - batch_size_real # 256 - (0.05*256)
-    	B_real = self.env_buffer.sample_batch(batch_size_real)
+    	B_real = self.env_buffer.sample_batch(batch_size_real, self._device_)
 
     	if batch_size_img > 0:
-    		B_img = self.model_buffer.sample_batch(batch_size_img)
+    		B_img = self.model_buffer.sample_batch(batch_size_img, self._device_)
     		keys = B_real.keys()
     		B = {k: T.cat((B_real[k], B_img[k]), dim=0) for k in keys}
     	else:
