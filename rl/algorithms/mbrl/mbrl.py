@@ -8,6 +8,7 @@ from rl.data.buffer import ReplayBuffer
 # from rl.data.buffer import DataBuffer
 from rl.data.dataset import RLDataModule
 from rl.world_models.world_model import WorldModel
+from rl.world_models.model import EnsembleDynamicsModel
 
 
 
@@ -79,7 +80,11 @@ class MBRL:
 
     def _set_world_model(self):
         device = self._device_
-        self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
+        # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
+        self.world_model = EnsembleDynamicsModel(7, 5,
+                                      self.obs_dim, self.act_dim, 1,
+                                      200, use_decay=True,
+                                      device=device)
 
 
     def reallocate_model_buffer(self, batch_size_ro, K, NT, model_train_frequency):

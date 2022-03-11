@@ -154,6 +154,18 @@ class ReplayBuffer:
             return {k: T.as_tensor(v, dtype=T.float32) for k,v in batch.items()}
 
 
+    def sample_batch_np(self, batch_size=32):
+        # device = self.device
+        idxs = np.random.randint(0, self.size, size=batch_size)
+        # print('Index:	', idxs[0: 5])
+        batch = dict(observations=self.obs_buf[idxs],
+        			actions=self.act_buf[idxs],
+        			rewards=self.rew_buf[idxs],
+        			observations_next=self.obs_next_buf[idxs],
+        			terminals=self.ter_buf[idxs])
+        return {k: v for k,v in batch.items()}
+
+
     def get_recent_data(self, batch_size=32, device=False):
         # device = self.device
         batch = dict(observations=self.obs_buf[-batch_size:],
@@ -176,9 +188,9 @@ class ReplayBuffer:
         			observations_next=self.obs_next_buf[idxs],
         			terminals=self.ter_buf[idxs])
         if device:
-            return {k: T.as_tensor(v, dtype=T.float32).to(device) for k,v in batch.items()}
+            return {k: T.as_tensor(v, dtype=T.float32).to(device) for k,v in buffer.items()}
         else:
-            return {k: T.as_tensor(v, dtype=T.float32) for k,v in batch.items()}
+            return {k: T.as_tensor(v, dtype=T.float32) for k,v in buffer.items()}
 
 
     def return_all_np(self):
@@ -190,6 +202,13 @@ class ReplayBuffer:
                       observations_next=self.obs_next_buf[idxs],
                       terminals=self.ter_buf[idxs])
     	return {k: v for k, v in buffer.items()}
+
+
+    def return_all_np_stack(self):
+        data = self.return_all_np()
+        return {k: np.stack(v) for k, v in data.items()}
+        # state, action, reward, next_state, done = np.stack(state), np.stack(action), np.stack(reward), np.stack(next_state), np.stack(done)
+        # return state, action, reward, next_state, done
 
 
 

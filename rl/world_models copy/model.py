@@ -81,7 +81,7 @@ class DynamicsModel(LightningModule):
         self.obs_dim = obs_dim
         self.act_dim = act_dim
         self.inp_dim = inp_dim = obs_dim + act_dim
-        self.out_dim = out_dim = obs_dim + rew_dim
+        self.out_dim = out_dim = obs_dim #+ rew_dim
         self.normalization(obs_bias, obs_scale, act_bias, act_scale, out_bias, out_scale)
 
         net_configs = configs['world_model']['network']
@@ -100,13 +100,48 @@ class DynamicsModel(LightningModule):
 
         self.apply(init_weights_)
 
+        # print('DynamicsModel: ', self)
+
         self.normalize = True
         self.normalize_out = True
 
         self.gnll_loss = nn.GaussianNLLLoss()
         self.mse_loss = nn.MSELoss()
-
+        # self..to(device)
         # self.to(self._device_)
+
+
+    def normalization(self, obs_bias=None, obs_scale=None,
+                            act_bias=None, act_scale=None,
+                            out_bias=None, out_scale=None):
+
+        # device = self._device_
+
+        if obs_bias is None:
+            self.obs_bias   = T.zeros(self.obs_dim)
+            self.obs_scale  = T.ones(self.obs_dim)
+            self.act_bias   = T.zeros(self.act_dim)
+            self.act_scale  = T.ones(self.act_dim)
+            self.out_bias   = T.zeros(self.out_dim)
+            self.out_scale  = T.ones(self.out_dim)
+
+        self.obs_bias   = self.obs_bias#.to(device)
+        self.obs_scale  = self.obs_scale#.to(device)
+        self.act_bias   = self.act_bias#.to(device)
+        self.act_scale  = self.act_scale#.to(device)
+        self.out_bias   = self.out_bias#.to(device)
+        self.out_scale  = self.out_scale#.to(device)
+        self.mask = self.out_scale >= epsilon
+
+
+    def to(self, device):
+        self.obs_bias = self.obs_bias.to(device)
+        self.obs_scale = self.obs_scale.to(device)
+        self.act_bias = self.act_bias.to(device)
+        self.act_scale = self.act_scale.to(device)
+        self.out_bias = self.out_bias.to(device)
+        self.out_scale = self.out_scale.to(device)
+        return super(DynamicsModel, self).to(device)
 
 
 
@@ -118,54 +153,22 @@ class DynamicsModel(LightningModule):
 
         sigma = T.exp(log_sigma)
         sigma_inv = T.tensor([0.0]) #T.exp(-log_sigma)
-
-        # if T.mean(T.mean(sigma, dim=0)) > 1e2:
-        #     # print(f'normed_o={normed_o}')
-        #     # print(f'mu={mu}')
-        #     print('log_sigma: ', log_sigma)
-        #     # print('sigma: ', sigma)
-        #     print(f'sigma_mean={T.mean(T.mean(sigma, dim=0))}')
         #     exit()
 
         return mu, log_sigma, sigma, sigma_inv
 
 
-    # def deterministic(self, mu):
-    #     pass
-
-
-    def normalization(self, obs_bias=None, obs_scale=None,
-                            act_bias=None, act_scale=None,
-                            out_bias=None, out_scale=None):
-
-        device = self._device_
-
-        if obs_bias is None:
-            self.obs_bias   = T.zeros(self.obs_dim)
-            self.obs_scale  = T.ones(self.obs_dim)
-            self.act_bias   = T.zeros(self.act_dim)
-            self.act_scale  = T.ones(self.act_dim)
-            self.out_bias   = T.zeros(self.out_dim)
-            self.out_scale  = T.ones(self.out_dim)
-
-        self.obs_bias   = self.obs_bias.to(device)
-        self.obs_scale  = self.obs_scale.to(device)
-        self.act_bias   = self.act_bias.to(device)
-        self.act_scale  = self.act_scale.to(device)
-        self.out_bias   = self.out_bias.to(device)
-        self.out_scale  = self.out_scale.to(device)
-        self.mask = self.out_scale >= epsilon
-
-
     def forward(self, o, a, deterministic= False):
-
+        # print('\nself.obs_bias: ', self.obs_bias)
+        # print('o: ', o)
         normed_o = (o - self.obs_bias)/(self.obs_scale + epsilon)
         normed_a = (a - self.act_bias)/(self.act_scale + epsilon)
 
-        ips = T.as_tensor(T.cat([normed_o, normed_a], dim=-1), dtype=T.float32).to(self._device_)
+        ips = T.as_tensor(T.cat([normed_o, normed_a], dim=-1), dtype=T.float32)#.to(self._device_)
 
         mu, log_sigma, sigma, sigma_inv = self.get_model_dist_params(
-            T.as_tensor(ips, dtype=T.float32).to(self._device_))
+            T.as_tensor(ips, dtype=T.float32)#.to(self._device_)
+            )
 
         if self.normalize_out:
             mu = mu * (self.out_scale + epsilon) + self.out_bias
@@ -203,7 +206,7 @@ class DynamicsModel(LightningModule):
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
                           gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
-                          # gpus=2, strategy='ddp',
+                          # gpus=2, strategy='dp',
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,
@@ -299,7 +302,11 @@ class DynamicsModel(LightningModule):
             self.normalization(obs_bias, obs_scale, act_bias, act_scale, out_bias, out_scale)
 
         mu, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
-        mu_target = T.cat([O_next - O, R], dim=-1)
+        # print('mu: ', mu.shape)
+        # print('sigma: ', sigma.shape)
+        # mu_target = T.cat([O_next - O, R], dim=-1)
+        mu_target = O_next - O
+        # print('mu_target: ', mu_target.shape)
 
         # Gaussian NLL loss
         Jmu = T.tensor([0.0]) #T.mean(T.mean(T.square(mu - mu_target) * sigma_inv, dim=-1), dim=-1) # batch loss
@@ -322,16 +329,16 @@ class DynamicsModel(LightningModule):
         	if "weight" in name:
         		weight_norms.append(weight.norm(2))
         weight_norms = T.stack(weight_norms, dim=0)
-        weight_decay = (T.tensor(l2_loss_coefs, device=weight_norms.device) * weight_norms).sum()
-        return weight_decay
+        weight_decay_loss = (T.tensor(l2_loss_coefs, device=weight_norms.device) * weight_norms).sum()
+        return weight_decay_loss
 
 
     def compute_test_loss(self, batch):
         O, A, R, O_next, D = batch
-        # D = T.as_tensor(D, dtype=T.bool).to(self._device_)
 
         mu, log_sigma, sigma, sigma_inv = self(O, A) # dyn_delta, reward
-        mu_target = T.cat([O_next - O, R], dim=-1)
+        # mu_target = T.cat([O_next - O, R], dim=-1)
+        mu_target = O_next - O
 
         loss = self.mse_loss(mu, mu_target)
 

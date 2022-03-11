@@ -69,7 +69,9 @@ class MBPO(MBRL, SAC):
         	static_fns = None
         else:
         	static_fns = mbpo_static[env_name[:-3].lower()]
-        self.fake_world = FakeWorld(self.world_model, static_fns, env_name, self.learn_env, self.configs, device)
+
+        # self.fake_world = FakeWorld(self.world_model, static_fns, env_name, self.learn_env, self.configs, device)
+        self.fake_world = FakeWorld(self.world_model)
 
 
     def learn(self):
@@ -143,10 +145,14 @@ class MBPO(MBRL, SAC):
                         print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
                         # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}
                         # self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
-                        JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
-                        JTrainList.append(JTrainLog)
-                        JValList.append(JValLog)
-                        LossTestList.append(LossTest)
+
+                        # JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
+                        # JTrainList.append(JTrainLog)
+                        # JValList.append(JValLog)
+                        # LossTestList.append(LossTest)
+
+                        self.fake_world.train_fake_world(self.env_buffer)
+                        # JTrainList.append(LossList)
 
                         # Update K-steps length
                         K = self.set_rollout_length(n)
@@ -181,9 +187,9 @@ class MBPO(MBRL, SAC):
             # logs['time/training                  '] = time.time() - learn_start_real
 
             # logs['training/wm/Jtrain_mean        '] = np.mean(JMeanTrainList)
-            logs['training/wm/Jtrain             '] = np.mean(JTrainList)
-            logs['training/wm/Jval               '] = np.mean(JValList)
-            logs['training/wm/test_mse           '] = np.mean(LossTestList)
+            # logs['training/wm/Jtrain             '] = np.mean(JTrainList)
+            # logs['training/wm/Jval               '] = np.mean(JValList)
+            # logs['training/wm/test_mse           '] = np.mean(LossTestList)
 
             logs['training/sac/Jq                '] = np.mean(JQList)
             logs['training/sac/Jpi               '] = np.mean(JPiList)
@@ -266,7 +272,7 @@ class MBPO(MBRL, SAC):
     	device = self._device_
     	batch_size = min(batch_size_ro, self.env_buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-    	B_ro = self.env_buffer.sample_batch(batch_size)
+    	B_ro = self.env_buffer.sample_batch_np(batch_size)
     	O = B_ro['observations']
     	# print('rollout_world_model, O.shape: ', O.shape)
     	# print('a.ptr=', self.model_buffer.ptr)
@@ -275,27 +281,29 @@ class MBPO(MBRL, SAC):
     	for k in range(1, K+1):
     		with T.no_grad():
     			# A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
-    			A, _ = self.actor_critic.actor.step_np(O) # ip:Tensor, op:Numpy
+    			A, _ = self.actor_critic.actor.step_np(T.as_tensor(O, dtype=T.float32)) # ip:Tensor, op:Numpy
 
     		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
-    		O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
+    		# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
+    		O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Numpy
+
     		# print('rollout_world_model, O_next.shape: ', O_next.shape)
 
     		# O = O.detach().cpu().numpy()
     		# A = A.detach().cpu().numpy()
 
-    		self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip:Numpy
+    		# self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip:Numpy
+    		self.model_buffer.store_batch(O, A, R, O_next, D) # ip:Numpy
     		# print('model buff ptr: ', self.model_buffer.ptr)
 
-    		nonD = ~D
+    		# nonD = ~D
+    		nonD = ~D.squeeze(-1)
     		if nonD.sum() == 0:
     		    print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
-    		    break
-    		nonD = np.repeat(nonD, len(O[0,:]), axis=1).reshape(-1, len(O[0,:]))
-    		# print('rollout_world_model, nonD.shape: ', nonD.shape)
+    		    breaks
 
-    		O = O_next[nonD].reshape(-1,len(O[0,:]))
-    		O = T.as_tensor(O, dtype=T.float32)#.to(device)
+    		O = O_next[nonD]#.reshape(-1,len(O[0,:]))
+    		# O = T.as_tensor(O, dtype=T.float32)#.to(device)
 
     	# print('z.ptr=', self.model_buffer.ptr)
 

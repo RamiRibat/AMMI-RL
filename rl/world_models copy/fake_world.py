@@ -11,9 +11,9 @@ import torch as T
 
 class FakeWorld:
 
-    def __init__(self, dyn_models, static_fns, env_name, train_env, configs, device):
+    def __init__(self, world_model, static_fns, env_name, train_env, configs, device):
         # print('init FakeWorld!')
-        self.models = dyn_models
+        self.world_model = world_model
         self.static_fns = static_fns
         self.env_name = env_name
         self.train_env = train_env
@@ -34,7 +34,8 @@ class FakeWorld:
         # Predictions
         sample_type = self.configs['world_model']['sample_type']
         with T.no_grad():
-            Os_next, Rs, MEANs, SIGMAs = self.models(Os, As, deterministic, sample_type)
+            # Os_next, Rs, MEANs, SIGMAs = self.world_model(Os, As, deterministic, sample_type)
+            Os_next, _, MEANs, SIGMAs = self.world_model(Os, As, deterministic, sample_type)
 
         # Terminations
         if self.env_name[:4] == 'pddm':
@@ -43,6 +44,8 @@ class FakeWorld:
                                              As.detach().cpu().numpy())
             Ds[:,0] = D[:]
         else:
+            Rs = self.static_fns.reward_fn(Os.detach().cpu().numpy(), As.detach().cpu().numpy())
+
             Ds = self.static_fns.termination_fn(Os.detach().cpu().numpy(),
                                                 As.detach().cpu().numpy(),
                                                 Os_next.detach().cpu().numpy())
@@ -67,7 +70,7 @@ class FakeWorld:
         # Predictions
         sample_type = m
         with T.no_grad():
-            Os_next, Rs, MEANs, SIGMAs = self.models(Os, As, deterministic, sample_type)
+            Os_next, Rs, MEANs, SIGMAs = self.world_model(Os, As, deterministic, sample_type)
 
         # Terminations
         if self.env_name[:4] == 'pddm':
@@ -88,15 +91,15 @@ class FakeWorld:
 
     def step_np(self, Os, As, deterministic=False):
         Os_next, Rs, Ds, INFOs = self.step(Os, As, deterministic)
-        Rs = Rs.detach().cpu().numpy()
+        # Rs = Rs.detach().cpu().numpy()
         Os_next = Os_next.detach().cpu().numpy()
         return Os_next, Rs, Ds, INFOs
 
 
     def train(self, data_module):
         data_module.update_dataset()
-        # JTrainLog, JValLog, LossTest, WMLogs = self.models.train_WM(data_module)
-        JTrainLog, JValLog, LossTest = self.models.train_WM(data_module)
+        # JTrainLog, JValLog, LossTest, WMLogs = self.world_model.train_WM(data_module)
+        JTrainLog, JValLog, LossTest = self.world_model.train_WM(data_module)
         return JTrainLog, JValLog, LossTest#, WMLogs
 
 

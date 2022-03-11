@@ -62,7 +62,8 @@ class WorldModel(LightningModule):
         							 ).to(device)
         elif configs['world_model']['type'] == 'PE':
             M = configs['world_model']['num_ensembles']
-            self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device).to(device) for m in range(M)]
+            # self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device).to(device) for m in range(M)]
+            self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device) for m in range(M)]
             # self.elit_models = []
 
         self.configs = configs
@@ -143,7 +144,7 @@ class WorldModel(LightningModule):
 
         M = self.configs['world_model']['num_ensembles']
         modelType = self.configs['world_model']['type']
-        device = self._device_
+        # device = self._device_
 
         if modelType == 'P':
         	mu, log_sigma, sigma, inv_sigma = self.sample(obs, act, sample_type)
@@ -154,12 +155,15 @@ class WorldModel(LightningModule):
             prediction = mu
         else:
             normal_ditribution = Normal(mu, sigma)
-            # prediction = normal_ditribution.rsample()
             prediction = normal_ditribution.sample()
 
-        obs_next = prediction[:,:-1] + obs
-        rew = prediction[:,-1]
-        mu = mu + T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1) # delta + obs | rew + 0
+        # obs_next = prediction[:,:-1] + obs
+        obs_next = prediction + obs
+        rew = 0 #prediction[:,-1]
+        # print('obs_next ', obs_next.shape)
+        # print('rew ', rew.shape)
+        # mu = mu + T.cat([obs, T.zeros(obs.shape[0], 1).to(device)], dim=1) # delta + obs | rew + 0
+        mu = mu + obs # delta + obs | rew + 0
 
         return obs_next, rew, mu, sigma
 
