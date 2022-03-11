@@ -193,7 +193,7 @@ class WorldModel(LightningModule):
                 JVal.append(Jval)
                 LossTest.append(test_loss)
 
-                # self.models[m].to(device) # bc pl-training detatchs models
+                self.models[m].to(device) # bc pl-training detatchs models
 
             inx_model = np.argsort(JVal)
             self.inx_elites = inx_model[:num_elites]
