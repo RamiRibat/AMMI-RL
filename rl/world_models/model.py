@@ -192,6 +192,8 @@ class EnsembleModel(nn.Module):
 
         self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
         self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
+        self.to(device)
+        
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
         self.apply(init_weights_)
