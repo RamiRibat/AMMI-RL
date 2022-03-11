@@ -120,13 +120,6 @@ class DynamicsModel(LightningModule):
 
         sigma = T.exp(log_sigma)
         sigma_inv = T.tensor([0.0]) #T.exp(-log_sigma)
-
-        # if T.mean(T.mean(sigma, dim=0)) > 1e2:
-        #     # print(f'normed_o={normed_o}')
-        #     # print(f'mu={mu}')
-        #     print('log_sigma: ', log_sigma)
-        #     # print('sigma: ', sigma)
-            # print(f'sigma_mean={T.mean(T.mean(sigma, dim=0))}')
         #     exit()
 
         return mu, log_sigma, sigma, sigma_inv
@@ -150,12 +143,12 @@ class DynamicsModel(LightningModule):
             self.out_bias   = T.zeros(self.out_dim)
             self.out_scale  = T.ones(self.out_dim)
 
-        self.obs_bias   = self.obs_bias.to(device)
-        self.obs_scale  = self.obs_scale.to(device)
-        self.act_bias   = self.act_bias.to(device)
-        self.act_scale  = self.act_scale.to(device)
-        self.out_bias   = self.out_bias.to(device)
-        self.out_scale  = self.out_scale.to(device)
+        self.obs_bias   = self.obs_bias#.to(device)
+        self.obs_scale  = self.obs_scale#.to(device)
+        self.act_bias   = self.act_bias#.to(device)
+        self.act_scale  = self.act_scale#.to(device)
+        self.out_bias   = self.out_bias#.to(device)
+        self.out_scale  = self.out_scale#.to(device)
         self.mask = self.out_scale >= epsilon
 
 
@@ -164,10 +157,11 @@ class DynamicsModel(LightningModule):
         normed_o = (o - self.obs_bias)/(self.obs_scale + epsilon)
         normed_a = (a - self.act_bias)/(self.act_scale + epsilon)
 
-        ips = T.as_tensor(T.cat([normed_o, normed_a], dim=-1), dtype=T.float32).to(self._device_)
+        ips = T.as_tensor(T.cat([normed_o, normed_a], dim=-1), dtype=T.float32)#.to(self._device_)
 
         mu, log_sigma, sigma, sigma_inv = self.get_model_dist_params(
-            T.as_tensor(ips, dtype=T.float32).to(self._device_))
+            T.as_tensor(ips, dtype=T.float32)#.to(self._device_)
+            )
 
         if self.normalize_out:
             mu = mu * (self.out_scale + epsilon) + self.out_bias

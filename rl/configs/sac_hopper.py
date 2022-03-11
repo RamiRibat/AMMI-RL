@@ -29,7 +29,7 @@ configurations = {
             'evaluate': True,
             'eval_deterministic': True,
             'eval_freq': 1, # Evaluate every 'eval_freq' epochs --> Ef
-            'eval_episodes': 10, # Test policy for 'eval_episodes' times --> EE
+            'eval_episodes': 5, # Test policy for 'eval_episodes' times --> EE
             'eval_render_mode': None,
         }
     },
@@ -71,9 +71,9 @@ configurations = {
 
     'experiment': {
         'verbose': 0,
-        'device': "cpu",
+        # 'device': "cpu",
         # 'device': "cuda:0",
-        'WandB': True,
+        # 'WandB': True,
         # 'WandB': False,
         'print_logs': True,
     }

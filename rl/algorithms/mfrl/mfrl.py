@@ -9,13 +9,13 @@ class MFRL:
     """
     Model-Free Reinforcement Learning
     """
-    def __init__(self, exp_prefix, configs, seed, device) -> None:
+    def __init__(self, exp_prefix, configs, seed, device):
         # super(MFRL, self).__init__(configs, seed)
-        # print('init MFRL!')
+        # print('init MBRL!')
         self.exp_prefix = exp_prefix
         self.configs = configs
         self.seed = seed
-        self._device_
+        self._device_ = device
 
 
     def _build(self):

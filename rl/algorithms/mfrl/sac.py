@@ -52,14 +52,14 @@ class ActorCritic: # Done
         return StochasticPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
-            net_configs, self._device_, self.seed).to(self._device_)
+            net_configs, self._device_, self.seed)#.to(self._device_)
 
 
     def _set_critic(self):
         net_configs = self.configs['critic']['network']
         return SoftQFunction(
             self.obs_dim, self.act_dim,
-            net_configs, self.seed).to(self._device_)
+            net_configs, self._device_, self.seed)#.to(self._device_)
 
 
 
@@ -86,13 +86,13 @@ class SAC(MFRL):
         17. Output: θ1, θ2, φ                                   > Optimized parameters
 
     """
-    def __init__(self, exp_prefix, configs, seed, device, WandB) -> None:
+    def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
         super(SAC, self).__init__(exp_prefix, configs, seed, device)
-        print('Initialize SAC Algorithm!')
+        # print('init SAC Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
-        self.WandB = WandB
+        self.WandB = wb
         self._build()
 
 
@@ -176,7 +176,7 @@ class SAC(MFRL):
                 # Taking gradient steps after exploration
                 if n > Ni:
                     for g in range(1, G+1):
-                        batch = self.replay_buffer.sample_batch(batch_size)
+                        batch = self.replay_buffer.sample_batch(batch_size, device=self._device_)
                         Jq, Jalpha, Jpi = self.trainAC(g, batch, oldJs)
                         oldJs = [Jq, Jalpha, Jpi]
                         JQList.append(Jq.item())
@@ -233,7 +233,7 @@ class SAC(MFRL):
                     print(f'{k}  {round(v, 2)}')
 
             # WandB
-            if self.configs['experiment']['WandB']:
+            if self.WandB:
                 wandb.log(logs)
 
         self.learn_env.close()
@@ -352,21 +352,24 @@ class SAC(MFRL):
 
 
 
-def main(exp_prefix, config, seed, device, WandB):
+def main(exp_prefix, config, seed, device, wb):
 
     print('Start an SAC experiment...')
     print('\n')
 
     configs = config.configurations
 
+    if seed:
+        random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
+
     alg_name = configs['algorithm']['name']
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-NoInit"
+    group_name = f"{env_name}-{alg_name}-A"
     exp_prefix = f"seed:{seed}"
 
-    if WandB:
+    if wb:
         # print('WandB')
         wandb.init(
             name=exp_prefix,
@@ -376,7 +379,7 @@ def main(exp_prefix, config, seed, device, WandB):
             config=configs
         )
 
-    agent = SAC(exp_prefix, configs, seed, device, WandB)
+    agent = SAC(exp_prefix, configs, seed, device, wb)
 
     agent.learn()
 
@@ -393,7 +396,7 @@ if __name__ == "__main__":
     parser.add_argument('-cfg', type=str)
     parser.add_argument('-seed', type=str)
     parser.add_argument('-device', type=str)
-    parser.add_argument('-wandb', type=str)
+    parser.add_argument('-wb', type=str)
 
     args = parser.parse_args()
 
@@ -402,6 +405,6 @@ if __name__ == "__main__":
     config = importlib.import_module(args.cfg)
     seed = int(args.seed)
     device = args.device
-    WandB = eval(args.wandb)
+    wb = eval(args.wb)
 
-    main(exp_prefix, config, seed, device, WandB)
+    main(exp_prefix, config, seed, device, wb)

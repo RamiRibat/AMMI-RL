@@ -50,7 +50,7 @@ class SoftQFunction(nn.Module):
     """
     Soft Q-Function
     """
-    def __init__(self, obs_dim, act_dim, net_configs, seed):
+    def __init__(self, obs_dim, act_dim, net_configs, device, seed):
         # print('init Soft QFunction!')
         # if seed: random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
@@ -64,6 +64,8 @@ class SoftQFunction(nn.Module):
         self.Qs = [self.q1, self.q2]
 
         self.apply(init_weights_)
+
+        self.to(device)
 
         self.optimizer = eval(optimizer)(self.parameters(), lr)
 

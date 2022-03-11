@@ -47,17 +47,19 @@ class StochasticPolicy(nn.Module):
 
 		self.apply(init_weights_)
 
-		self.to(device)
+
 
 		# self.obs_bias   = np.zeros(obs_dim)
 		# self.obs_scale  = np.ones(obs_dim)
 
-		self.obs_bias   = T.zeros(obs_dim).to(device)
-		self.obs_scale  = T.ones(obs_dim).to(device)
+		self.obs_bias   = T.zeros(obs_dim)#.to(device)
+		self.obs_scale  = T.ones(obs_dim)#.to(device)
 
 		self.act_dim = act_dim
-		self.act_bias =  T.FloatTensor( (act_up_lim + act_low_lim) / 2.0 ).to(device)
-		self.act_scale = T.FloatTensor( (act_up_lim - act_low_lim) / 2.0 ).to(device)
+		self.act_bias =  T.FloatTensor( (act_up_lim + act_low_lim) / 2.0 )#.to(device)
+		self.act_scale = T.FloatTensor( (act_up_lim - act_low_lim) / 2.0 )#.to(device)
+
+		self.to(device)
 
 		# Define optimizer
 		self.optimizer = eval(optimizer)(self.parameters(), lr)
@@ -70,34 +72,6 @@ class StochasticPolicy(nn.Module):
 		log_std = T.clamp(log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
 		std = T.exp(log_std)
 		return mean, std
-
-
-	# def prob(self, mean, std, reparameterize):
-	# 	pre_tanh_value = None
-	# 	# print(f'Policy prob: \nmean={mean}, \nstd={std}')
-	# 	# tanh_normal = TanhNormal(mean, std, device=self._device_)
-	# 	normal = Normal(mean, std, device=self._device_)
-	#
-	# 	if reparameterize:
-	# 		# pi, pre_tanh_value = tanh_normal.rsample()
-	# 		prob = normal.rsample()
-	# 	else:
-	# 		# pi, pre_tanh_value = tanh_normal.sample()
-	# 		prob = normal.sample()
-	#
-	# 	# print('pi b4: ', T.mean(pi, dim=0))
-	# 	# pi = (pi * self.act_scale) + self.act_bias
-	# 	pi = (T.tanh(prob) * self.act_scale) + self.act_bias
-	# 	# print('pi af: ', T.mean(pi, dim=0))
-	#
-	# 	return pi, pre_tanh_value
-	#
-	#
-	# def logprob(self, pi, mean, std, pre_tanh_value):
-	# 	tanh_normal = TanhNormal(mean, std, device=self._device_)
-	# 	log_pi = tanh_normal.log_prob(pi, pre_tanh_value=pre_tanh_value)
-	# 	# normal = Normal(mean, std, device=self._device_)
-	# 	return log_pi.view(-1,1)
 
 
 	def pi_prob(self, mean, std, reparameterize, return_log_prob):
@@ -130,7 +104,9 @@ class StochasticPolicy(nn.Module):
 		else:
 			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
 
-		mean, std = self.pi_mean_std(T.as_tensor(obs, dtype=T.float32).to(self._device_))
+		mean, std = self.pi_mean_std(
+		T.as_tensor(obs, dtype=T.float32).to(self._device_)
+		)
 
 		log_pi = None
 
@@ -154,3 +130,7 @@ class StochasticPolicy(nn.Module):
 		pi, log_pi = self.forward(obs, reparameterize, deterministic, return_log_pi)
 		pi = pi.detach().cpu().numpy()
 		return pi, log_pi
+
+
+	# def to(self, device):
+	# 	pass
