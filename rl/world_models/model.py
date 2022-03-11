@@ -153,7 +153,8 @@ class DynamicsModel(LightningModule):
 
 
     def forward(self, o, a, deterministic= False):
-
+        print('self.obs_bias: ', self.obs_bias)
+        print('o: ', o)
         normed_o = (o - self.obs_bias)/(self.obs_scale + epsilon)
         normed_a = (a - self.act_bias)/(self.act_scale + epsilon)
 
@@ -323,17 +324,6 @@ class DynamicsModel(LightningModule):
         		weight_norms.append(weight.norm(2))
         weight_norms = T.stack(weight_norms, dim=0)
         weight_decay_loss = (T.tensor(l2_loss_coefs, device=weight_norms.device) * weight_norms).sum()
-
-
-        # weight_decay_loss = 0.
-        # for m in self.children():
-        #     print('m: ', m)
-        #     if isinstance(m, nn.Linear):
-        #         weight_decay_loss += m.weight_decay * torch.sum(torch.square(m.weight)) / 2.
-        #         # print(m.weight.shape)
-        #         # print(m, decay_loss, m.weight_decay)
-        # # return decay_loss
-
         return weight_decay_loss
 
 
