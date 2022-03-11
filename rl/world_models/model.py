@@ -34,7 +34,7 @@ LOG_SIGMA_MIN = -20
 
 epsilon = 1e-8
 
-T.set_default_tensor_type(torch.cuda.FloatTensor)
+# T.set_default_tensor_type(torch.cuda.FloatTensor)
 # device = torch.device('cpu')
 import itertools
 
@@ -144,15 +144,15 @@ class EnsembleFC(nn.Module):
     ensemble_size: int
     weight: torch.Tensor
 
-    def __init__(self, in_features: int, out_features: int, ensemble_size: int, weight_decay: float = 0., bias: bool = True) -> None:
+    def __init__(self, in_features: int, out_features: int, ensemble_size: int, weight_decay: float = 0., bias: bool = True, device='cpu') -> None:
         super(EnsembleFC, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.ensemble_size = ensemble_size
-        self.weight = nn.Parameter(torch.Tensor(ensemble_size, in_features, out_features))
+        self.weight = nn.Parameter(torch.Tensor(ensemble_size, in_features, out_features)).to(device)
         self.weight_decay = weight_decay
         if bias:
-            self.bias = nn.Parameter(torch.Tensor(ensemble_size, out_features))
+            self.bias = nn.Parameter(torch.Tensor(ensemble_size, out_features)).to(device)
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()
