@@ -177,7 +177,7 @@ class EnsembleModel(nn.Module):
     def __init__(self, state_size, action_size, reward_size, ensemble_size, hidden_size=200, learning_rate=1e-3, use_decay=False, device='cpu'):
         super(EnsembleModel, self).__init__()
         self._device_ = device
-        print('EnsembleModel: device: ', device)
+        # print('EnsembleModel: device: ', device)
 
         self.hidden_size = hidden_size
         self.nn1 = EnsembleFC(state_size + action_size, hidden_size, ensemble_size, weight_decay=0.000025)
@@ -273,7 +273,7 @@ class EnsembleDynamicsModel():
         self.scaler = StandardScaler()
 
         self._device_ = device
-        print('EnsembleDynamicsModel: device: ', device)
+        # print('EnsembleDynamicsModel: device: ', device)
 
     def train(self, inputs, labels, batch_size=256, holdout_ratio=0., max_epochs_since_update=5):
         device = self._device_
