@@ -76,7 +76,7 @@ def init_weights_(m):
             cond = torch.logical_or(t < mean - 2 * std, t > mean + 2 * std)
             if not torch.sum(cond):
                 break
-            t = torch.where(cond, torch.nn.init.normal_(torch.ones(t.shape), mean=mean, std=std), t)
+            t = torch.where(cond, torch.nn.init.normal_(torch.ones(t.shape).to(t.device), mean=mean, std=std), t)
         return t
 
     if type(m) == nn.Linear or isinstance(m, EnsembleFC):
@@ -192,8 +192,8 @@ class EnsembleModel(nn.Module):
 
         self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
         self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
-        self.to(device)
-        
+        # self.to(device)
+
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
         self.apply(init_weights_)
