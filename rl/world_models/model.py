@@ -111,24 +111,6 @@ class DynamicsModel(LightningModule):
         # self.to(self._device_)
 
 
-
-    def get_model_dist_params(self, ips):
-        net_out = self.mu_log_sigma_net(ips)
-        mu, log_sigma = self.mu(net_out), self.log_sigma(net_out)
-        log_sigma = self.max_log_sigma - F.softplus(self.max_log_sigma - log_sigma)
-        log_sigma = self.min_log_sigma + F.softplus(log_sigma - self.min_log_sigma)
-
-        sigma = T.exp(log_sigma)
-        sigma_inv = T.tensor([0.0]) #T.exp(-log_sigma)
-        #     exit()
-
-        return mu, log_sigma, sigma, sigma_inv
-
-
-    # def deterministic(self, mu):
-    #     pass
-
-
     def normalization(self, obs_bias=None, obs_scale=None,
                             act_bias=None, act_scale=None,
                             out_bias=None, out_scale=None):
@@ -150,6 +132,30 @@ class DynamicsModel(LightningModule):
         self.out_bias   = self.out_bias#.to(device)
         self.out_scale  = self.out_scale#.to(device)
         self.mask = self.out_scale >= epsilon
+
+
+    def to(self, device):
+        self.obs_bias = self.obs_bias.to(device)
+        self.obs_scale = self.obs_scale.to(device)
+        self.act_bias = self.act_bias.to(device)
+        self.act_scale = self.act_scale.to(device)
+        self.out_bias = self.out_bias.to(device)
+        self.out_scale = self.out_scale.to(device)
+        return super(DynamicsModel, self).to(device)
+
+
+
+    def get_model_dist_params(self, ips):
+        net_out = self.mu_log_sigma_net(ips)
+        mu, log_sigma = self.mu(net_out), self.log_sigma(net_out)
+        log_sigma = self.max_log_sigma - F.softplus(self.max_log_sigma - log_sigma)
+        log_sigma = self.min_log_sigma + F.softplus(log_sigma - self.min_log_sigma)
+
+        sigma = T.exp(log_sigma)
+        sigma_inv = T.tensor([0.0]) #T.exp(-log_sigma)
+        #     exit()
+
+        return mu, log_sigma, sigma, sigma_inv
 
 
     def forward(self, o, a, deterministic= False):
