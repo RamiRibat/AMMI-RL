@@ -34,7 +34,7 @@ LOG_SIGMA_MIN = -20
 
 epsilon = 1e-8
 
-
+T.set_default_tensor_type(torch.cuda.FloatTensor)
 # device = torch.device('cpu')
 import itertools
 
