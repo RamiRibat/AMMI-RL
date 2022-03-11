@@ -313,8 +313,8 @@ class DynamicsModel(LightningModule):
         Jsigma = T.tensor([0.0]) #T.mean(T.mean(log_sigma, dim=-1), dim=-1)
         # Jgnll = Jmu + Jsigma
         Jgnll = self.gnll_loss(mu, mu_target, sigma)
-        Jwl2 = self.weight_l2_loss()
-        J = Jgnll + Jwl2
+        # Jwl2 = self.weight_l2_loss()
+        J = Jgnll #+ Jwl2
 
         J += 0.01 * ( T.sum(self.max_log_sigma) - T.sum(self.min_log_sigma) ) # optimize bounds
 
