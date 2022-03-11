@@ -76,7 +76,7 @@ class DynamicsModel(LightningModule):
         self.val = False
 
         self.configs = configs
-        self._device_ = device
+        # self._device_ = device
 
         self.obs_dim = obs_dim
         self.act_dim = act_dim
@@ -115,7 +115,7 @@ class DynamicsModel(LightningModule):
                             act_bias=None, act_scale=None,
                             out_bias=None, out_scale=None):
 
-        device = self._device_
+        # device = self._device_
 
         if obs_bias is None:
             self.obs_bias   = T.zeros(self.obs_dim)
@@ -177,7 +177,7 @@ class DynamicsModel(LightningModule):
 
 
     def train_Model(self, data_module, m):
-        device = self._device_
+        # device = self._device_
         # device = 'gpu' if self._device_=='cuda' else self._device_
 
         self.m = m
@@ -205,8 +205,8 @@ class DynamicsModel(LightningModule):
                           # max_epochs=wm_epochs,
                           # log_every_n_steps=2,
                           # accelerator=device, devices='auto',
-                          gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
-                          # gpus=2, strategy='ddp',
+                          # gpus=[eval(device[-1])] if device[:-2]=='cuda' else 0,
+                          gpus=2, strategy='ddp',
                           enable_model_summary=False,
                           enable_checkpointing=False,
                           progress_bar_refresh_rate=20,

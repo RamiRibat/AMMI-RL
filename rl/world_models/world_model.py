@@ -47,7 +47,7 @@ class WorldModel(LightningModule):
         # if seed: np.random.seed(seed), T.manual_seed(seed)
 
         # device = self._device_ = configs['experiment']['device']
-        self._device_ = device
+        # self._device_ = device
 
         # self.obs_dim = obs_dim
         # self.act_dim = act_dim
@@ -155,8 +155,6 @@ class WorldModel(LightningModule):
             prediction = mu
         else:
             normal_ditribution = Normal(mu, sigma)
-            # prediction = normal_ditribution.sample()
-            # normal_ditribution = Normal(mu, T.sqrt(sigma))
             prediction = normal_ditribution.sample()
 
         # obs_next = prediction[:,:-1] + obs
