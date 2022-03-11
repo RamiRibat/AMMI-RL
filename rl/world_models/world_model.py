@@ -144,7 +144,7 @@ class WorldModel(LightningModule):
 
         M = self.configs['world_model']['num_ensembles']
         modelType = self.configs['world_model']['type']
-        device = self._device_
+        # device = self._device_
 
         if modelType == 'P':
         	mu, log_sigma, sigma, inv_sigma = self.sample(obs, act, sample_type)
@@ -170,7 +170,7 @@ class WorldModel(LightningModule):
 
     ### PyTorch Lightning ###
     def train_WM(self, data_module):
-        device = self._device_
+        # device = self._device_
 
         M = self.configs['world_model']['num_ensembles']
         model_type = self.configs['world_model']['type']
