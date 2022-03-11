@@ -144,15 +144,15 @@ class EnsembleFC(nn.Module):
     ensemble_size: int
     weight: torch.Tensor
 
-    def __init__(self, in_features: int, out_features: int, ensemble_size: int, weight_decay: float = 0., bias: bool = True, device='cpu') -> None:
+    def __init__(self, in_features: int, out_features: int, ensemble_size: int, weight_decay: float = 0., bias: bool = True) -> None:
         super(EnsembleFC, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.ensemble_size = ensemble_size
-        self.weight = nn.Parameter(torch.Tensor(ensemble_size, in_features, out_features).to(device))
+        self.weight = nn.Parameter(torch.Tensor(ensemble_size, in_features, out_features))
         self.weight_decay = weight_decay
         if bias:
-            self.bias = nn.Parameter(torch.Tensor(ensemble_size, out_features).to(device))
+            self.bias = nn.Parameter(torch.Tensor(ensemble_size, out_features))
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()
@@ -180,15 +180,15 @@ class EnsembleModel(nn.Module):
         # print('EnsembleModel: device: ', device)
 
         self.hidden_size = hidden_size
-        self.nn1 = EnsembleFC(state_size + action_size, hidden_size, ensemble_size, weight_decay=0.000025, device=device)
-        self.nn2 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.00005, device=device)
-        self.nn3 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075, device=device)
-        self.nn4 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075, device=device)
+        self.nn1 = EnsembleFC(state_size + action_size, hidden_size, ensemble_size, weight_decay=0.000025).to(device)
+        self.nn2 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.00005).to(device)
+        self.nn3 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075).to(device)
+        self.nn4 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075).to(device)
         self.use_decay = use_decay
 
         self.output_dim = state_size + reward_size
         # Add variance output
-        self.nn5 = EnsembleFC(hidden_size, self.output_dim * 2, ensemble_size, weight_decay=0.0001, device=device)
+        self.nn5 = EnsembleFC(hidden_size, self.output_dim * 2, ensemble_size, weight_decay=0.0001).to(device)
 
         self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
         self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
