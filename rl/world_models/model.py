@@ -283,6 +283,7 @@ class EnsembleModel(nn.Module):
             raise 'No network arch!'
 
         self.nn_model = nn.Sequential(*layers)
+        self.nn_model.to(device)
 
 
 
