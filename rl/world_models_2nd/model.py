@@ -144,29 +144,17 @@ class EnsembleFC(nn.Module):
     ensemble_size: int
     weight: torch.Tensor
 
-    def __init__(self,
-                 in_features: int,
-                 out_features: int,
-                 ensemble_size: int,
-                 weight_decay: float = 0.,
-                 bias: bool = True
-                 ) -> None:
-
+    def __init__(self, in_features: int, out_features: int, ensemble_size: int, weight_decay: float = 0., bias: bool = True) -> None:
         super(EnsembleFC, self).__init__()
-
         self.in_features = in_features
         self.out_features = out_features
-
         self.ensemble_size = ensemble_size
-
         self.weight = nn.Parameter(torch.Tensor(ensemble_size, in_features, out_features))
         self.weight_decay = weight_decay
-
         if bias:
             self.bias = nn.Parameter(torch.Tensor(ensemble_size, out_features))
         else:
             self.register_parameter('bias', None)
-
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -174,6 +162,8 @@ class EnsembleFC(nn.Module):
 
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
+        # print('input: ', input)
+        # print('self.weight: ', self.weight)
         w_times_x = torch.bmm(input, self.weight)
         return torch.add(w_times_x, self.bias[:, None, :])  # w times x + b
 
@@ -183,36 +173,20 @@ class EnsembleFC(nn.Module):
         )
 
 
-
-
 class EnsembleModel(nn.Module):
-
-    def __init__(self,
-                 state_size,
-                 action_size,
-                 reward_size,
-                 ensemble_size,
-                 hidden_size=200,
-                 learning_rate=1e-3,
-                 use_decay=False,
-                 device='cpu'
-                 ):
-
+    def __init__(self, state_size, action_size, reward_size, ensemble_size, hidden_size=200, learning_rate=1e-3, use_decay=False, device='cpu'):
         super(EnsembleModel, self).__init__()
-
         self._device_ = device
+        # print('EnsembleModel: device: ', device)
 
         self.hidden_size = hidden_size
-
         self.nn1 = EnsembleFC(state_size + action_size, hidden_size, ensemble_size, weight_decay=0.000025).to(device)
         self.nn2 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.00005).to(device)
         self.nn3 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075).to(device)
         self.nn4 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075).to(device)
-
         self.use_decay = use_decay
 
         self.output_dim = state_size + reward_size
-
         # Add variance output
         self.nn5 = EnsembleFC(hidden_size, self.output_dim * 2, ensemble_size, weight_decay=0.0001).to(device)
 
@@ -220,12 +194,9 @@ class EnsembleModel(nn.Module):
         self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
         # self.to(device)
 
-        self.gnll_loss = nn.GaussianNLLLoss()
-        self.mse_loss = nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
         self.apply(init_weights_)
-
         self.swish = Swish()
 
     def forward(self, x, ret_log_var=False):
@@ -250,6 +221,8 @@ class EnsembleModel(nn.Module):
         for m in self.children():
             if isinstance(m, EnsembleFC):
                 decay_loss += m.weight_decay * torch.sum(torch.square(m.weight)) / 2.
+                # print(m.weight.shape)
+                # print(m, decay_loss, m.weight_decay)
         return decay_loss
 
     def loss(self, mean, logvar, labels, inc_var_loss=True):
@@ -258,33 +231,27 @@ class EnsembleModel(nn.Module):
         labels: N x dim
         """
         assert len(mean.shape) == len(logvar.shape) == len(labels.shape) == 3
-
         inv_var = torch.exp(-logvar)
-
+        # print('mean: ', mean)
+        # print('labels: ', labels)
         if inc_var_loss:
-            var = T.exp(logvar)
             # Average over batch and dim, sum over ensembles.
-            # mse_loss = torch.mean(torch.mean(torch.pow(mean - labels, 2) * inv_var, dim=-1), dim=-1)
-            # var_loss = torch.mean(torch.mean(logvar, dim=-1), dim=-1)
-            # total_loss = torch.sum(mse_loss) + torch.sum(var_loss)
-            total_loss = self.gnll_loss(mean, labels, var)
-            return total_loss, None
+            mse_loss = torch.mean(torch.mean(torch.pow(mean - labels, 2) * inv_var, dim=-1), dim=-1)
+            var_loss = torch.mean(torch.mean(logvar, dim=-1), dim=-1)
+            total_loss = torch.sum(mse_loss) + torch.sum(var_loss)
         else:
             mse_loss = torch.mean(torch.pow(mean - labels, 2), dim=(1, 2))
             total_loss = torch.sum(mse_loss)
-            # total_loss = self.mse_loss(mean, labels)
-            return total_loss, mse_loss
-
-        # return total_loss, mse_loss
+        # print('total_loss: ', total_loss)
+        return total_loss, mse_loss
 
     def train(self, loss):
         self.optimizer.zero_grad()
 
         loss += 0.01 * torch.sum(self.max_logvar) - 0.01 * torch.sum(self.min_logvar)
-
+        # print('loss:', loss.item())
         if self.use_decay:
             loss += self.get_decay_loss()
-
         loss.backward()
         # for name, param in self.named_parameters():
         #     if param.requires_grad:
@@ -296,7 +263,6 @@ class EnsembleModel(nn.Module):
 
 
 class EnsembleDynamicsModel():
-
     def __init__(self, network_size, elite_size, state_size, action_size, reward_size=1, hidden_size=200, use_decay=False, device='cpu'):
         self.network_size = network_size
         self.elite_size = elite_size
@@ -308,11 +274,10 @@ class EnsembleDynamicsModel():
         self.network_size = network_size
         self.elite_model_idxes = []
         self.ensemble_model = EnsembleModel(state_size, action_size, reward_size, network_size, hidden_size, use_decay=use_decay, device=device)
-
         self.scaler = StandardScaler()
 
         self._device_ = device
-
+        # print('EnsembleDynamicsModel: device: ', device)
 
     def train(self, inputs, labels, batch_size=256, holdout_ratio=0., max_epochs_since_update=5):
         device = self._device_
@@ -366,16 +331,16 @@ class EnsembleDynamicsModel():
                     break
             print('epoch: {}, holdout mse losses: {}'.format(epoch, holdout_mse_losses))
 
+            # LossList.append(np.mean(losses))
+
         return np.mean(holdout_mse_losses)
 
     def _save_best(self, epoch, holdout_losses):
         updated = False
-
         for i in range(len(holdout_losses)):
             current = holdout_losses[i]
             _, best = self._snapshots[i]
             improvement = (best - current) / best
-
             if improvement > 0.01:
                 self._snapshots[i] = (epoch, current)
                 # self._save_state(i)
@@ -386,19 +351,16 @@ class EnsembleDynamicsModel():
             self._epochs_since_update = 0
         else:
             self._epochs_since_update += 1
-
         if self._epochs_since_update > self._max_epochs_since_update:
             return True
         else:
             return False
-
 
     def predict(self, inputs, batch_size=1024, factored=True):
         device = self._device_
 
         inputs = self.scaler.transform(inputs)
         ensemble_mean, ensemble_var = [], []
-
         for i in range(0, inputs.shape[0], batch_size):
             input = torch.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
             b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
