@@ -222,6 +222,7 @@ class EnsembleModel(nn.Module):
 
         self.gnll_loss = nn.GaussianNLLLoss()
         self.mse_loss = nn.MSELoss()
+
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
         self.apply(init_weights_)

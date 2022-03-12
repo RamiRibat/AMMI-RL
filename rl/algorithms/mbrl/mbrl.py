@@ -86,6 +86,8 @@ class MBRL:
                                       200, use_decay=True,
                                       device=device)
 
+        # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
+
 
     def reallocate_model_buffer(self, batch_size_ro, K, NT, model_train_frequency):
         # print('Rellocate Model Buffer..')

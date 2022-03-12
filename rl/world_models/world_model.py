@@ -43,8 +43,6 @@ class WorldModel(LightningModule):
                 ):
         # print('init World Model!')
         super(WorldModel, self).__init__() # To automatically use 'def forward'
-        # Set a random seed, se whenever we call crtics they will be consistent
-        # if seed: np.random.seed(seed), T.manual_seed(seed)
 
         # device = self._device_ = configs['experiment']['device']
         self._device_ = device
@@ -63,7 +61,8 @@ class WorldModel(LightningModule):
         elif configs['world_model']['type'] == 'PE':
             M = configs['world_model']['num_ensembles']
             # self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device).to(device) for m in range(M)]
-            self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device) for m in range(M)]
+            # self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device) for m in range(M)]
+            self.models = EnsembleModel(obs_dim, act_dim, rew_dim, configs, device)
             # self.elit_models = []
 
         self.configs = configs
@@ -178,7 +177,8 @@ class WorldModel(LightningModule):
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
 
         if model_type == 'P':
-        	Jm, mEpochs = self.models.train_Model(env_buffer, batch_size, 0)
+        	# Jm, mEpochs = self.models.train_Model(env_buffer, batch_size, 0)
+            pass
         elif model_type == 'PE':
             JTrain, JVal = [], []
             LossTest = []
