@@ -59,15 +59,21 @@ class WorldModel(LightningModule):
         							 config
         							 ).to(device)
         elif configs['world_model']['type'] == 'PE':
-            M = configs['world_model']['num_ensembles']
+            # M = configs['world_model']['num_ensembles']
             # self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device).to(device) for m in range(M)]
             # self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device) for m in range(M)]
-            self.models = EnsembleModel(obs_dim, act_dim, rew_dim, configs, device)
+            # self.models = EnsembleModel(obs_dim, act_dim, rew_dim, configs, device)
             # self.elit_models = []
+            pass
 
         self.configs = configs
+
+        self._set_nsemble(self, obs_dim, act_dim, rew_dim)
         # print(self.models)
 
+    def _set_nsemble(self, obs_dim, act_dim, rew_dim):
+        
+        pass
 
     # def normalization(self, obs_bias=None, obs_scale=None,
     #                         act_bias=None, act_scale=None,
