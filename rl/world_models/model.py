@@ -284,7 +284,6 @@ class EnsembleModel(nn.Module):
 
         self.nn_model = nn.Sequential(*layers)
         self.nn_model.to(device)
-        # print('Model: ', self.nn_model)
 
 
 
@@ -307,11 +306,11 @@ class EnsembleModel(nn.Module):
         # nn4_output = self.swish(self.nn4(nn3_output))
         # nn5_output = self.nn5(nn4_output)
 
-        nn5_output = self.nn_model(x)
+        nn_output = self.nn_model(x)
 
-        mean = nn5_output[:, :, :self.output_dim]
+        mean = nn_output[:, :, :self.output_dim]
 
-        logvar = self.max_logvar - F.softplus(self.max_logvar - nn5_output[:, :, self.output_dim:])
+        logvar = self.max_logvar - F.softplus(self.max_logvar - nn_output[:, :, self.output_dim:])
         logvar = self.min_logvar + F.softplus(logvar - self.min_logvar)
 
         if ret_log_var:
@@ -336,7 +335,6 @@ class EnsembleModel(nn.Module):
         inv_var = torch.exp(-logvar)
 
         if inc_var_loss:
-            # var = T.exp(logvar)
             # Average over batch and dim, sum over ensembles.
             # mse_loss = torch.mean(torch.mean(torch.pow(mean - labels, 2) * inv_var, dim=-1), dim=-1)
             # var_loss = torch.mean(torch.mean(logvar, dim=-1), dim=-1)
@@ -362,9 +360,6 @@ class EnsembleModel(nn.Module):
             loss += self.get_decay_loss()
 
         loss.backward()
-        # for name, param in self.named_parameters():
-        #     if param.requires_grad:
-        #         print(name, param.grad.shape, torch.mean(param.grad), param.grad.flatten()[:5])
         self.optimizer.step()
 
 

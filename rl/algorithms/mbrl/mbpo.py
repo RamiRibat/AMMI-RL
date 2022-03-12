@@ -300,7 +300,7 @@ class MBPO(MBRL, SAC):
     		nonD = ~D.squeeze(-1)
     		if nonD.sum() == 0:
     		    print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
-    		    breaks
+    		    break
 
     		O = O_next[nonD]#.reshape(-1,len(O[0,:]))
     		# O = T.as_tensor(O, dtype=T.float32)#.to(device)
