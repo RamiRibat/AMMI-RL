@@ -284,6 +284,7 @@ class EnsembleModel(nn.Module):
 
         self.nn_model = nn.Sequential(*layers)
         self.nn_model.to(device)
+        # print('Model: ', self.nn_model)
 
 
 
@@ -321,7 +322,7 @@ class EnsembleModel(nn.Module):
     def get_decay_loss(self):
         decay_loss = 0.
         for m in self.children():
-            if isinstance(m, EnsembleFC):
+            if isinstance(m, EnsembleFC) or isinstance(m, EnsembleLayer):
                 decay_loss += m.weight_decay * torch.sum(torch.square(m.weight)) / 2.
         return decay_loss
 
@@ -335,18 +336,20 @@ class EnsembleModel(nn.Module):
         inv_var = torch.exp(-logvar)
 
         if inc_var_loss:
-            var = T.exp(logvar)
+            # var = T.exp(logvar)
             # Average over batch and dim, sum over ensembles.
             # mse_loss = torch.mean(torch.mean(torch.pow(mean - labels, 2) * inv_var, dim=-1), dim=-1)
             # var_loss = torch.mean(torch.mean(logvar, dim=-1), dim=-1)
             # total_loss = torch.sum(mse_loss) + torch.sum(var_loss)
-            total_loss = self.gnll_loss(mean, labels, var)
-            return total_loss, None
+            losses = T.tensor([ self.gnll_loss(mean[m, :, :], labels[m, :, :], T.exp(logvar[m, :, :])) for m in range(mean.shape[0]) ])
+            total_loss = self.gnll_loss(mean, labels, T.exp(logvar))
+            return total_loss, losses
         else:
-            mse_loss = torch.mean(torch.pow(mean - labels, 2), dim=(1, 2))
-            total_loss = torch.sum(mse_loss)
-            # total_loss = self.mse_loss(mean, labels)
-            return total_loss, mse_loss
+            # losses = torch.mean(torch.pow(mean - labels, 2), dim=(1, 2))
+            # total_loss = torch.sum(losses)
+            losses = T.tensor([ self.mse_loss(mean[m, :, :], labels[m, :, :]) for m in range(mean.shape[0]) ])
+            total_loss = self.mse_loss(mean, labels)
+            return total_loss, losses
 
         # return total_loss, mse_loss
 
