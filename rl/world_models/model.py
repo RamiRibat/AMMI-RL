@@ -79,7 +79,7 @@ def init_weights_(m):
             t = torch.where(cond, torch.nn.init.normal_(torch.ones(t.shape).to(t.device), mean=mean, std=std), t)
         return t
 
-    if type(m) == nn.Linear or isinstance(m, EnsembleFC) or isinstance(m, EnsembleLayer):
+    if type(m) == nn.Linear or isinstance(m, EnsembleFC) or isinstance(m, LinearEnsemble):
         input_dim = m.in_features
         truncated_normal_init(m.weight, std=1 / (2 * np.sqrt(input_dim)))
         m.bias.data.fill_(0.0)
@@ -186,7 +186,7 @@ class EnsembleFC(nn.Module):
 
 
 
-class EnsembleLayer(nn.Module):
+class LinearEnsemble(nn.Module):
     __constants__ = ['in_features', 'out_features']
     ensemble_size: int
     in_features: int
@@ -201,7 +201,7 @@ class EnsembleLayer(nn.Module):
                  bias: bool = True
                  ) -> None:
 
-        super(EnsembleLayer, self).__init__()
+        super(LinearEnsemble, self).__init__()
 
         self.ensemble_size = ensemble_size
 
@@ -222,9 +222,8 @@ class EnsembleLayer(nn.Module):
         pass
 
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        w_times_x = torch.bmm(input, self.weight)
-        return torch.add(w_times_x, self.bias[:, None, :])  # w times x + b
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return T.add(T.bmm(x, self.weight), self.bias[:, None, :])  # w times x + b
 
     def extra_repr(self) -> str:
         return 'in_features={}, out_features={}, bias={}'.format(
@@ -262,41 +261,42 @@ class EnsembleModel(nn.Module):
         # self.nn3 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075).to(device)
         # self.nn4 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075).to(device)
 
-
-        # self.nn1 = EnsembleLayer(ensemble_size, state_size + action_size, hidden_size, weight_decay=0.000025).to(device)
-        # self.nn2 = EnsembleLayer(ensemble_size, hidden_size, hidden_size, weight_decay=0.00005).to(device)
-        # self.nn3 = EnsembleLayer(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
-        # self.nn4 = EnsembleLayer(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
-
         # Add variance output
         # self.nn5 = EnsembleFC(hidden_size, self.output_dim * 2, ensemble_size, weight_decay=0.0001).to(device)
 
-        # self.nn5 = EnsembleLayer(ensemble_size, hidden_size, self.output_dim * 2, weight_decay=0.0001).to(device)
+
+        self.nn1 = LinearEnsemble(ensemble_size, state_size + action_size, hidden_size, weight_decay=0.000025).to(device)
+        self.nn2 = LinearEnsemble(ensemble_size, hidden_size, hidden_size, weight_decay=0.00005).to(device)
+        self.nn3 = LinearEnsemble(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
+        self.nn4 = LinearEnsemble(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
+        self.nn5 = LinearEnsemble(ensemble_size, hidden_size, self.output_dim * 2, weight_decay=0.0001).to(device)
 
 
 
-        net_arch = [200, 200, 200, 200] #net_configs['arch']
-        activation = 'Swish' #'nn.' + net_configs['activation']
-        # op_activation = 'nn.Identity' # net_config['output_activation']
-        num_ensemble = ensemble_size
-        layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001]
+        # net_arch = [200, 200, 200, 200] #net_configs['arch']
+        # activation = 'Swish' #'nn.' + net_configs['activation']
+        # # op_activation = 'nn.Identity' # net_config['output_activation']
+        # num_ensemble = ensemble_size
+        # layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001]
+        #
+        # if len(net_arch) > 0:
+        #     layers = [ LinearEnsemble(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), Swish() ]
+        #     for l in range(len(net_arch)-1):
+        #         layers.extend([ LinearEnsemble(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), Swish() ])
+        #     if self.output_dim > 0:
+        #         layers.extend([ LinearEnsemble(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1]) ])
+        # else:
+        #     raise 'No network arch!'
+        #
+        # self.nn_model = nn.Sequential(*layers)
 
-        if len(net_arch) > 0:
-            layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), Swish() ]
-            for l in range(len(net_arch)-1):
-                layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), Swish() ])
-            if self.output_dim > 0:
-                layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1]) ])
-        else:
-            raise 'No network arch!'
 
-        self.nn_model = nn.Sequential(*layers)
 
         self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
         self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
 
         self.apply(init_weights_)
-        self.nn_model.to(device)
+        # self.nn_model.to(device)
 
 
 
@@ -305,16 +305,18 @@ class EnsembleModel(nn.Module):
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
-        # self.swish = Swish()
+        self.activation = nn.ReLU() #Swish()
 
     def forward(self, x, ret_log_var=False):
-        # nn1_output = self.swish(self.nn1(x))
-        # nn2_output = self.swish(self.nn2(nn1_output))
-        # nn3_output = self.swish(self.nn3(nn2_output))
-        # nn4_output = self.swish(self.nn4(nn3_output))
-        # nn5_output = self.nn5(nn4_output)
+        nn1_output = self.activation(self.nn1(x))
+        nn2_output = self.activation(self.nn2(nn1_output))
+        nn3_output = self.activation(self.nn3(nn2_output))
+        nn4_output = self.activation(self.nn4(nn3_output))
+        nn5_output = self.nn5(nn4_output)
 
-        nn_output = self.nn_model(x)
+        nn_output = nn5_output
+
+        # nn_output = self.nn_model(x)
 
         mean = nn_output[:, :, :self.output_dim]
 
@@ -326,12 +328,12 @@ class EnsembleModel(nn.Module):
         else:
             return mean, torch.exp(logvar)
 
-    def get_decay_loss(self):
-        decay_loss = 0.
+    def compute_wd_loss(self):
+        wd_loss = 0.
         for m in self.children():
-            if isinstance(m, EnsembleFC) or isinstance(m, EnsembleLayer):
-                decay_loss += m.weight_decay * T.sum(T.square(m.weight)) / 2.
-        return decay_loss
+            if isinstance(m, EnsembleFC) or isinstance(m, LinearEnsemble):
+                wd_loss += m.weight_decay * T.sum(T.square(m.weight)) / 2.
+        return wd_loss
 
     def compute_loss(self, mean, logvar, labels, inc_var_loss=True):
         """
