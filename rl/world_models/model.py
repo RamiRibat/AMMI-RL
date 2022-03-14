@@ -282,16 +282,21 @@ class EnsembleModel(nn.Module):
         layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001]
 
         if len(net_arch) > 0:
-            layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), eval(activation)() ]
+            layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]).to(device), eval(activation)() ]
             for l in range(len(net_arch)-1):
-                layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), eval(activation)() ])
+                layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]).to(device), eval(activation)() ])
             if self.output_dim > 0:
-                layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1])])
+                layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1]).to(device) ])
         else:
             raise 'No network arch!'
 
+
+        # layers = []
+
+
+
         self.nn_model = nn.Sequential(*layers)
-        self.nn_model.to(device)
+        # self.nn_model.to(device)
 
 
 
@@ -330,7 +335,7 @@ class EnsembleModel(nn.Module):
         decay_loss = 0.
         for m in self.children():
             if isinstance(m, EnsembleFC) or isinstance(m, EnsembleLayer):
-                decay_loss += m.weight_decay * torch.sum(torch.square(m.weight)) / 2.
+                decay_loss += m.weight_decay * T.sum(T.square(m.weight)) / 2.
         return decay_loss
 
     def compute_loss(self, mean, logvar, labels, inc_var_loss=True):
