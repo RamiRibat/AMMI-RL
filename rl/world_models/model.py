@@ -253,45 +253,45 @@ class EnsembleModel(nn.Module):
 
         # self.hidden_size = hidden_size
 
+        self.use_decay = use_decay
+
+        self.output_dim = state_size + reward_size
+
         # self.nn1 = EnsembleFC(state_size + action_size, hidden_size, ensemble_size, weight_decay=0.000025).to(device)
         # self.nn2 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.00005).to(device)
         # self.nn3 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075).to(device)
         # self.nn4 = EnsembleFC(hidden_size, hidden_size, ensemble_size, weight_decay=0.000075).to(device)
 
 
-        self.nn1 = EnsembleLayer(ensemble_size, state_size + action_size, hidden_size, weight_decay=0.000025).to(device)
-        self.nn2 = EnsembleLayer(ensemble_size, hidden_size, hidden_size, weight_decay=0.00005).to(device)
-        self.nn3 = EnsembleLayer(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
-        self.nn4 = EnsembleLayer(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
-
-        self.use_decay = use_decay
-
-        self.output_dim = state_size + reward_size
+        # self.nn1 = EnsembleLayer(ensemble_size, state_size + action_size, hidden_size, weight_decay=0.000025).to(device)
+        # self.nn2 = EnsembleLayer(ensemble_size, hidden_size, hidden_size, weight_decay=0.00005).to(device)
+        # self.nn3 = EnsembleLayer(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
+        # self.nn4 = EnsembleLayer(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
 
         # Add variance output
         # self.nn5 = EnsembleFC(hidden_size, self.output_dim * 2, ensemble_size, weight_decay=0.0001).to(device)
 
-        self.nn5 = EnsembleLayer(ensemble_size, hidden_size, self.output_dim * 2, weight_decay=0.0001).to(device)
+        # self.nn5 = EnsembleLayer(ensemble_size, hidden_size, self.output_dim * 2, weight_decay=0.0001).to(device)
 
 
 
-        # net_arch = [200, 200, 200, 200] #net_configs['arch']
-        # activation = 'Swish' #'nn.' + net_configs['activation']
-        # # op_activation = 'nn.Identity' # net_config['output_activation']
-        # num_ensemble = ensemble_size
-        # layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001]
-        #
-        # if len(net_arch) > 0:
-        #     layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), eval(activation)() ]
-        #     for l in range(len(net_arch)-1):
-        #         layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), eval(activation)() ])
-        #     if self.output_dim > 0:
-        #         layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim*2, weight_decay=layers_decay[-1])])
-        # else:
-        #     raise 'No network arch!'
-        #
-        # self.nn_model = nn.Sequential(*layers)
-        # self.nn_model.to(device)
+        net_arch = [200, 200, 200, 200] #net_configs['arch']
+        activation = 'Swish' #'nn.' + net_configs['activation']
+        # op_activation = 'nn.Identity' # net_config['output_activation']
+        num_ensemble = ensemble_size
+        layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001]
+
+        if len(net_arch) > 0:
+            layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), eval(activation)() ]
+            for l in range(len(net_arch)-1):
+                layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), eval(activation)() ])
+            if self.output_dim > 0:
+                layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1])])
+        else:
+            raise 'No network arch!'
+
+        self.nn_model = nn.Sequential(*layers)
+        self.nn_model.to(device)
 
 
 
@@ -305,16 +305,16 @@ class EnsembleModel(nn.Module):
 
         self.apply(init_weights_)
 
-        self.swish = Swish()
+        # self.swish = Swish()
 
     def forward(self, x, ret_log_var=False):
-        nn1_output = self.swish(self.nn1(x))
-        nn2_output = self.swish(self.nn2(nn1_output))
-        nn3_output = self.swish(self.nn3(nn2_output))
-        nn4_output = self.swish(self.nn4(nn3_output))
-        nn5_output = self.nn5(nn4_output)
+        # nn1_output = self.swish(self.nn1(x))
+        # nn2_output = self.swish(self.nn2(nn1_output))
+        # nn3_output = self.swish(self.nn3(nn2_output))
+        # nn4_output = self.swish(self.nn4(nn3_output))
+        # nn5_output = self.nn5(nn4_output)
 
-        nn_output = nn5_output #self.nn_model(x)
+        nn_output = self.nn_model(x)
 
         mean = nn_output[:, :, :self.output_dim]
 
