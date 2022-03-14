@@ -367,7 +367,7 @@ class EnsembleModel(nn.Module):
         loss += 0.01 * torch.sum(self.max_logvar) - 0.01 * torch.sum(self.min_logvar)
 
         if self.use_decay:
-            loss += self.get_decay_loss()
+            loss += self.compute_wd_loss()
 
         loss.backward()
         self.optimizer.step()
