@@ -282,9 +282,9 @@ class EnsembleModel(nn.Module):
         layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001]
 
         if len(net_arch) > 0:
-            layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), eval(activation)() ]
+            layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), Swish() ]
             for l in range(len(net_arch)-1):
-                layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), eval(activation)() ])
+                layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), Swish() ])
             if self.output_dim > 0:
                 layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1]) ])
         else:
@@ -292,8 +292,8 @@ class EnsembleModel(nn.Module):
 
         self.nn_model = nn.Sequential(*layers)
 
-        self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2), requires_grad=False)
-        self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10), requires_grad=False)
+        self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
+        self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
 
         self.apply(init_weights_)
         self.nn_model.to(device)
