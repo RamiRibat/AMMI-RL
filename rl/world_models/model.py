@@ -282,33 +282,28 @@ class EnsembleModel(nn.Module):
         layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001]
 
         if len(net_arch) > 0:
-            layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]).to(device), eval(activation)() ]
+            layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), eval(activation)() ]
             for l in range(len(net_arch)-1):
-                layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]).to(device), eval(activation)() ])
+                layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), eval(activation)() ])
             if self.output_dim > 0:
-                layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1]).to(device) ])
+                layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1]) ])
         else:
             raise 'No network arch!'
 
-
-        # layers = []
-
-
-
         self.nn_model = nn.Sequential(*layers)
-        # self.nn_model.to(device)
+
+        self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2), requires_grad=False)
+        self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10), requires_grad=False)
+
+        self.apply(init_weights_)
+        self.nn_model.to(device)
 
 
-
-        self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
-        self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
 
         self.gnll_loss = nn.GaussianNLLLoss()
         self.mse_loss = nn.MSELoss()
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
-
-        self.apply(init_weights_)
 
         # self.swish = Swish()
 
