@@ -191,7 +191,7 @@ class EnsembleLayer(nn.Module):
     ensemble_size: int
     in_features: int
     out_features: int
-    weight: torch.Tensor
+    weight: T.Tensor
 
     def __init__(self,
                  ensemble_size: int,
@@ -269,16 +269,16 @@ class EnsembleModel(nn.Module):
 
         net_arch = [200, 200, 200, 200] #net_configs['arch']
         activation = 'Swish' #'nn.' + net_configs['activation']
-        op_activation = 'nn.Identity' # net_config['output_activation']
+        # op_activation = 'nn.Identity' # net_config['output_activation']
         num_ensemble = ensemble_size
-        layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001, 0.0001]
+        layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001]
 
         if len(net_arch) > 0:
             layers = [ EnsembleLayer(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), eval(activation)() ]
             for l in range(len(net_arch)-1):
                 layers.extend([ EnsembleLayer(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), eval(activation)() ])
             if self.output_dim > 0:
-                layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim*2, weight_decay=layers_decay[-1]), eval(op_activation)() ])
+                layers.extend([ EnsembleLayer(num_ensemble, net_arch[-1], self.output_dim*2, weight_decay=layers_decay[-1])])
         else:
             raise 'No network arch!'
 
@@ -332,7 +332,7 @@ class EnsembleModel(nn.Module):
         """
         assert len(mean.shape) == len(logvar.shape) == len(labels.shape) == 3
 
-        inv_var = torch.exp(-logvar)
+        # inv_var = torch.exp(-logvar)
 
         if inc_var_loss:
             # Average over batch and dim, sum over ensembles.
