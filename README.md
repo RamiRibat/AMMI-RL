@@ -10,31 +10,37 @@ This Deep RL course was taught at **The African Master's in Machine Intelligence
 
 ## Algorithms:
 Algorithms we are re-implementing/plannning to re-implement:
-1. Soft Actor-Critic (SAC) [Paper](https://arxiv.org/abs/1812.05905) (Done)
 
-2. Model-Based Policy Optimization (MBPO) [Paper](https://arxiv.org/abs/1812.05905) (Now; Almost Done)
-
-3. Natural Policy Gradient (NPG) [Paper](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) (Now)
-
-4. Model-Based Natural Policy Gradient (MB-NPG) [Paper](https://www.google.com/url?q=https%3A%2F%2Farxiv.org%2Fpdf%2F2004.07804.pdf&sa=D&sntz=1&usg=AFQjCNHD-jeaBoWiamUhN0zP8bHLWsYysQ) (Now)
-
-5. Probabilistic Ensembles with Trajectory Sampling (PETS) [Paper](https://arxiv.org/abs/1805.12114) (Next)
-
-6. Model Predictive Actor-Critic (MoPAC) [Paper](https://arxiv.org/abs/2103.13842) (Next)
-
-7. Model Predictive Control-Soft Actor Critic (MPC-SAC) [Paper](https://ieeexplore.ieee.org/document/9429677) (Next; Future work)
+🟢 Done || 🟡 Now || 🟣 Next || 🔴 No plan
 
 | Algorithms | Model | Value | On Policy | Paper | Done |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | :---: |
 | PPO | False | V | True | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
 | NPG | False | V | TrueF | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🟡 |
 | SAC | False | Q | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
 | MBNPG | True | V | True | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
 | MBPO | True | Q | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
-| MoPAC | True | Q | False | [Arxiv](https://arxiv.org/abs/2103.13842) | 🔴 |
+| MoPAC | True | Q | False | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟣 |
 | MPC-SAC | True | Q | False | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
 | PETS | True | None | None | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
 
+
+## Experiments and Results
+
+In thoe following we evaluate our code on the following environments. Download gifs from this Google drive [folder](https://drive.google.com/drive/folders/1l5ina4xFu-LdTMeuF0tfgmS6uooMjZqR?usp=sharing) at drive.
+
+### Locomotion Tasks
+
+| HalfCheetah-v2 | Ant-v2 | Walker2d-v2 | Hopper-v2 |
+| --- | --- | --- | --- |
+| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-HalfCheetah-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Ant-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Walker2d-v2%20.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Hopper-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
+  
+
+### Manipulation Tasks
+
+| DClaw Valve Turning | ShadowHand Cube Re-orientation |
+| --- | --- |
+| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-DClawTurn.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-SHC.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
 
 
 
@@ -117,22 +123,7 @@ python evaluate_agent.py -env Walker2d-v2 -alg SAC -seed 1 -EE 5
 ```
 
 
-## Experiments and Results
 
-In thoe following we evaluate our code on the following environments. For some reason gifs don't run fast on google drive, so we encourage you to download them from this [folder](https://drive.google.com/drive/folders/1l5ina4xFu-LdTMeuF0tfgmS6uooMjZqR?usp=sharing) at drive.
-
-### Locomotion Tasks
-
-| HalfCheetah-v2 | Ant-v2 | Walker2d-v2 | Hopper-v2 |
-| --- | --- | --- | --- |
-| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-HalfCheetah-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Ant-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Walker2d-v2%20.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Hopper-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
-  
-
-### Manipulation Tasks
-
-| DClaw Valve Turning | ShadowHand Cube Re-orientation |
-| --- | --- |
-| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-DClawTurn.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-SHC.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
 
 
 
