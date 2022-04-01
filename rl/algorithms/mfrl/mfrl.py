@@ -2,7 +2,7 @@ import gym
 from gym.spaces import Box
 
 import rl.environments
-from rl.data.buffer import ReplayBuffer
+from rl.data.buffer import OnPolBuffer, ReplayBuffer
 
 
 class MFRL:
@@ -20,7 +20,7 @@ class MFRL:
 
     def _build(self):
         self._set_env()
-        self._set_replay_buffer()
+        self._set_buffer()
 
 
     def _set_env(self):
@@ -52,11 +52,13 @@ class MFRL:
         env.observation_space.seed(self.seed)
 
 
-    def _set_replay_buffer(self):
+    def _set_buffer(self):
         max_size = self.configs['data']['buffer_size']
         device = self._device_
-        self.replay_buffer = ReplayBuffer(self.obs_dim, self.act_dim,
-                                          max_size, self.seed, device)
+        if self.configs['algorithm']['on-policy']:
+            self.buffer = OnPolBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+        else:
+            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
 
     def initialize_learning(self, NT, Ni):
@@ -76,7 +78,7 @@ class MFRL:
                 o_next, r, d, info = self.learn_env.step(a)
                 d = True if el == max_el else d # Ignore artificial termination
 
-                self.replay_buffer.store_transition(o, a, r, o_next, d)
+                self.buffer.store_transition(o, a, r, o_next, d)
 
                 o = o_next
                 Z += r
@@ -102,7 +104,7 @@ class MFRL:
         o_next, r, d, _ = self.learn_env.step(a)
         d = False if el == max_el else d # Ignore artificial termination
 
-        self.replay_buffer.store_transition(o, a, r, o_next, d)
+        self.buffer.store_transition(o, a, r, o_next, d)
 
         o = o_next
         Z += r

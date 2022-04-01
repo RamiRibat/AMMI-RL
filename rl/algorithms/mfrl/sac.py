@@ -1,3 +1,13 @@
+"""
+Inspired by:
+
+    1. RLKit: https://github.com/rail-berkeley/rlkit
+    2. StabelBaselines: https://github.com/hill-a/stable-baselines
+    3. SpinningUp OpenAI: https://github.com/openai/spinningup
+    4. CleanRL: https://github.com/vwxyzjn/cleanrl
+
+"""
+
 import os, subprocess, sys
 import argparse
 import importlib
@@ -165,7 +175,7 @@ class SAC(MFRL):
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]')
 
-            # print(f'[ Replay Buffer ] Size: {self.replay_buffer.size}, pointer: {self.replay_buffer.ptr}')
+            # print(f'[ Replay Buffer ] Size: {self.buffer.size}, pointer: {self.buffer.ptr}')
             nt = 0
             learn_start_real = time.time()
             while nt < NT:
@@ -176,7 +186,7 @@ class SAC(MFRL):
                 # Taking gradient steps after exploration
                 if n > Ni:
                     for g in range(1, G+1):
-                        batch = self.replay_buffer.sample_batch(batch_size, device=self._device_)
+                        batch = self.buffer.sample_batch(batch_size, device=self._device_)
                         Jq, Jalpha, Jpi = self.trainAC(g, batch, oldJs)
                         oldJs = [Jq, Jalpha, Jpi]
                         JQList.append(Jq.item())
@@ -366,7 +376,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-A"
+    group_name = f"{env_name}-{alg_name}-X"
     exp_prefix = f"seed:{seed}"
 
     if wb:
@@ -405,6 +415,7 @@ if __name__ == "__main__":
     config = importlib.import_module(args.cfg)
     seed = int(args.seed)
     device = args.device
+    print('\ndevice: ', device)
     wb = eval(args.wb)
 
     main(exp_prefix, config, seed, device, wb)
