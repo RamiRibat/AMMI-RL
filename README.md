@@ -13,7 +13,7 @@ Algorithms we are re-implementing/plannning to re-implement:
 
 🟢 Done || 🟡 Now || 🟣 Next || 🔴 No plan
 
-| Algorithms | Model | Value | On Policy | Paper | Done |
+| Algorithms | Model | Value | On Policy | Paper | Progress |
 | --- | --- | --- | --- | --- | :---: |
 | PPO | False | V | True | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
 | NPG | False | V | TrueF | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🟡 |
