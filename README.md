@@ -13,16 +13,16 @@ Algorithms we are re-implementing/plannning to re-implement:
 
 🟢 Done || 🟡 Now || 🟣 Next || 🔴 No plan
 
-| Algorithms | Model | Value | On Policy | Paper | Progress |
-| --- | --- | --- | --- | --- | :---: |
-| PPO | False | V | True | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
-| NPG | False | V | TrueF | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🟡 |
-| SAC | False | Q | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
-| MBNPG | True | V | True | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
-| MBPO | True | Q | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
-| MoPAC | True | Q | False | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟣 |
-| MPC-SAC | True | V/Q | False | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
-| PETS | True | None | None | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
+| Algorithms | Model | Value | On Policy | MPC | Paper | Progress |
+| --- | --- | --- | --- | --- | --- | :---: |
+| PPO | False | V | True | False | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
+| NPG | False | V | True | False | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🟡 |
+| SAC | False | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
+| MBNPG | True | V | True | False | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
+| MBPO | True | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
+| MoPAC | True | Q | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟣 |
+| MPC-SAC | True | V/Q | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
+| PETS | True | None | None | True | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
 
 
 ## Experiments and Results
