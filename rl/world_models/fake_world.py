@@ -84,15 +84,7 @@ class FakeWorld:
 
         inputs = np.concatenate((obs, act), axis=-1)
 
-        if self.model_type == 'pytorch':
-            ensemble_model_means, ensemble_model_vars = self.model.predict(inputs)
-        else:
-            ensemble_model_means, ensemble_model_vars = self.model.predict(inputs, factored=True)
-
-        # print('obs,: ', obs)
-        # print('act: ', act)
-        # print('inputs: ', inputs)
-        # print('ensemble_model_means: ', ensemble_model_means)
+        ensemble_model_means, ensemble_model_vars = self.model.predict(inputs)
 
         ensemble_model_means[:, :, 1:] += obs
         ensemble_model_stds = np.sqrt(ensemble_model_vars)
@@ -107,6 +99,7 @@ class FakeWorld:
             model_idxes = np.random.choice(self.model.elite_model_idxes, size=batch_size)
         else:
             model_idxes = self.model.random_inds(batch_size)
+
         batch_idxes = np.arange(0, batch_size)
 
         samples = ensemble_samples[model_idxes, batch_idxes]
@@ -142,6 +135,7 @@ class FakeWorld:
         delta_state = next_state - state
 
         inputs = np.concatenate((state, action), axis=-1)
+        print('FakeWorld: inputs', inputs.shape)
         labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1)
         # print('inputs: ', inputs)
         # print('labels: ', labels)

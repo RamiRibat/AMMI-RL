@@ -249,11 +249,8 @@ class EnsembleModel(nn.Module):
         super(EnsembleModel, self).__init__()
 
         self._device_ = device
-
         # self.hidden_size = hidden_size
-
         self.use_decay = use_decay
-
         self.output_dim = state_size + reward_size
 
         # self.nn1 = EnsembleFC(state_size + action_size, hidden_size, ensemble_size, weight_decay=0.000025).to(device)
@@ -272,23 +269,38 @@ class EnsembleModel(nn.Module):
         self.nn5 = LinearEnsemble(ensemble_size, hidden_size, self.output_dim * 2, weight_decay=0.0001).to(device)
 
 
-
         # net_arch = [200, 200, 200, 200] #net_configs['arch']
         # activation = 'Swish' #'nn.' + net_configs['activation']
         # # op_activation = 'nn.Identity' # net_config['output_activation']
         # num_ensemble = ensemble_size
-        # layers_decay = [0.000025, 0.00005, 0.000075, 0.000075, 0.0001]
+        # layers_decay = [0.000025, 0.000050, 0.000075, 0.000075, 0.000100]
         #
         # if len(net_arch) > 0:
-        #     layers = [ LinearEnsemble(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), Swish() ]
+        #     # layers = [ LinearEnsemble(num_ensemble, state_size + action_size, net_arch[0], weight_decay=layers_decay[0]), Swish() ]
+        #     layers = [
+        #         nn.Sequential(
+        #             LinearEnsemble(num_ensemble, state_size + action_size, net_arch[0],
+        #                            weight_decay=layers_decay[0]), Swish() )
+        #             ]
         #     for l in range(len(net_arch)-1):
-        #         layers.extend([ LinearEnsemble(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), Swish() ])
+        #         # layers.extend([ LinearEnsemble(num_ensemble, net_arch[l], net_arch[l+1], weight_decay=layers_decay[l+1]), Swish() ])
+        #         layers.append(
+        #             nn.Sequential(
+        #                 LinearEnsemble(num_ensemble, net_arch[l], net_arch[l+1],
+        #                                weight_decay=layers_decay[l+1]), Swish() )
+        #                     )
         #     if self.output_dim > 0:
-        #         layers.extend([ LinearEnsemble(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1]) ])
+        #         # layers.extend([ LinearEnsemble(num_ensemble, net_arch[-1], self.output_dim * 2, weight_decay=layers_decay[-1]) ])
+        #         layers.append(
+        #             nn.Sequential(
+        #                 LinearEnsemble(num_ensemble, net_arch[-1], self.output_dim * 2,
+        #                                weight_decay=layers_decay[-1]))
+        #                     )
         # else:
         #     raise 'No network arch!'
         #
         # self.nn_model = nn.Sequential(*layers)
+        # print('self: ', self)
 
 
 
@@ -298,8 +310,6 @@ class EnsembleModel(nn.Module):
         self.apply(init_weights_)
         # self.nn_model.to(device)
 
-
-
         self.gnll_loss = nn.GaussianNLLLoss()
         self.mse_loss = nn.MSELoss()
 
@@ -307,13 +317,14 @@ class EnsembleModel(nn.Module):
 
         self.activation = nn.ReLU() #Swish()
 
+
     def forward(self, x, ret_log_var=False):
+        # print('x: ', x.shape)
         nn1_output = self.activation(self.nn1(x))
         nn2_output = self.activation(self.nn2(nn1_output))
         nn3_output = self.activation(self.nn3(nn2_output))
         nn4_output = self.activation(self.nn4(nn3_output))
         nn5_output = self.nn5(nn4_output)
-
         nn_output = nn5_output
 
         # nn_output = self.nn_model(x)
@@ -406,6 +417,7 @@ class EnsembleDynamicsModel():
         num_holdout = int(inputs.shape[0] * holdout_ratio)
         permutation = np.random.permutation(inputs.shape[0])
         inputs, labels = inputs[permutation], labels[permutation]
+        # print('EnsembleDynamicsModel: inputs', inputs.shape)
 
         train_inputs, train_labels = inputs[num_holdout:], labels[num_holdout:]
         holdout_inputs, holdout_labels = inputs[:num_holdout], labels[:num_holdout]
@@ -413,6 +425,7 @@ class EnsembleDynamicsModel():
         self.scaler.fit(train_inputs)
         train_inputs = self.scaler.transform(train_inputs)
         holdout_inputs = self.scaler.transform(holdout_inputs)
+        print('EnsembleDynamicsModel: train_inputs', train_inputs.shape)
 
         holdout_inputs = torch.from_numpy(holdout_inputs).float().to(device)
         holdout_labels = torch.from_numpy(holdout_labels).float().to(device)
@@ -425,10 +438,13 @@ class EnsembleDynamicsModel():
         for epoch in itertools.count():
             # losses = []
             train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
+            print('EnsembleDynamicsModel: train_idx', train_idx.shape)
             # train_idx = np.vstack([np.arange(train_inputs.shape[0])] for _ in range(self.network_size))
             for start_pos in range(0, train_inputs.shape[0], batch_size):
                 idx = train_idx[:, start_pos: start_pos + batch_size]
+                print('EnsembleDynamicsModel: idx', idx.shape)
                 train_input = torch.from_numpy(train_inputs[idx]).float().to(device)
+                print('EnsembleDynamicsModel: train_input', train_input.shape)
                 train_label = torch.from_numpy(train_labels[idx]).float().to(device)
                 losses = []
                 mean, logvar = self.ensemble_model(train_input, ret_log_var=True)

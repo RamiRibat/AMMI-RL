@@ -46,6 +46,12 @@ class WorldModel(LightningModule):
 
         # device = self._device_ = configs['experiment']['device']
         self._device_ = device
+        self.use_decay = use_decay
+        self.in_dim = in_dim = obs_dim + act_dim
+        self.out_dim = out_dim = obs_dim + rew_dim
+        hid_dim = 200
+        n_ensemble = 7
+        n_elites = 5
 
         # self.obs_dim = obs_dim
         # self.act_dim = act_dim
@@ -59,21 +65,25 @@ class WorldModel(LightningModule):
         							 config
         							 ).to(device)
         elif configs['world_model']['type'] == 'PE':
-            # M = configs['world_model']['num_ensembles']
-            # self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device).to(device) for m in range(M)]
-            # self.models = [DynamicsModel(obs_dim, act_dim, rew_dim, configs, device) for m in range(M)]
-            # self.models = EnsembleModel(obs_dim, act_dim, rew_dim, configs, device)
-            # self.elit_models = []
+            self.nn1 = LinearEnsemble(n_ensemble, in_dim, hid_dim, weight_decay=0.000025).to(device)
+            self.nn2 = LinearEnsemble(n_ensemble, hid_dim, hid_dim, weight_decay=0.00005).to(device)
+            self.nn3 = LinearEnsemble(n_ensemble, hid_dim, hid_dim, weight_decay=0.000075).to(device)
+            self.nn4 = LinearEnsemble(n_ensemble, hid_dim, hid_dim, weight_decay=0.000075).to(device)
+            self.nn5 = LinearEnsemble(n_ensemble, hid_dim, out_dim * 2, weight_decay=0.0001).to(device)
+            self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
+            self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
             pass
+
+        self.apply(init_weights_)
+
+        self.gnll_loss = nn.GaussianNLLLoss()
+        self.mse_loss = nn.MSELoss()
+        self.activation = nn.ReLU()
+
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
         self.configs = configs
 
-        self._set_nsemble(self, obs_dim, act_dim, rew_dim)
-        # print(self.models)
-
-    def _set_nsemble(self, obs_dim, act_dim, rew_dim):
-        
-        pass
 
     # def normalization(self, obs_bias=None, obs_scale=None,
     #                         act_bias=None, act_scale=None,
@@ -143,18 +153,22 @@ class WorldModel(LightningModule):
 
 
     def forward(self, obs, act, deterministic=False, sample_type='Average'):
-        # print('obs: ', obs)
-        # normed_obs = (obs - self.obs_bias)/(self.obs_scale + art_zero)
-        # normed_act = (act - self.act_bias)/(self.act_scale + art_zero)
+        nn1_output = self.activation(self.nn1(x))
+        nn2_output = self.activation(self.nn2(nn1_output))
+        nn3_output = self.activation(self.nn3(nn2_output))
+        nn4_output = self.activation(self.nn4(nn3_output))
+        nn5_output = self.nn5(nn4_output)
+        nn_output = nn5_output
 
-        M = self.configs['world_model']['num_ensembles']
-        modelType = self.configs['world_model']['type']
-        # device = self._device_
+        mean = nn_output[:, :, :self.output_dim]
 
-        if modelType == 'P':
-        	mu, log_sigma, sigma, inv_sigma = self.sample(obs, act, sample_type)
-        elif modelType == 'PE':
-        	mu, log_sigma, sigma, inv_sigma = self.sample(obs, act, sample_type)
+        logvar = self.max_logvar - F.softplus(self.max_logvar - nn_output[:, :, self.output_dim:])
+        logvar = self.min_logvar + F.softplus(logvar - self.min_logvar)
+
+        if ret_log_var:
+            return mean, logvar
+        else:
+            return mean, torch.exp(logvar)
 
         if deterministic:
             prediction = mu
@@ -171,6 +185,29 @@ class WorldModel(LightningModule):
         mu = mu + obs # delta + obs | rew + 0
 
         return obs_next, rew, mu, sigma
+
+    def predict(self, inputs, batch_size=1024, factored=True):
+        device = self._device_
+
+        inputs = self.scaler.transform(inputs)
+        ensemble_mean, ensemble_var = [], []
+
+        for i in range(0, inputs.shape[0], batch_size):
+            input = torch.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
+            b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
+            ensemble_mean.append(b_mean.detach().cpu().numpy())
+            ensemble_var.append(b_var.detach().cpu().numpy())
+
+        ensemble_mean = np.hstack(ensemble_mean)
+        ensemble_var = np.hstack(ensemble_var)
+
+        if factored:
+            return ensemble_mean, ensemble_var
+        else:
+            assert False, "Need to transform to numpy"
+            mean = torch.mean(ensemble_mean, dim=0)
+            var = torch.mean(ensemble_var, dim=0) + torch.mean(torch.square(ensemble_mean - mean[None, :, :]), dim=0)
+            return mean, var
 
 
     ### PyTorch Lightning ###
