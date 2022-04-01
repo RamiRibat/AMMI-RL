@@ -24,7 +24,7 @@ Algorithms we are re-implementing/plannning to re-implement:
 
 7. Model Predictive Control-Soft Actor Critic (MPC-SAC) [Paper](https://ieeexplore.ieee.org/document/9429677) (Next; Future work)
 
-| Algorithms | Model | Value function | On Policy | Paper | Done |
+| Algorithms | Model | Value | On Policy | Paper | Done |
 | --- | --- | --- | --- | --- | --- |
 | PPO | False | V | True | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
 | NPG | False | V | TrueF | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🟡 |
@@ -121,39 +121,20 @@ python evaluate_agent.py -env Walker2d-v2 -alg SAC -seed 1 -EE 5
 
 In thoe following we evaluate our code on the following environments. For some reason gifs don't run fast on google drive, so we encourage you to download them from this [folder](https://drive.google.com/drive/folders/1l5ina4xFu-LdTMeuF0tfgmS6uooMjZqR?usp=sharing) at drive.
 
-### Locomotion
-Tasks we are evaluating:
-1. HalfCheetah
+### Locomotion Tasks
 
-<img src="https://drive.google.com/uc?export=view&id=1l6YA9hhnQRTReLh98McIXVIOkXD5U9uv" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
+| HalfCheetah-v2 | Ant-v2 | Walker2d-v2 | Hopper-v2 |
+| --- | --- | --- | --- |
+| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-HalfCheetah-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Ant-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Walker2d-v2%20.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Hopper-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
   
-  
-2. Ant
 
-<img src="https://drive.google.com/uc?export=view&id=1mKwzMDDtv8Dw_1tfwrvmgBtL_dl_1MQ5" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
+### Manipulation Tasks
 
-
-3. Walker2d
-
-<img src="https://drive.google.com/uc?export=view&id=1Nm8bbqRZXxLopnsepq66wqmmcPLbL36K" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
+| DClaw Valve Turning | ShadowHand Cube Re-orientation |
+| --- | --- |
+| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-DClawTurn.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-SHC.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
 
 
-4. Hooper
-
-<img src="https://drive.google.com/uc?export=view&id=17zdbI5zgzi-pdmrTGXmTNMWYhgQ02-7N" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
-
-
-### Manipulation
-Tasks we are evaluating:
-
-1. DClaw Valve Turning
-
-<img src="https://drive.google.com/uc?export=view&id=1ux1nMubQZxmmI90UTfdJeIv_KZNrVNJt" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
-
-
-2. ShadowHand Cube Re-orientation
-
-<img src="https://drive.google.com/uc?export=view&id=1FWFViyX35-OXwEEjWywzaFu6OUSBEJSy" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" />
 
 
 ## Catalyst Agents Team, Group 2
