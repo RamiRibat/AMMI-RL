@@ -10,12 +10,12 @@ configurations = {
         },
 
     'algorithm': {
-        'name': 'SAC',
+        'name': 'PPO',
         'model-based': False,
-        'on-policy': False,
+        'on-policy': True,
         'learning': {
-            'epochs': 1000, # N epochs
-            'epoch_steps': 1000, # NT steps/epoch
+            'epochs': 500, # N epochs
+            'epoch_steps': 4000, # NT steps/epoch
             'init_epochs': 1, # Ni epochs
             'expl_epochs': 10, # Nx epochs
 
@@ -39,8 +39,6 @@ configurations = {
     'actor': {
         'type': 'gaussianpolicy',
         'action_noise': None,
-        'alpha': 0.2, # Temprature/Entropy #@#
-        'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {
             'arch': [256,256],
@@ -52,8 +50,8 @@ configurations = {
     },
 
     'critic': {
-        'type': 'sofQ',
-        'number': 2,
+        'type': 'V',
+        'number': 1,
         'gamma': 0.99,
         'tau': 5e-3,
         'network': {
@@ -67,7 +65,7 @@ configurations = {
 
     'data': {
         'buffer_type': 'simple',
-        'buffer_size': int(1e6),
+        'buffer_size': int(4e3),
         'batch_size': 256
     },
 
