@@ -21,7 +21,7 @@ Algorithms we are re-implementing/plannning to re-implement:
 | MBNPG | True | V | True | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
 | MBPO | True | Q | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
 | MoPAC | True | Q | False | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟣 |
-| MPC-SAC | True | Q | False | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
+| MPC-SAC | True | V/Q | False | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
 | PETS | True | None | None | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
 
 
