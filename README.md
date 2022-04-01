@@ -24,6 +24,17 @@ Algorithms we are re-implementing/plannning to re-implement:
 
 7. Model Predictive Control-Soft Actor Critic (MPC-SAC) [Paper](https://ieeexplore.ieee.org/document/9429677) (Next; Future work)
 
+| Algorithms | Model | Value function | On Policy | Paper | Done |
+| --- | --- | --- | --- | --- | --- |
+| PPO | False | V | True | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
+| NPG | False | V | TrueF | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🟡 |
+| SAC | False | Q | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
+| MBNPG | True | V | True | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
+| MBPO | True | Q | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
+| MoPAC | True | Q | False | [Arxiv](https://arxiv.org/abs/2103.13842) | 🔴 |
+| MPC-SAC | True | Q | False | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
+| PETS | True | None | None | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
+
 
 
 
