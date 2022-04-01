@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-cfg', type=str)
-    parser.add_argument('-seed', type=int)
+    parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-device', type=str, default='cpu')
     # parser.add_argument('-gpu', type=str, nargs='?', default=False, const=True)
     parser.add_argument('-wb', action='store_true')
