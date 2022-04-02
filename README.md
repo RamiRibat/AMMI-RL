@@ -1,5 +1,5 @@
 # AMMI-RL
-## AMMI, Deep RL, Fall 2021: RL Implementation for Continuous Control Tasks
+## AMMI RL, Fall 2021: Implementation for Continuous Control
 
 [Project report](https://drive.google.com/file/d/1_0ocjyF_3m9hPVpZjwmDEuT3LTi8_Vs5/view?usp=sharing)
 
