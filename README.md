@@ -15,8 +15,8 @@ Algorithms we are re-implementing/plannning to re-implement:
 
 | Algorithms | Model | Value | On Policy | MPC | Paper | Progress |
 | --- | --- | --- | --- | --- | --- | :---: |
-| PPO | False | V | True | False | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
 | NPG | False | V | True | False | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🟡 |
+| PPO | False | V | True | False | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
 | SAC | False | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
 | MBNPG | True | V | True | False | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
 | MBPO | True | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
