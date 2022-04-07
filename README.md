@@ -15,11 +15,11 @@ Algorithms we are re-implementing/plannning to re-implement:
 
 | Algorithms | Model | Value | On Policy | MPC | Paper | Progress |
 | --- | --- | --- | --- | --- | --- | :---: |
-| VPG | False | V | True | False | [NeurIPS](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) | 🟡 |
-| NPG | False | V | True | False | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🟡 |
+| VPG | False | GAE | True | False | [NeurIPS](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) | 🟡 |
+| NPG | False | GAE | True | False | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🔴 |
 | PPO | False | V | True | False | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
 | SAC | False | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
-| MBNPG | True | V | True | False | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
+| MB-Game | True | V | True | False | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
 | MBPO | True | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
 | MoPAC | True | Q | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟣 |
 | MPC-SAC | True | V/Q | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
@@ -30,17 +30,20 @@ Algorithms we are re-implementing/plannning to re-implement:
 
 In thoe following we evaluate our code on the following environments. Download gifs from this Google drive [folder](https://drive.google.com/drive/folders/1l5ina4xFu-LdTMeuF0tfgmS6uooMjZqR?usp=sharing) at drive.
 
+
 ### Locomotion Tasks
 
-| HalfCheetah-v2 | Ant-v2 | Walker2d-v2 | Hopper-v2 |
-| --- | --- | --- | --- |
-| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-HalfCheetah-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Ant-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Walker2d-v2%20.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Hopper-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
-  
+| **HalfCheetah-v2** | **Ant-v2** |
+| :---: | :---: |
+| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-HalfCheetah-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Ant-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
+| **Walker2d-v2** | **Hopper-v2** |
+| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Walker2d-v2%20.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Hopper-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
+
 
 ### Manipulation Tasks
 
-| DClaw Valve Turning | ShadowHand Cube Re-orientation |
-| --- | --- |
+| **DClaw Valve Turning** | **ShadowHand Cube Re-orientation** |
+| :---: | :---: |
 | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-DClawTurn.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-SHC.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
 
 
