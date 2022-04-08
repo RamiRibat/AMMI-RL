@@ -15,16 +15,15 @@ configurations = {
         'on-policy': True,
         'learning': {
             'epochs': 500, # N epochs
-            'epoch_steps': 4000, # NT steps/epoch
-            'init_epochs': 1, # Ni epochs
-            'expl_epochs': 10, # Nx epochs
+            'epoch_steps': 2048, # NT steps/epoch
+            'init_epochs': 0, # Ni epochs
+            'expl_epochs': 0, # Nx epochs
 
-            'env_steps' : 1, # E: interact E times then train
-            'grad_AC_steps': 1, # ACG: ac grad
+            'env_steps' : 2048, # E: interact E times then train
+            'train_AC_freq': 1, # F: frequency of AC training
+            'grad_AC_steps': 10, # ACG: ac grad
 
             'policy_update_interval': 1,
-            'alpha_update_interval': 1,
-            'target_update_interval': 1,
                     },
 
         'evaluation': {
@@ -37,15 +36,18 @@ configurations = {
     },
 
     'actor': {
-        'type': 'gaussianpolicy',
+        'type': 'ppopolicy',
         'action_noise': None,
-        'target_entropy': 'auto',
+        'clip_eps': 0.2,
+        'kl_targ': 0.02,
+        'entropy_coef': 0.0,
         'network': {
-            'arch': [256,256],
-            'activation': 'ReLU',
+            'arch': [64, 64],
+            'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 3e-4
+            'lr': 3e-4,
+            'max_grad_norm': 0.5,
         }
     },
 
@@ -53,20 +55,27 @@ configurations = {
         'type': 'V',
         'number': 1,
         'gamma': 0.99,
-        'tau': 5e-3,
+        'lam': 0.95,
         'network': {
-            'arch': [256,256],
-            'activation': 'ReLU',
+            'arch': [64, 64],
+            'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 3e-4
+            'lr': 3e-4,
+            'max_grad_norm': 0.5,
         }
     },
 
     'data': {
         'buffer_type': 'simple',
-        'buffer_size': int(4e3),
-        'batch_size': 256
+        'buffer_size': int(2048),
+        'batch_size': 2048,
+        'n_mini_batches': 32,
+        'mini_batch_size': 64,
+        # 'buffer_size': int(4000),
+        # 'batch_size': 4000,
+        # 'n_mini_batches': 62,
+        # 'mini_batch_size': 64,
     },
 
     'experiment': {

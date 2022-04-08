@@ -39,7 +39,6 @@ class ActorCritic: # Done
                  configs, seed, device
                  ) -> None:
         # print('Initialize AC!')
-        # Initialize parameters
         self.obs_dim, self.act_dim = obs_dim, act_dim
         self.act_up_lim, self.act_low_lim = act_up_lim, act_low_lim
         self.configs, self.seed = configs, seed
@@ -70,6 +69,31 @@ class ActorCritic: # Done
         return SoftQFunction(
             self.obs_dim, self.act_dim,
             net_configs, self._device_, self.seed)#.to(self._device_)
+
+
+    def get_q(self, o, a):
+        return self.critic(o, a)
+
+
+    def get_q_target(self, o, a):
+        return self.critic_target(o, a)
+
+
+    def get_pi(self, o, a=None, reparameterize=True, deterministic=False, return_log_pi=False):
+        pi, log_pi = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return pi, log_pi
+
+
+    def get_action(self, o, a=None, reparameterize=False, deterministic=True, return_log_pi=False):
+        o = T.Tensor(o)
+        if a: a = T.Tensor(a)
+        with T.no_grad(): a, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return a.cpu().numpy()
+
+
+    def get_pi_and_q(self, o, a=None):
+        pi, log_pi = self.actor(o, a)
+        return pi, log_pi, self.critic(o)
 
 
 
@@ -171,7 +195,7 @@ class SAC(MFRL):
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]')
                 elif n > Ni:
-                    print(f'\n[ Epoch {n}   Inintial Exploration + Learning ]')
+                    print(f'\n[ Epoch {n}   Exploration + Learning ]')
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]')
 
@@ -280,12 +304,15 @@ class SAC(MFRL):
         D = batch['terminals']
 
         # Calculate two Q-functions
-        Qs = self.actor_critic.critic(O, A)
+        # Qs = self.actor_critic.critic(O, A)
+        Qs = self.actor_critic.get_q(O, A)
         # # Bellman backup for Qs
         with T.no_grad():
-            pi_next, log_pi_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
+            # pi_next, log_pi_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
+            pi_next, log_pi_next = self.actor_critic.get_pi(O_next, reparameterize=True, return_log_pi=True)
             A_next = pi_next
-            Qs_targ = T.cat(self.actor_critic.critic_target(O_next, A_next), dim=1)
+            # Qs_targ = T.cat(self.actor_critic.critic_target(O_next, A_next), dim=1)
+            Qs_targ = T.cat(self.actor_critic.get_q_target(O_next, A_next), dim=1)
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
 
@@ -311,8 +338,9 @@ class SAC(MFRL):
             O = batch['observations']
 
             with T.no_grad():
-                _, log_pi = self.actor_critic.actor(O, return_log_pi=True)
-            Jalpha = - (self.log_alpha * (log_pi + self.target_entropy)).mean()
+                # _, log_pi = self.actor_critic.actor(O, return_log_pi=True)
+                _, log_pi = self.actor_critic.get_pi(O, return_log_pi=True)
+            Jalpha = - ( self.log_alpha * (log_pi + self.target_entropy) ).mean()
 
             # Gradient Descent
             self.alpha_optimizer.zero_grad()
@@ -334,8 +362,10 @@ class SAC(MFRL):
 
         O = batch['observations']
         # Policy Evaluation
-        pi, log_pi = self.actor_critic.actor(O, return_log_pi=True)
-        Qs_pi = T.cat(self.actor_critic.critic(O, pi), dim=1)
+        # pi, log_pi = self.actor_critic.actor(O, return_log_pi=True)
+        # Qs_pi = T.cat(self.actor_critic.critic(O, pi), dim=1)
+        pi, log_pi = self.actor_critic.get_pi(O, reparameterize=True, return_log_pi=True)
+        Qs_pi = T.cat(self.actor_critic.get_q(O, pi), dim=1)
         min_Q_pi, _ = T.min(Qs_pi, dim=1, keepdim=True)
 
         # Policy Improvement
@@ -376,7 +406,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-X"
+    group_name = f"{env_name}-{alg_name}"
     exp_prefix = f"seed:{seed}"
 
     if wb:
@@ -415,7 +445,7 @@ if __name__ == "__main__":
     config = importlib.import_module(args.cfg)
     seed = int(args.seed)
     device = args.device
-    print('\ndevice: ', device)
+    # print('\ndevice: ', device)
     wb = eval(args.wb)
 
     main(exp_prefix, config, seed, device, wb)

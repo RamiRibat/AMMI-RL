@@ -1,8 +1,35 @@
 import gym
 from gym.spaces import Box
 
+import numpy as np
+import torch as T
+
 import rl.environments
-from rl.data.buffer import OnPolBuffer, ReplayBuffer
+from rl.data.buffer import TrajBuffer, ReplayBuffer
+
+
+
+def make_env(env_id, seed, idx, capture_video, run_name):
+    def thunk():
+        print('in thunk')
+        env = gym.make(env_id)
+        env = gym.wrappers.RecordEpisodeStatistics(env)
+        if capture_video:
+            if idx == 0:
+                env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
+        env = gym.wrappers.ClipAction(env)
+        env = gym.wrappers.NormalizeObservation(env)
+        env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+        env = gym.wrappers.NormalizeReward(env)
+        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+        env.seed(seed)
+        env.action_space.seed(seed)
+        env.observation_space.seed(seed)
+        return env
+
+    return thunk
+
+
 
 
 class MFRL:
@@ -56,7 +83,7 @@ class MFRL:
         max_size = self.configs['data']['buffer_size']
         device = self._device_
         if self.configs['algorithm']['on-policy']:
-            self.buffer = OnPolBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+            self.buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
         else:
             self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
@@ -92,12 +119,33 @@ class MFRL:
         return o, Z, el, t
 
 
+    def internact_op(self, n, o, d, Z, el, t):
+        Nt = self.configs['algorithm']['learning']['epoch_steps']
+        max_el = self.configs['environment']['horizon']
+
+        # with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_pi_and_v(T.Tensor(o))
+        a = self.actor_critic.get_action(o)
+
+        o_next, r, d_next, _ = self.learn_env.step(a)
+        Z += r
+        el += 1
+        t += 1
+
+        self.buffer.store_transition(o, a, r, d, v, log_pi)
+
+        if d_next or (el == max_el): o_next, Z, el = self.learn_env.reset(), 0, 0
+        o, d = o_next, d_next
+
+        return o, d, Z, el, t
+
+
     def internact(self, n, o, Z, el, t):
         Nx = self.configs['algorithm']['learning']['expl_epochs']
         max_el = self.configs['environment']['horizon']
 
         if n > Nx:
-            a, _ = self.actor_critic.actor.step_np(o)
+            # a, _ = self.actor_critic.actor.step_np(o)
+            a = self.actor_critic.get_action(o)
         else:
             a = self.learn_env.action_space.sample()
 
@@ -116,6 +164,38 @@ class MFRL:
         return o, Z, el, t
 
 
+    def evaluate_op(self):
+        evaluate = self.configs['algorithm']['evaluation']
+        if evaluate:
+            print('[ Evaluation ]')
+            EE = self.configs['algorithm']['evaluation']['eval_episodes']
+            max_el = self.configs['environment']['horizon']
+            EZ = [] # Evaluation episodic return
+            ES = [] # Evaluation episodic score
+            EL = [] # Evaluation episodic length
+
+            for ee in range(1, EE+1):
+                print(f' [ Agent Evaluation ] Episode: {ee}   ', end='\r')
+                o, d, Z, S, el = self.eval_env.reset(), False, 0, 0, 0
+                while not(d or (el == max_el)):
+                    # with T.no_grad(): a, _, _ = self.actor_critic.get_pi(T.Tensor(o))
+                    a = self.actor_critic.get_action(o)
+                    o, r, d, info = self.eval_env.step(a)
+                    Z += r
+                    if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': S += info['score']
+                    el += 1
+
+                EZ.append(Z)
+                if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': ES.append(S/el)
+                EL.append(el)
+
+            # if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
+            #     for i in range(len(ES)):
+            #         ES[i] /= EL[i]
+
+        return EZ, ES, EL
+
+
     def evaluate(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
@@ -132,8 +212,9 @@ class MFRL:
 
                 while not(d or (el == max_el)):
                     # Take deterministic actions at evaluation time
-                    pi, _ = self.actor_critic.actor(o, deterministic=True)
-                    a = pi.cpu().numpy()
+                    # a, _ = self.actor_critic.actor(o, deterministic=True)
+                    # o, r, d, info = self.eval_env.step(a.cpu().numpy())
+                    a = self.actor_critic.get_action(o)
                     o, r, d, info = self.eval_env.step(a)
                     Z += r
                     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': S += info['score']

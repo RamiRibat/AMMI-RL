@@ -1,3 +1,13 @@
+"""
+Inspired by:
+
+    1. RLKit: https://github.com/rail-berkeley/rlkit [X]
+    2. StabelBaselines: https://github.com/hill-a/stable-baselines
+    3. SpinningUp OpenAI: https://github.com/openai/spinningup
+    4. CleanRL: https://github.com/vwxyzjn/cleanrl
+
+"""
+
 import os, subprocess, sys
 import argparse
 import importlib
@@ -10,11 +20,14 @@ import wandb
 import numpy as np
 import torch as T
 import torch.nn.functional as F
+from torch.distributions.normal import Normal
+nn = T.nn
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import StochasticPolicy
-# from rl.value_functions.q_function import QFunction
+from rl.control.policy import PPOPolicy
 from rl.value_functions.v_function import VFunction
+
+
 
 
 
@@ -27,14 +40,14 @@ class ActorCritic: # Done
     def __init__(self,
                  obs_dim, act_dim,
                  act_up_lim, act_low_lim,
-                 configs, seed
+                 configs, seed, device
                  ) -> None:
-        # print('Initialize AC!')
-        # Initialize parameters
+        print('Initialize AC!')
+        super(ActorCritic, self).__init__()
         self.obs_dim, self.act_dim = obs_dim, act_dim
         self.act_up_lim, self.act_low_lim = act_up_lim, act_low_lim
         self.configs, self.seed = configs, seed
-        self.device = configs['experiment']['device']
+        self._device_ = device
 
         self.actor, self.critic = None, None
         self._build()
@@ -43,74 +56,84 @@ class ActorCritic: # Done
     def _build(self):
         self.actor = self._set_actor()
         self.critic = self._set_critic()
-        # parameters will be updated using a weighted average
-        for p in self.critic_target.parameters():
-            p.requires_grad = False
 
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        return StochasticPolicy(
+        return PPOPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
-            net_configs, self.device, self.seed).to(self.device)
+            net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
         net_configs = self.configs['critic']['network']
         return VFunction(
-            self.obs_dim,
-            net_configs, self.seed).to(self.device)
+            self.obs_dim, self.act_dim,
+            net_configs, self._device_, self.seed)
+
+
+    def get_v(self, x):
+        return self.critic(x)
+
+
+    def get_pi(self, x, action=None):
+        action, log_pi, entropy = self.actor(x, action)
+        return action, log_pi, entropy
+
+
+    def get_action(self, o, a=None):
+        o = T.Tensor(o)
+        if a: a = T.Tensor(a)
+        with T.no_grad(): action, _, _ = self.actor(T.Tensor(o), a)
+        return action.cpu().numpy()
+
+
+    def get_pi_and_v(self, x, action=None):
+        action, log_pi, entropy = self.actor(x, action)
+        return action, log_pi, entropy, self.critic(x)
 
 
 
-class NPG(MFRL):
+class PPO(MFRL):
     """
-    Algorithm: Natural Policy Gradient (On-Policy, Model-free)
+    Algorithm: Proximal Policy Optimization (On-policy, Model-free)
 
-        01. Input: θ1, θ2, φ                                    > Initial parameters
-        02. ¯θ1 ← θ1, ¯θ2 ← θ2                                  > Initialize target network weights
-        03. D ← ∅                                               > Initialize an empty replay pool
-        04.    for each iteration do
-        05.       for each environment step do
-        06.          at ∼ πφ(at|st)                             > Sample action from the policy
-        07.          st+1 ∼ p(st+1|st, at)                      > Sample transition from the environment
-        08.          D ← D ∪ {(st, at, r(st, at), st+1)}        > Store the transition in the replay pool
-        09.       end for
-        10.       for each gradient step do
-        11.          θi ← θi − λ_Q ˆ∇θi J_Q(θi) for i ∈ {1, 2}  > Update the Q-function parameters
-        12.          φ ← φ − λ_π ˆ∇φ J_π(φ)                     > Update policy weights
-        13.          α ← α − λ ˆ∇α J(α)                         > Adjust temperature
-        14.          ¯θi ← τ θi + (1 − τ) + ¯θi for i ∈ {1, 2}  > Update target network weights
-        15.       end for
-        16.    end for
-        17. Output: θ1, θ2, φ                                   > Optimized parameters
-
+        01. Input: θ, φ                                                         > Initial parameters
+        02. for k = 0, 1, 2, ... do
+        03.     Collect set of traj's D = {τi} by πk = π(φk)
+        04.     Compute RTG Rhat_t
+        05.     Compute advantage estimate Ahat_t based on Vk = V(θk)
+        06.     Update πφ by maxz Jπ
+                    φ = arg max_φ {(1/T|Dk|) sum sum min((π/πk), 1 +- eps) Aπk }
+        07.     Fit Vθ by MSE(Jv)
+                    θ = arg min_θ {(1/T|Dk|) sum sum (Vθ(st) - RTG)^2 }
+        08. end for
     """
-    def __init__(self, exp_prefix, configs, seed) -> None:
-        super(SAC, self).__init__(exp_prefix, configs, seed)
-        print('Initialize NPG Algorithm!')
+    def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
+        super(PPO, self).__init__(exp_prefix, configs, seed, device)
+        # print('init PPO Algorithm!')
         self.configs = configs
         self.seed = seed
+        self._device_ = device
+        self.WandB = wb
         self._build()
 
 
     def _build(self):
-        super(SAC, self)._build()
-        self._build_npg()
+        super(PPO, self)._build()
+        self._build_ppo()
 
 
-    def _build_npg(self):
+    def _build_ppo(self):
         self._set_actor_critic()
-        # self._set_alpha()
 
 
     def _set_actor_critic(self):
         self.actor_critic = ActorCritic(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
-            self.configs, self.seed)
-
+            self.configs, self.seed, self._device_)
 
 
     def learn(self):
@@ -120,195 +143,213 @@ class NPG(MFRL):
         Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         E = self.configs['algorithm']['learning']['env_steps']
+        F = self.configs['algorithm']['learning']['train_AC_freq']
         G = self.configs['algorithm']['learning']['grad_AC_steps']
 
         batch_size = self.configs['data']['batch_size']
+        mini_batch_size = self.configs['data']['mini_batch_size']
 
-        o, Z, el, t = self.learn_env.reset(), 0, 0, 0
-        # o, Z, el, t = self.initialize_learning(NT, Ni)
-        oldJs = [0, 0, 0]
-        JQList, JAlphaList, JPiList = [0]*Ni, [0]*Ni, [0]*Ni
-        AlphaList = [self.alpha]*Ni
+
+        global_step = 0
+        start_time = time.time()
+        o, d, Z, el, t = self.learn_env.reset(), 0, 0, 0, 0
+        oldJs = [0, 0]
+        JVList, JPiList = [0]*Ni, [0]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
 
         start_time_real = time.time()
-        for n in range(1, N+1):
+        for n in range(1, N + 1):
             if self.configs['experiment']['print_logs']:
                 print('=' * 80)
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]')
                 elif n > Ni:
-                    print(f'\n[ Epoch {n}   Inintial Exploration + Learning ]')
+                    print(f'\n[ Epoch {n}   Exploration + Learning ]')
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]')
 
-            # print(f'[ Replay Buffer ] Size: {self.replay_buffer.size}, pointer: {self.replay_buffer.ptr}')
             nt = 0
+            # self.buffer.reset()
             learn_start_real = time.time()
             while nt < NT:
-                # Interaction steps
+                # Interaction steps (On-Policy)
                 for e in range(1, E+1):
-                    o, Z, el, t = self.internact(n, o, Z, el, t)
+                    print('t: ', t, end='\r')
+                    # global_step += 1 #* num_envs
+                    o, d, Z, el, t = self.internact_op(n, o, d, Z, el, t)
+
+                    if t % 1000 == 0:
+                        # print(f"Training: global_step={global_step}, return={round(Z, 2)}, ep_length={el}")
+                        EZ, ES, EL = self.evaluate_op()
+                        print(f"Evaluation: global_step={t}, return={round(np.mean(EZ), 2)}, ep_length={np.mean(EL)}")
+                        logs['evaluation/episodic_return_mean'] = np.mean(EZ)
+                        logs['evaluation/episodic_length_mean'] = np.mean(EL)
+                        if self.WandB:
+                            wandb.log(logs)
+
+                # with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o))
+                # self.buffer.traj_tail(d, v)
 
                 # Taking gradient steps after exploration
-                if n > Ni:
+                if n > Ni and n % F == 0:
+                    # print('updateAC')
+                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o))
+                    self.buffer.traj_tail(d, v)
+                    # Optimizing policy and value networks
+                    b_inds = np.arange(batch_size)
                     for g in range(1, G+1):
-                        batch = self.replay_buffer.sample_batch(batch_size)
-                        Jq, Jalpha, Jpi = self.trainAC(g, batch, oldJs)
-                        oldJs = [Jq, Jalpha, Jpi]
-                        JQList.append(Jq.item())
-                        JPiList.append(Jpi.item())
-                        if self.configs['actor']['automatic_entropy']:
-                            JAlphaList.append(Jalpha.item())
-                            AlphaList.append(self.alpha)
+                        # PPO-P >>>>
+                        for b in range(0, batch_size, mini_batch_size):
+                            # print('ptr: ', self.buffer.ptr)
+                            mini_batch = self.buffer.sample_batch(mini_batch_size)
+                            Jv, Jpi, stop_pi = self.trainAC(g, mini_batch, oldJs)
+                            oldJs = [Jv, Jpi]
+                            JVList.append(Jv.item())
+                            JPiList.append(Jpi.item())
+                        # PPO-P <<<<
 
+                        # np.random.shuffle(b_inds)
+                        # for start in range(0, batch_size, mini_batch_size):
+                        #     end = start + mini_batch_size
+                        #     mb_inds = b_inds[start:end]
+                        #     mini_batch = self.buffer.sample_inds(mb_inds)
+                        #     self.trainAC(mini_batch)
+                    self.buffer.reset()
                 nt += E
 
-            logs['time/training                  '] = time.time() - learn_start_real
-            logs['training/npg/Jq                '] = np.mean(JQList)
-            logs['training/npg/Jpi               '] = np.mean(JPiList)
-            # if self.configs['actor']['automatic_entropy']:
-            #     logs['training/npg/Jalpha            '] = np.mean(JAlphaList)
-            #     logs['training/npg/alpha             '] = np.mean(AlphaList)
-
-            eval_start_real = time.time()
-            EZ, ES, EL = self.evaluate()
-
-            logs['time/evaluation                '] = time.time() - eval_start_real
-
-            if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
-                logs['evaluation/episodic_score_mean '] = np.mean(ES)
-                logs['evaluation/episodic_score_std  '] = np.std(ES)
-            else:
-                logs['evaluation/episodic_return_mean'] = np.mean(EZ)
-                logs['evaluation/episodic_return_std '] = np.std(EZ)
-            logs['evaluation/episodic_length_mean'] = np.mean(EL)
-
-            logs['time/total                     '] = time.time() - start_time_real
-
-            if n > (N - 50):
-                if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
-                    if np.mean(ES) > lastES:
-                        print(f'[ Epoch {n}   Agent Saving ]                    ')
-                        env_name = self.configs['environment']['name']
-                        alg_name = self.configs['algorithm']['name']
-                        T.save(self.actor_critic.actor,
-                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
-                        lastES = np.mean(ES)
-                else:
-                    if np.mean(EZ) > lastEZ:
-                        print(f'[ Epoch {n}   Agent Saving ]                    ')
-                        env_name = self.configs['environment']['name']
-                        alg_name = self.configs['algorithm']['name']
-                        T.save(self.actor_critic.actor,
-                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
-                        lastEZ = np.mean(EZ)
-
-            # Printing logs
-            if self.configs['experiment']['print_logs']:
-                for k, v in logs.items():
-                    print(f'{k}  {round(v, 2)}')
-
-            # WandB
-            if self.configs['experiment']['WandB']:
-                wandb.log(logs)
+            # logs['time/training                  '] = time.time() - learn_start_real
+            # logs['training/ppo/Jv                '] = np.mean(JVList)
+            # logs['training/ppo/Jpi               '] = np.mean(JPiList)
+            #
+            # eval_start_real = time.time()
+            # EZ, ES, EL = self.evaluate_op()
+            #
+            # logs['time/evaluation                '] = time.time() - eval_start_real
+            #
+            # if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
+            #     logs['evaluation/episodic_score_mean '] = np.mean(ES)
+            #     logs['evaluation/episodic_score_std  '] = np.std(ES)
+            # else:
+            #     logs['evaluation/episodic_return_mean'] = np.mean(EZ)
+            #     logs['evaluation/episodic_return_std '] = np.std(EZ)
+            # logs['evaluation/episodic_length_mean'] = np.mean(EL)
+            #
+            # logs['time/total                     '] = time.time() - start_time_real
+            #
+            # if n > (N - 50):
+            #     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
+            #         if np.mean(ES) > lastES:
+            #             print(f'[ Epoch {n}   Agent Saving ]                    ')
+            #             env_name = self.configs['environment']['name']
+            #             alg_name = self.configs['algorithm']['name']
+            #             T.save(self.actor_critic.actor,
+            #             f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
+            #             lastES = np.mean(ES)
+            #     else:
+            #         if np.mean(EZ) > lastEZ:
+            #             print(f'[ Epoch {n}   Agent Saving ]                    ')
+            #             env_name = self.configs['environment']['name']
+            #             alg_name = self.configs['algorithm']['name']
+            #             T.save(self.actor_critic.actor,
+            #             f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
+            #             lastEZ = np.mean(EZ)
+            #
+            # # Printing logs
+            # if self.configs['experiment']['print_logs']:
+            #     for k, v in logs.items():
+            #         print(f'{k}  {round(v, 2)}')
+            #
+            # # WandB
+            # if self.WandB:
+            #     wandb.log(logs)
 
         self.learn_env.close()
         self.eval_env.close()
 
 
     def trainAC(self, g, batch, oldJs):
-        AUI = self.configs['algorithm']['learning']['alpha_update_interval']
-        # PUI = self.configs['algorithm']['learning']['policy_update_interval']
-        TUI = self.configs['algorithm']['learning']['target_update_interval']
-
-        Jv = self.updateV(batch)
-        # Jalpha = self.updateAlpha(batch)# if (g % AUI == 0) else oldJs[1]
-        Jpi = self.updatePi(batch)# if (g % PUI == 0) else oldJs[2]
-        # if g % TUI == 0:
-        # self.updateTarget()
-
-        return Jv, Jpi
+        Jv = self.updateV(batch, oldJs[0])
+        Jpi, stop_pi = self.updatePi(batch, oldJs[1])
+        return Jv, Jpi, stop_pi
 
 
-    def updateV(self, batch):
+    def updateV(self, batch, Jv_old):
         """"
-        JQ(θ) = E(st,at)∼D[ 0.5 ( Qθ(st, at)
-                            − r(st, at)
-                            + γ Est+1∼D[ Eat+1~πφ(at+1|st+1)[ Qθ¯(st+1, at+1)
-                                                − α log(πφ(at+1|st+1)) ] ] ]
+        Jv(θ) =
         """
-        gamma = self.configs['critic']['gamma']
+        max_grad_norm = kl_targ = self.configs['critic']['network']['max_grad_norm']
 
-        O = batch['observations']
-        A = batch['actions']
-        R = batch['rewards']
-        O_next = batch['observations_next']
-        D = batch['terminals']
+        observations, _, returns, _, _, _ = batch.values()
+        v = self.actor_critic.get_v(observations)
 
-        # Calculate two Q-functions
-        Qs = self.actor_critic.critic(O, A)
-        # # Bellman backup for Qs
-        with T.no_grad():
-            pi_next, log_pi_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
-            A_next = pi_next
-            # Qs_targ = T.cat(self.actor_critic.critic(O_next, A_next), dim=1) # WRONG!! :"D
-            Qs_targ = T.cat(self.actor_critic.critic_target(O_next, A_next), dim=1)
-            min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
-            Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
+        Jv = 0.5 * ( (v - returns) ** 2 ).mean(axis=0)
 
-        # # MSE loss
-        Jq = 0.5 * sum([F.mse_loss(Q, Qs_backup) for Q in Qs])
-
-        # Gradient Descent
         self.actor_critic.critic.optimizer.zero_grad()
-        Jq.backward()
+        Jv.backward()
+        nn.utils.clip_grad_norm_(self.actor_critic.critic.parameters(), max_grad_norm)
         self.actor_critic.critic.optimizer.step()
 
-        return Jq
+        return Jv
 
 
-    def updatePi(self, batch):
+    def updatePi(self, batch, Jpi_old, stop_pi=False):
         """
-        Jπ(φ) = Est∼D[ Eat∼πφ[α log (πφ(at|st)) − Qθ(st, at)] ]
+        Jπ(φ) =
         """
+        clip_eps = self.configs['actor']['clip_eps']
+        kl_targ = self.configs['actor']['kl_targ']
+        entropy_coef = self.configs['actor']['entropy_coef']
+        max_grad_norm = self.configs['actor']['network']['max_grad_norm']
 
-        O = batch['observations']
+        observations, actions, _, _, advantages, log_pis_old = batch.values()
 
-        # Policy Evaluation
-        pi, log_pi = self.actor_critic.actor(O, return_log_pi=True)
-        Qs_pi = T.cat(self.actor_critic.critic(O, pi), dim=1)
-        min_Q_pi, _ = T.min(Qs_pi, dim=1, keepdim=True)
+        _, log_pi, entropy = self.actor_critic.get_pi(observations, actions)
+        logratio = log_pi - log_pis_old
+        ratio = logratio.exp()
 
-        # Policy Improvement
-        Jpi = (self.alpha * log_pi - min_Q_pi).mean()
+        with T.no_grad():
+            # calculate approx_kl http://joschu.net/blog/kl-approx.html
+            approx_kl_old = (-logratio).mean()
+            approx_kl = ((ratio - 1) - logratio).mean()
 
-        # Gradient Ascent
+        # clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
+        # Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
+        # Jentropy = entropy_coef * entropy.mean()
+        # Jpi = Jpg + Jentropy
+
+        # if approx_kl_old <= kl_targ:
+        clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
+        Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
+        Jentropy = entropy_coef * entropy.mean()
+        Jpi = Jpg + Jentropy
         self.actor_critic.actor.optimizer.zero_grad()
         Jpi.backward()
+        nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm)
         self.actor_critic.actor.optimizer.step()
+        # else:
+        #     # print('Stop policy gradient updates!')
+        #     Jpi = Jpi_old
+        #     stop_pi = True
 
-        return Jpi
+        # if approx_kl > 1.5 * kl_targ:
+        #     stop = True
 
-
-    def compute_fisher(self):
-        pass
-
-    def compute_advantage(self):
-        pass
-
-
+        return Jpi, stop_pi
 
 
 
 
-def main(exp_prefix, config, seed):
 
-    print('Start an SAC experiment...')
+def main(exp_prefix, config, seed, device, wb):
+
+    print('Start an PPO experiment...')
     print('\n')
 
     configs = config.configurations
+
+    if seed:
+        random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
     alg_name = configs['algorithm']['name']
     env_name = configs['environment']['name']
@@ -317,8 +358,7 @@ def main(exp_prefix, config, seed):
     group_name = f"{env_name}-{alg_name}"
     exp_prefix = f"seed:{seed}"
 
-    if configs['experiment']['WandB']:
-        # print('WandB')
+    if wb:
         wandb.init(
             name=exp_prefix,
             group=group_name,
@@ -327,12 +367,13 @@ def main(exp_prefix, config, seed):
             config=configs
         )
 
-    agent = SAC(exp_prefix, configs, seed)
+    agent = PPO(exp_prefix, configs, seed, device, wb)
 
     agent.learn()
 
     print('\n')
-    print('... End the SAC experiment')
+    print('... End the PPO experiment')
+
 
 if __name__ == "__main__":
 
@@ -343,6 +384,8 @@ if __name__ == "__main__":
     parser.add_argument('-exp_prefix', type=str)
     parser.add_argument('-cfg', type=str)
     parser.add_argument('-seed', type=str)
+    parser.add_argument('-device', type=str)
+    parser.add_argument('-wb', type=str)
 
     args = parser.parse_args()
 
@@ -350,5 +393,7 @@ if __name__ == "__main__":
     sys.path.append(f"{os.getcwd()}/configs")
     config = importlib.import_module(args.cfg)
     seed = int(args.seed)
+    device = args.device
+    wb = eval(args.wb)
 
-    main(exp_prefix, config, seed)
+    main(exp_prefix, config, seed, device, wb)
