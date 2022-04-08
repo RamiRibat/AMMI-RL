@@ -152,7 +152,7 @@ class MBPO(MBRL, SAC):
                         # LossTestList.append(LossTest)
 
                         ho_mean = self.fake_world.train_fake_world(self.env_buffer)
-                        JValList.append(ho_mean)
+                        JValList.append(ho_mean) # ho: holdout
 
                         # Update K-steps length
                         K = self.set_rollout_length(n)
@@ -273,7 +273,7 @@ class MBPO(MBRL, SAC):
     	batch_size = min(batch_size_ro, self.env_buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
     	B_ro = self.env_buffer.sample_batch_np(batch_size)
-    	O = B_ro['observations']
+    	O = B_ro['observations'] # Torch
     	# print('rollout_world_model, O.shape: ', O.shape)
     	# print('a.ptr=', self.model_buffer.ptr)
 

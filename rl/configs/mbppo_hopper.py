@@ -54,7 +54,7 @@ configurations = {
         'num_elites': 2, # 5
         'sample_type': 'Random',
         'learn_reward': True,
-        'model_train_freq': 250,#250, # Mf
+        'model_train_freq': 250,
         'model_retain_epochs': 1,
         'rollout_schedule': [20, 100, 1, 15],
         'network': {
@@ -86,7 +86,6 @@ configurations = {
             'output_activation': 'nn.Identity',
             'optimizer': "Adam", #@#
             'lr': 3e-4, #@#
-            'wd': 1e-5,
             'wd': 1e-5,
             'dropout': None,
             'batch_size': 256,
@@ -131,10 +130,7 @@ configurations = {
 
     'experiment': {
         'verbose': 0,
-        'device': "cpu",
-        # 'device': "cuda:0",
         'WandB': True,
-        # 'WandB': False,
         'print_logs': True,
     }
 }
