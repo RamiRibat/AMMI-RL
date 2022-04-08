@@ -33,12 +33,11 @@ In thoe following we evaluate our code on the following environments. Download g
 
 ### Locomotion Tasks
 
-| **HalfCheetah-v2** | **Ant-v2** |
+| **Hopper-v2** | **Walker2d-v2** |
 | :---: | :---: |
+| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Hopper-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Walker2d-v2%20.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
+| **HalfCheetah-v2** | **Ant-v2** |
 | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-HalfCheetah-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Ant-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
-| **Walker2d-v2** | **Hopper-v2** |
-| <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Walker2d-v2%20.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> | <img src="https://github.com/RamiSketcher/AMMI-RL/blob/main/results/SAC-Hopper-v2.png" style="width: 300px; max-width: 100%; height: 200" title="Click to enlarge picture" /> |
-
 
 ### Manipulation Tasks
 
