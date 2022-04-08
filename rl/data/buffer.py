@@ -207,7 +207,7 @@ class ReplayBuffer:
         self.act_buf = T.zeros((size, act_dim), dtype=T.float32)
         self.rew_buf = T.zeros((size, 1), dtype=T.float32)
         self.obs_next_buf = T.zeros((size, obs_dim), dtype=T.float32)
-        self.ter_buf = T.zeros((size, 1), dtype=T.bool)
+        self.ter_buf = T.zeros((size, 1), dtype=T.float32)
 
         self.ptr, self.size, self.max_size = 0, 0, size
 
