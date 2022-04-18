@@ -462,7 +462,7 @@ class EnsembleDynamicsModel():
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
-                    print(f"[ Break Model Training ] Epoch: {epoch}, HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10))
+                    print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10))
                     break
             print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
 
