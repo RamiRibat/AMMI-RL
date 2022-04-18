@@ -123,7 +123,6 @@ class MFRL:
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
 
-        # with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_pi_and_v(T.Tensor(o))
         a = self.actor_critic.get_action(o)
 
         o_next, r, d_next, _ = self.learn_env.step(a)
@@ -144,7 +143,6 @@ class MFRL:
         max_el = self.configs['environment']['horizon']
 
         if n > Nx:
-            # a, _ = self.actor_critic.actor.step_np(o)
             a = self.actor_critic.get_action(o)
         else:
             a = self.learn_env.action_space.sample()
@@ -212,8 +210,6 @@ class MFRL:
 
                 while not(d or (el == max_el)):
                     # Take deterministic actions at evaluation time
-                    # a, _ = self.actor_critic.actor(o, deterministic=True)
-                    # o, r, d, info = self.eval_env.step(a.cpu().numpy())
                     a = self.actor_critic.get_action(o)
                     o, r, d, info = self.eval_env.step(a)
                     Z += r

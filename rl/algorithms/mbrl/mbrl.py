@@ -30,7 +30,7 @@ class MBRL:
     def _build(self):
         self._set_env()
         self._set_env_buffer()
-        self._set_data_module()
+        # self._set_data_module()
         self._set_world_model()
 
 
@@ -66,15 +66,19 @@ class MBRL:
 
 
     def _set_env_buffer(self):
+        # max_size = self.configs['data']['buffer_size']
+        # device = self._device_
+        # self.env_buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
         max_size = self.configs['data']['buffer_size']
         device = self._device_
-        # self.env_buffer = ReplayBuffer(self.obs_dim, self.act_dim,
-        #                                   max_size, self.seed, device)
-        self.env_buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+        if self.configs['algorithm']['on-policy']:
+            self.buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+        else:
+            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
 
     def _set_data_module(self):
-        self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
+        self.data_module = RLDataModule(self.buffer, self.configs['data'])
         pass
 
 
@@ -162,15 +166,14 @@ class MBRL:
         max_el = self.configs['environment']['horizon']
 
         if n > Nx:
-            # print('actor')
-            a, _ = self.actor_critic.actor.step_np(o)
+            a = self.actor_critic.get_action(o)
         else:
             a = self.learn_env.action_space.sample()
 
         o_next, r, d, _ = self.learn_env.step(a)
         d = False if el == max_el else d # Ignore artificial termination
 
-        self.env_buffer.store_transition(o, a, r, o_next, d)
+        self.buffer.store_transition(o, a, r, o_next, d)
 
         o = o_next
         Z += r
@@ -185,7 +188,7 @@ class MBRL:
     def evaluate(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
-            print('[ Evaluation ]'+(' '*100))
+            print('[ Evaluation ]')
             EE = self.configs['algorithm']['evaluation']['eval_episodes']
             max_el = self.configs['environment']['horizon']
             EZ = [] # Evaluation episodic return
@@ -198,9 +201,7 @@ class MBRL:
 
                 while not(d or (el == max_el)):
                     # Take deterministic actions at evaluation time
-                    # pi, _ = self.actor_critic.actor(o, deterministic=True)
-                    # a = pi.cpu().numpy()
-                    a, _ = self.actor_critic.actor.step_np(o, deterministic=True)
+                    a = self.actor_critic.get_action(o)
                     o, r, d, info = self.eval_env.step(a)
                     Z += r
                     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': S += info['score']

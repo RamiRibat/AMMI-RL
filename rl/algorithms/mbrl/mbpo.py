@@ -129,7 +129,7 @@ class MBPO(MBRL, SAC):
                     JQList, JAlphaList, JPiList = [0], [0], [0]
                     JTrainList, JValList, LossTestList = [0], [0], [0]
 
-            print(f'[ Replay Buffer ] Size: {self.env_buffer.size}')
+            print(f'[ Replay Buffer ] Size: {self.buffer.size}')
             nt = 0
             learn_start_real = time.time()
             while nt < NT: # full epoch
@@ -144,14 +144,14 @@ class MBPO(MBRL, SAC):
                         # PyTorch Lightning Model Training
                         print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
                         # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}
-                        # self.data_module = RLDataModule(self.env_buffer, self.configs['data'])
+                        # self.data_module = RLDataModule(self.buffer, self.configs['data'])
 
                         # JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
                         # JTrainList.append(JTrainLog)
                         # JValList.append(JValLog)
                         # LossTestList.append(LossTest)
 
-                        ho_mean = self.fake_world.train_fake_world(self.env_buffer)
+                        ho_mean = self.fake_world.train_fake_world(self.buffer)
                         JValList.append(ho_mean) # ho: holdout
 
                         # Update K-steps length
@@ -197,7 +197,7 @@ class MBPO(MBRL, SAC):
                 logs['training/obj/sac/Jalpha        '] = np.mean(JAlphaList)
                 logs['training/obj/sac/alpha         '] = np.mean(AlphaList)
 
-            logs['data/env_buffer                '] = self.env_buffer.size
+            logs['data/env_buffer                '] = self.buffer.size
             if hasattr(self, 'model_buffer'):
                 logs['data/model_buffer              '] = self.model_buffer.size
             else:
@@ -270,9 +270,9 @@ class MBPO(MBRL, SAC):
     def rollout_world_model(self, batch_size_ro, K, n):
     	#07. Sample st uniformly from Denv
     	device = self._device_
-    	batch_size = min(batch_size_ro, self.env_buffer.size)
+    	batch_size = min(batch_size_ro, self.buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-    	B_ro = self.env_buffer.sample_batch_np(batch_size)
+    	B_ro = self.buffer.sample_batch_np(batch_size)
     	O = B_ro['observations'] # Torch
     	# print('rollout_world_model, O.shape: ', O.shape)
     	# print('a.ptr=', self.model_buffer.ptr)
@@ -311,7 +311,7 @@ class MBPO(MBRL, SAC):
     def sac_batch(self, real_ratio, batch_size):
     	batch_size_real = int(real_ratio * batch_size) # 0.05*256
     	batch_size_img = batch_size - batch_size_real # 256 - (0.05*256)
-    	B_real = self.env_buffer.sample_batch(batch_size_real, self._device_)
+    	B_real = self.buffer.sample_batch(batch_size_real, self._device_)
 
     	if batch_size_img > 0:
     		B_img = self.model_buffer.sample_batch(batch_size_img, self._device_)
@@ -341,7 +341,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-DE{DE}-T"
+    group_name = f"{env_name}-{alg_name}-DE{DE}-X"
     exp_prefix = f"seed:{seed}"
 
     if wb:
