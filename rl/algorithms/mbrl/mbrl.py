@@ -201,7 +201,7 @@ class MBRL:
 
                 while not(d or (el == max_el)):
                     # Take deterministic actions at evaluation time
-                    a = self.actor_critic.get_action(o)
+                    a = self.actor_critic.get_action_np(o)
                     o, r, d, info = self.eval_env.step(a)
                     Z += r
                     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': S += info['score']
