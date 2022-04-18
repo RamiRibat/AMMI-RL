@@ -132,8 +132,6 @@ configurations = {
 
     'experiment': {
         'verbose': 0,
-        # 'device': "cpu",
-        # 'device': "cuda:0",
         'print_logs': True,
     }
 }
