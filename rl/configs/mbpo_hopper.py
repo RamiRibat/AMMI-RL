@@ -12,6 +12,8 @@ configurations = {
 
     'algorithm': {
         'name': 'MBPO',
+        'model-based': True,
+        'on-policy': False,
         'learning': {
             'epochs': 125, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
