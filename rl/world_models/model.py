@@ -101,8 +101,10 @@ class StandardScaler(object):
 
         Returns: None.
         """
-        self.mu = np.mean(data, axis=0, keepdims=True)
-        self.std = np.std(data, axis=0, keepdims=True)
+        # self.mu = np.mean(data, axis=0, keepdims=True)
+        # self.std = np.std(data, axis=0, keepdims=True)
+        self.mu = T.mean(data, axis=0, keepdims=True)
+        self.std = T.std(data, axis=0, keepdims=True)
         self.std[self.std < 1e-12] = 1.0
 
     def transform(self, data):
@@ -417,7 +419,8 @@ class EnsembleDynamicsModel():
         self._snapshots = {i: (None, 1e10) for i in range(self.network_size)}
 
         num_holdout = int(inputs.shape[0] * holdout_ratio)
-        permutation = np.random.permutation(inputs.shape[0])
+        # permutation = np.random.permutation(inputs.shape[0])
+        permutation = T.randperm(inputs.shape[0])
         inputs, labels = inputs[permutation], labels[permutation]
         # print('EnsembleDynamicsModel: inputs', inputs.shape)
 
@@ -429,8 +432,10 @@ class EnsembleDynamicsModel():
         holdout_inputs = self.scaler.transform(holdout_inputs)
         # print('EnsembleDynamicsModel: train_inputs', train_inputs.shape)
 
-        holdout_inputs = torch.from_numpy(holdout_inputs).float().to(device)
-        holdout_labels = torch.from_numpy(holdout_labels).float().to(device)
+        # holdout_inputs = torch.from_numpy(holdout_inputs).float().to(device)
+        # holdout_labels = torch.from_numpy(holdout_labels).float().to(device)
+        holdout_inputs = holdout_inputs.to(device)
+        holdout_labels = holdout_labels.to(device)
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
@@ -439,15 +444,18 @@ class EnsembleDynamicsModel():
         # for epoch in range(1):
         for epoch in itertools.count():
             # losses = []
-            train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
+            # train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
+            train_idx = T.vstack([T.randperm(train_inputs.shape[0]) for _ in range(self.network_size)])
             # print('EnsembleDynamicsModel: train_idx', train_idx.shape)
             # train_idx = np.vstack([np.arange(train_inputs.shape[0])] for _ in range(self.network_size))
             for start_pos in range(0, train_inputs.shape[0], batch_size):
                 idx = train_idx[:, start_pos: start_pos + batch_size]
                 # print('EnsembleDynamicsModel: idx', idx.shape)
-                train_input = torch.from_numpy(train_inputs[idx]).float().to(device)
+                # train_input = torch.from_numpy(train_inputs[idx]).float().to(device)
                 # print('EnsembleDynamicsModel: train_input', train_input.shape)
-                train_label = torch.from_numpy(train_labels[idx]).float().to(device)
+                # train_label = torch.from_numpy(train_labels[idx]).float().to(device)
+                train_input = train_inputs[idx].to(device)
+                train_label = train_labels[idx].to(device)
                 losses = []
                 mean, logvar = self.ensemble_model(train_input, ret_log_var=True)
                 loss, _ = self.ensemble_model.compute_loss(mean, logvar, train_label)

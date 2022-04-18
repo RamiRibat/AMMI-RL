@@ -140,16 +140,19 @@ class FakeWorld:
 
     def train_fake_world(self, buffer):
         # Get all samples from environment
-        data = buffer.return_all_np_stack()
+        # data = buffer.return_all_np_stack()
+        data = buffer.return_all_stack()
         state, action, reward, next_state, done = data.values()
         # print('state: ', state)
-
-        # state, action, reward, next_state, done = env_pool.sample(len(env_pool))
         delta_state = next_state - state
+        print('reward: ', reward.shape)
+        print('delta_state: ', delta_state.shape)
 
-        inputs = np.concatenate((state, action), axis=-1)
+        # inputs = np.concatenate((state, action), axis=-1)
+        inputs = T.cat((state, action), axis=-1)
         # print('FakeWorld: inputs', inputs.shape)
-        labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1)
+        # labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1)
+        labels = T.cat(( T.reshape( reward, (reward.shape[0], -1) ), delta_state ), axis=-1)
         # print('inputs: ', inputs)
         # print('labels: ', labels)
 
