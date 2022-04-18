@@ -215,7 +215,6 @@ class MBPO(MBRL, SAC):
                 logs['evaluation/episodic_score_std  '] = np.std(ES)
             else:
                 logs['evaluation/episodic_return_mean'] = np.mean(EZ)
-                print('evaluation/episodic_return_mean: ', np.mean(EZ))
                 logs['evaluation/episodic_return_std '] = np.std(EZ)
             logs['evaluation/episodic_length_mean'] = np.mean(EL)
 
@@ -271,7 +270,7 @@ class MBPO(MBRL, SAC):
 
     def rollout_world_model(self, batch_size_ro, K, n):
     	#07. Sample st uniformly from Denv
-    	device = self._device_
+    	# device = self._device_
     	batch_size = min(batch_size_ro, self.buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
     	B_ro = self.buffer.sample_batch_np(batch_size)
