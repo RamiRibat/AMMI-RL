@@ -105,7 +105,7 @@ class MBRL:
         new_buffer_size = model_retain_epochs * model_steps_per_epoch
 
         if not hasattr(self, 'model_buffer'):
-        	print('[ MBRL ] Initializing new model buffer with size {:.2e}'.format(new_buffer_size))
+        	print('[ MBRL ] Initializing new model buffer with size {:.2e}'.format(new_buffer_size)+(' '*10))
         	self.model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
         								act_dim=self.act_dim,
         								size=new_buffer_size,
@@ -127,7 +127,7 @@ class MBRL:
         	# T.cuda.empty_cache()
         	self.model_buffer = new_model_buffer
 
-        print(f'\n[ Model Buffer ] Size: {self.model_buffer.size}')
+        print(f'[ Model Buffer ] Size: {self.model_buffer.size}'+(' '*20))
 
 
     def initialize_learning(self, NT, Ni):
