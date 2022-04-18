@@ -436,8 +436,8 @@ class EnsembleDynamicsModel():
 
         # LossList = []
 
-        # for epoch in range(5):
-        for epoch in itertools.count():
+        for epoch in range(1):
+        # for epoch in itertools.count():
             # losses = []
             train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
             # print('EnsembleDynamicsModel: train_idx', train_idx.shape)
@@ -499,20 +499,25 @@ class EnsembleDynamicsModel():
         ensemble_mean, ensemble_var = [], []
 
         for i in range(0, inputs.shape[0], batch_size):
-            input = torch.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
+            # input = torch.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
+            input = inputs[i:min(i + batch_size, inputs.shape[0])].to(device)
             b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
-            ensemble_mean.append(b_mean.detach().cpu().numpy())
-            ensemble_var.append(b_var.detach().cpu().numpy())
+            # ensemble_mean.append(b_mean.detach().cpu().numpy())
+            # ensemble_var.append(b_var.detach().cpu().numpy())
+            ensemble_mean.append(b_mean.detach().cpu())
+            ensemble_var.append(b_var.detach().cpu())
 
-        ensemble_mean = np.hstack(ensemble_mean)
-        ensemble_var = np.hstack(ensemble_var)
+        # ensemble_mean = np.hstack(ensemble_mean)
+        # ensemble_var = np.hstack(ensemble_var)
+        ensemble_mean = T.hstack(ensemble_mean)
+        ensemble_var = T.hstack(ensemble_var)
 
         if factored:
             return ensemble_mean, ensemble_var
         else:
             assert False, "Need to transform to numpy"
-            mean = torch.mean(ensemble_mean, dim=0)
-            var = torch.mean(ensemble_var, dim=0) + torch.mean(torch.square(ensemble_mean - mean[None, :, :]), dim=0)
+            mean = T.mean(ensemble_mean, dim=0)
+            var = T.mean(ensemble_var, dim=0) + T.mean(T.square(ensemble_mean - mean[None, :, :]), dim=0)
             return mean, var
 
 
