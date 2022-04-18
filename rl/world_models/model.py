@@ -1,4 +1,11 @@
-# TODO: model
+"""
+Inspired by:
+
+    1. MBPO_pytorch: https://github.com/Xingyu-Lin/mbpo_pytorch/model.py
+
+"""
+
+
 import random
 import copy
 import typing
@@ -42,11 +49,6 @@ import itertools
 
 
 
-"""
-source: https://github.com/Xingyu-Lin/mbpo_pytorch/model.py
-"""
-
-
 def init_weights__(l):
     """
     source: https://github.com/Xingyu-Lin/mbpo_pytorch/blob/main/model.py#L64
@@ -68,7 +70,7 @@ def init_weights__(l):
         l.bias.data.fill_(0.0)
 
 
-def init_weights_(m):
+def init_weights_(m): # source: https://github.com/Xingyu-Lin/mbpo_pytorch/model.py
 
     def truncated_normal_init(t, mean=0.0, std=0.01):
         torch.nn.init.normal_(t, mean=mean, std=std)
@@ -186,7 +188,7 @@ class EnsembleFC(nn.Module):
 
 
 
-class LinearEnsemble(nn.Module):
+class LinearEnsemble(nn.Module): # source: https://github.com/Xingyu-Lin/mbpo_pytorch/model.py
     __constants__ = ['in_features', 'out_features']
     ensemble_size: int
     in_features: int
@@ -425,7 +427,7 @@ class EnsembleDynamicsModel():
         self.scaler.fit(train_inputs)
         train_inputs = self.scaler.transform(train_inputs)
         holdout_inputs = self.scaler.transform(holdout_inputs)
-        print('EnsembleDynamicsModel: train_inputs', train_inputs.shape)
+        # print('EnsembleDynamicsModel: train_inputs', train_inputs.shape)
 
         holdout_inputs = torch.from_numpy(holdout_inputs).float().to(device)
         holdout_labels = torch.from_numpy(holdout_labels).float().to(device)
@@ -438,13 +440,13 @@ class EnsembleDynamicsModel():
         for epoch in itertools.count():
             # losses = []
             train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
-            print('EnsembleDynamicsModel: train_idx', train_idx.shape)
+            # print('EnsembleDynamicsModel: train_idx', train_idx.shape)
             # train_idx = np.vstack([np.arange(train_inputs.shape[0])] for _ in range(self.network_size))
             for start_pos in range(0, train_inputs.shape[0], batch_size):
                 idx = train_idx[:, start_pos: start_pos + batch_size]
-                print('EnsembleDynamicsModel: idx', idx.shape)
+                # print('EnsembleDynamicsModel: idx', idx.shape)
                 train_input = torch.from_numpy(train_inputs[idx]).float().to(device)
-                print('EnsembleDynamicsModel: train_input', train_input.shape)
+                # print('EnsembleDynamicsModel: train_input', train_input.shape)
                 train_label = torch.from_numpy(train_labels[idx]).float().to(device)
                 losses = []
                 mean, logvar = self.ensemble_model(train_input, ret_log_var=True)
@@ -461,7 +463,7 @@ class EnsembleDynamicsModel():
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
                     break
-            print('epoch: {}, holdout mse losses: {}'.format(epoch, holdout_mse_losses))
+            print(f"epoch: {epoch}, holdout mse losses: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
 
         return np.mean(holdout_mse_losses)
 
