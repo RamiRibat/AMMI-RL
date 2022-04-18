@@ -88,7 +88,11 @@ class ActorCritic: # Done
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
         with T.no_grad(): a, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        return a.cpu().numpy()
+        return a
+
+
+    def get_action_np(self, o, a=None, reparameterize=False, deterministic=True, return_log_pi=False):
+        return self.get_action(o, a, reparameterize, deterministic, return_log_pi).cpu().numpy()
 
 
     def get_pi_and_q(self, o, a=None):

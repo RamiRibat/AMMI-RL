@@ -123,7 +123,7 @@ class MFRL:
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
 
-        a = self.actor_critic.get_action(o)
+        a = self.actor_critic.get_action_np(o)
 
         o_next, r, d_next, _ = self.learn_env.step(a)
         Z += r
@@ -143,7 +143,7 @@ class MFRL:
         max_el = self.configs['environment']['horizon']
 
         if n > Nx:
-            a = self.actor_critic.get_action(o)
+            a = self.actor_critic.get_action_np(o)
         else:
             a = self.learn_env.action_space.sample()
 

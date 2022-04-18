@@ -136,6 +136,7 @@ class MBPO(MBRL, SAC):
                 # Interaction steps
                 for e in range(1, E+1):
                     o, Z, el, t = self.internact(n, o, Z, el, t)
+                    # print('Return: ', Z)
 
                 # Taking gradient steps after exploration
                 if n > Ni:
@@ -214,6 +215,7 @@ class MBPO(MBRL, SAC):
                 logs['evaluation/episodic_score_std  '] = np.std(ES)
             else:
                 logs['evaluation/episodic_return_mean'] = np.mean(EZ)
+                print('evaluation/episodic_return_mean: ', np.mean(EZ))
                 logs['evaluation/episodic_return_std '] = np.std(EZ)
             logs['evaluation/episodic_length_mean'] = np.mean(EL)
 
@@ -240,7 +242,7 @@ class MBPO(MBRL, SAC):
             # Printing logs
             if self.configs['experiment']['print_logs']:
                 for k, v in logs.items():
-                    print(f'{k}  {round(v, 2)}')
+                    print(f'{k}  {round(v, 2)}'+(' '*10))
 
             # WandB
             if self.WandB:
@@ -279,9 +281,10 @@ class MBPO(MBRL, SAC):
 
     	#08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	for k in range(1, K+1):
-    		with T.no_grad():
-    			# A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
-    			A, _ = self.actor_critic.actor.step_np(T.as_tensor(O, dtype=T.float32)) # ip:Tensor, op:Numpy
+    		# with T.no_grad():
+    		# 	# A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
+    		# 	A, _ = self.actor_critic.actor.step_np(T.as_tensor(O, dtype=T.float32)) # ip:Tensor, op:Numpy
+    		A = self.actor_critic.get_action(O)
 
     		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
     		# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
