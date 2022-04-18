@@ -462,25 +462,21 @@ class EnsembleDynamicsModel():
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
-                    print(f"Break | Model Training Epoch: {epoch}, HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10))
+                    print(f"[ Break Model Training ] Epoch: {epoch}, HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10))
                     break
-            print(f"Model Training Epoch: {epoch}, HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10))
+            print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
 
         return np.mean(holdout_mse_losses)
 
     def _save_best(self, epoch, val_losses):
         updated = False
-
         for i in range(len(val_losses)):
             current = val_losses[i]
             _, best = self._snapshots[i]
             improvement = (best - current) / best
-
             if improvement > 0.01:
                 self._snapshots[i] = (epoch, current)
-                # self._save_state(i)
                 updated = True
-                # improvement = (best - current) / best
 
         if updated:
             self._epochs_since_update = 0
