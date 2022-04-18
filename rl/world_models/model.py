@@ -436,8 +436,8 @@ class EnsembleDynamicsModel():
 
         # LossList = []
 
-        for epoch in range(1):
-        # for epoch in itertools.count():
+        # for epoch in range(1):
+        for epoch in itertools.count():
             # losses = []
             train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
             # print('EnsembleDynamicsModel: train_idx', train_idx.shape)
@@ -462,8 +462,9 @@ class EnsembleDynamicsModel():
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
+                    print(f"Break | Model Training Epoch: {epoch}, HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10))
                     break
-            print(f"epoch: {epoch}, holdout mse losses: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
+            print(f"Model Training Epoch: {epoch}, HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10))
 
         return np.mean(holdout_mse_losses)
 
