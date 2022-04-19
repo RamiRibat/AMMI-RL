@@ -7,7 +7,7 @@ import torch as T
 from rl.data.buffer import ReplayBuffer
 # from rl.data.buffer import DataBuffer
 from rl.data.dataset import RLDataModule
-from rl.world_models.world_model import WorldModel
+# from rl.world_models.world_model import WorldModel
 from rl.world_models.model import EnsembleDynamicsModel
 
 
