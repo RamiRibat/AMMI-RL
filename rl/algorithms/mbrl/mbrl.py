@@ -4,7 +4,7 @@ from gym.spaces import Box
 import torch as T
 # T.multiprocessing.set_sharing_strategy('file_system')
 
-from rl.data.buffer import ReplayBuffer
+from rl.data.buffer import ReplayBufferNP
 # from rl.data.buffer import DataBuffer
 from rl.data.dataset import RLDataModule
 # from rl.world_models.world_model import WorldModel
@@ -74,7 +74,7 @@ class MBRL:
         if self.configs['algorithm']['on-policy']:
             self.buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
         else:
-            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+            self.buffer = ReplayBufferNP(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
 
     def _set_data_module(self):
@@ -106,14 +106,14 @@ class MBRL:
 
         if not hasattr(self, 'model_buffer'):
         	print('[ MBRL ] Initializing new model buffer with size {:.2e}'.format(new_buffer_size)+(' '*50))
-        	self.model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
+        	self.model_buffer = ReplayBufferNP(obs_dim=self.obs_dim,
         								act_dim=self.act_dim,
         								size=new_buffer_size,
         								seed=seed,
         								device=device)
 
         elif self.model_buffer.max_size != new_buffer_size:
-        	new_model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
+        	new_model_buffer = ReplayBufferNP(obs_dim=self.obs_dim,
         								act_dim=self.act_dim,
         								size=new_buffer_size,
         								seed=seed,
