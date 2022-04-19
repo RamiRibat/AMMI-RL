@@ -61,27 +61,20 @@ class FakeWorld:
 
         k = x.shape[-1]
 
-        # ## [ num_networks, batch_size ]
-        # log_prob = -1 / 2 * (k * np.log(2 * np.pi) + np.log(variances).sum(-1) + (np.power(x - means, 2) / variances).sum(-1))
-        # ## [ batch_size ]
-        # prob = np.exp(log_prob).sum(0)
-        # ## [ batch_size ]
-        # log_prob = np.log(prob)
-        # stds = np.std(means, 0).mean(-1)
-
         ## [ num_networks, batch_size ]
-        log_prob = -1 / 2 * (k * T.log(2 * T.tensor(np.pi)) + T.log(variances).sum(-1) + (T.pow(x - means, 2) / variances).sum(-1))
+        log_prob = -1 / 2 * (k * np.log(2 * np.pi) + np.log(variances).sum(-1) + (np.power(x - means, 2) / variances).sum(-1))
+
         ## [ batch_size ]
-        prob = T.exp(log_prob).sum(0)
+        prob = np.exp(log_prob).sum(0)
+
         ## [ batch_size ]
-        log_prob = T.log(prob)
-        stds = T.std(means, 0).mean(-1)
+        log_prob = np.log(prob)
+
+        stds = np.std(means, 0).mean(-1)
 
         return log_prob, stds
 
     def step(self, obs, act, deterministic=False):
-        # print('obs: ', obs)
-        # print('act: ', act)
         if len(obs.shape) == 1:
             obs = obs[None]
             act = act[None]
@@ -89,31 +82,32 @@ class FakeWorld:
         else:
             return_single = False
 
-        # inputs = np.concatenate((obs, act), axis=-1)
-        inputs = T.cat((obs, act), axis=-1)
+        inputs = np.concatenate((obs, act), axis=-1)
 
-        ensemble_model_means, ensemble_model_vars = self.model.predict(inputs)
+        if self.model_type == 'pytorch':
+            ensemble_model_means, ensemble_model_vars = self.model.predict(inputs)
+        else:
+            ensemble_model_means, ensemble_model_vars = self.model.predict(inputs, factored=True)
+
+        # print('obs,: ', obs)
+        # print('act: ', act)
+        # print('inputs: ', inputs)
+        # print('ensemble_model_means: ', ensemble_model_means)
 
         ensemble_model_means[:, :, 1:] += obs
-        # ensemble_model_stds = np.sqrt(ensemble_model_vars)
-        ensemble_model_stds = T.sqrt(ensemble_model_vars)
+        ensemble_model_stds = np.sqrt(ensemble_model_vars)
 
         if deterministic:
             ensemble_samples = ensemble_model_means
         else:
-            size = ensemble_model_means.shape
-            # ensemble_samples = ensemble_model_means + np.random.normal(size=ensemble_model_means.shape) * ensemble_model_stds
-            ensemble_samples = ensemble_model_means + T.normal(0, 1, size=size) * ensemble_model_stds
+            ensemble_samples = ensemble_model_means + np.random.normal(size=ensemble_model_means.shape) * ensemble_model_stds
 
         num_models, batch_size, _ = ensemble_model_means.shape
         if self.model_type == 'pytorch':
             model_idxes = np.random.choice(self.model.elite_model_idxes, size=batch_size)
-            model_idxes = T.as_tensor(model_idxes)
-        # else:
-        #     model_idxes = self.model.random_inds(batch_size)
-
-        # batch_idxes = np.arange(0, batch_size)
-        batch_idxes = T.arange(0, batch_size)
+        else:
+            model_idxes = self.model.random_inds(batch_size)
+        batch_idxes = np.arange(0, batch_size)
 
         samples = ensemble_samples[model_idxes, batch_idxes]
         model_means = ensemble_model_means[model_idxes, batch_idxes]
@@ -140,19 +134,15 @@ class FakeWorld:
 
     def train_fake_world(self, buffer):
         # Get all samples from environment
-        # data = buffer.return_all_np_stack()
-        data = buffer.return_all_stack()
+        data = buffer.return_all_np_stack()
         state, action, reward, next_state, done = data.values()
         # print('state: ', state)
-        delta_state = next_state - state
-        print('reward: ', reward.shape)
-        print('delta_state: ', delta_state.shape)
 
-        # inputs = np.concatenate((state, action), axis=-1)
-        inputs = T.cat((state, action), axis=-1)
-        # print('FakeWorld: inputs', inputs.shape)
-        # labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1)
-        labels = T.cat(( T.reshape( reward, (reward.shape[0], -1) ), delta_state ), axis=-1)
+        # state, action, reward, next_state, done = env_pool.sample(len(env_pool))
+        delta_state = next_state - state
+
+        inputs = np.concatenate((state, action), axis=-1)
+        labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1)
         # print('inputs: ', inputs)
         # print('labels: ', labels)
 
