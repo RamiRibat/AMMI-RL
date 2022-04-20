@@ -86,8 +86,8 @@ class FakeWorld:
 
         if self.model_type == 'pytorch':
             ensemble_model_means, ensemble_model_vars = self.model.predict(inputs)
-        else:
-            ensemble_model_means, ensemble_model_vars = self.model.predict(inputs, factored=True)
+        # else:
+        #     ensemble_model_means, ensemble_model_vars = self.model.predict(inputs, factored=True)
 
         # print('obs,: ', obs)
         # print('act: ', act)
