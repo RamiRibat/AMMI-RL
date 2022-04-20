@@ -5,7 +5,8 @@ import numpy as np
 import torch as T
 
 import rl.environments
-from rl.data.buffer import TrajBuffer, ReplayBuffer
+# from rl.data.buffer import TrajBuffer, ReplayBuffer
+from rl.data.buffer import TrajBuffer, ReplayBufferNP
 
 
 
@@ -85,7 +86,7 @@ class MFRL:
         if self.configs['algorithm']['on-policy']:
             self.buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
         else:
-            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+            self.buffer = ReplayBufferNP(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
 
     def initialize_learning(self, NT, Ni):
