@@ -128,7 +128,7 @@ class FakeWorld:
         # return_means = np.concatenate((model_means[:, :1], terminals, model_means[:, 1:]), axis=-1)
         # return_stds = np.concatenate((model_stds[:, :1], np.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1)
         return_means = T.cat((model_means[:, :1], terminals, model_means[:, 1:]), axis=-1)
-        return_stds = T.cat((model_stds[:, :1], np.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1)
+        return_stds = T.cat((model_stds[:, :1], T.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1)
 
         if return_single:
             next_obs = next_obs[0]

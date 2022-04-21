@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 
 import numpy as np
 from numpy.random.mtrand import normal
-import torch
+# import torch
 import torch as T
 from torch._C import dtype
 from torch.distributions.normal import Normal
@@ -73,17 +73,18 @@ def init_weights__(l):
 def init_weights_(m): # source: https://github.com/Xingyu-Lin/mbpo_pytorch/model.py
 
     def truncated_normal_init(t, mean=0.0, std=0.01):
-        torch.nn.init.normal_(t, mean=mean, std=std)
+        nn.init.normal_(t, mean=mean, std=std)
         while True:
-            cond = torch.logical_or(t < mean - 2 * std, t > mean + 2 * std)
-            if not torch.sum(cond):
+            cond = T.logical_or(t < mean - 2 * std, t > mean + 2 * std)
+            if not T.sum(cond):
                 break
-            t = torch.where(cond, torch.nn.init.normal_(torch.ones(t.shape).to(t.device), mean=mean, std=std), t)
+            t = T.where(cond, nn.init.normal_(T.ones(t.shape).to(t.device), mean=mean, std=std), t)
         return t
 
     if type(m) == nn.Linear or isinstance(m, EnsembleFC) or isinstance(m, LinearEnsemble):
         input_dim = m.in_features
-        truncated_normal_init(m.weight, std=1 / (2 * np.sqrt(input_dim)))
+        # truncated_normal_init(m.weight, std=1 / (2 * np.sqrt(input_dim)))
+        truncated_normal_init( m.weight, std=1 / ( 2 * T.sqrt( T.tensor(input_dim) ) ) )
         m.bias.data.fill_(0.0)
 
 
@@ -146,7 +147,7 @@ class EnsembleFC(nn.Module):
     in_features: int
     out_features: int
     ensemble_size: int
-    weight: torch.Tensor
+    weight: T.Tensor
 
     def __init__(self,
                  in_features: int,
@@ -163,11 +164,11 @@ class EnsembleFC(nn.Module):
 
         self.ensemble_size = ensemble_size
 
-        self.weight = nn.Parameter(torch.Tensor(ensemble_size, in_features, out_features))
+        self.weight = nn.Parameter(T.Tensor(ensemble_size, in_features, out_features))
         self.weight_decay = weight_decay
 
         if bias:
-            self.bias = nn.Parameter(torch.Tensor(ensemble_size, out_features))
+            self.bias = nn.Parameter(T.Tensor(ensemble_size, out_features))
         else:
             self.register_parameter('bias', None)
 
@@ -177,9 +178,9 @@ class EnsembleFC(nn.Module):
         pass
 
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        w_times_x = torch.bmm(input, self.weight)
-        return torch.add(w_times_x, self.bias[:, None, :])  # w times x + b
+    def forward(self, input: T.Tensor) -> T.Tensor:
+        w_times_x = T.bmm(input, self.weight)
+        return T.add(w_times_x, self.bias[:, None, :])  # w times x + b
 
     def extra_repr(self) -> str:
         return 'in_features={}, out_features={}, bias={}'.format(
@@ -226,7 +227,7 @@ class LinearEnsemble(nn.Module): # source: https://github.com/Xingyu-Lin/mbpo_py
         pass
 
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: T.Tensor) -> T.Tensor:
         return T.add(T.bmm(x, self.weight), self.bias[:, None, :])  # w times x + b
 
     def extra_repr(self) -> str:
@@ -297,8 +298,8 @@ class EnsembleModel(nn.Module):
         # self.nn_model = nn.Sequential(*layers)
         # print('self: ', self)
 
-        self.max_logvar = nn.Parameter((torch.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
-        self.min_logvar = nn.Parameter((-torch.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
+        self.max_logvar = nn.Parameter((T.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
+        self.min_logvar = nn.Parameter((-T.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
 
         self.apply(init_weights_)
         # self.nn_model.to(device)
@@ -306,7 +307,7 @@ class EnsembleModel(nn.Module):
         self.gnll_loss = nn.GaussianNLLLoss()
         self.mse_loss = nn.MSELoss()
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+        self.optimizer = T.optim.Adam(self.parameters(), lr=learning_rate)
 
         self.activation = nn.ReLU() #Swish()
 
@@ -330,7 +331,7 @@ class EnsembleModel(nn.Module):
         if ret_log_var:
             return mean, logvar
         else:
-            return mean, torch.exp(logvar)
+            return mean, T.exp(logvar)
 
     def compute_wd_loss(self):
         wd_loss = 0.
@@ -346,19 +347,12 @@ class EnsembleModel(nn.Module):
         """
         assert len(mean.shape) == len(logvar.shape) == len(labels.shape) == 3
 
-        # inv_var = torch.exp(-logvar)
-
         if inc_var_loss:
             # Average over batch and dim, sum over ensembles.
-            # mse_loss = torch.mean(torch.mean(torch.pow(mean - labels, 2) * inv_var, dim=-1), dim=-1)
-            # var_loss = torch.mean(torch.mean(logvar, dim=-1), dim=-1)
-            # total_loss = torch.sum(mse_loss) + torch.sum(var_loss)
             losses = T.tensor([ self.gnll_loss(mean[m, :, :], labels[m, :, :], T.exp(logvar[m, :, :])) for m in range(mean.shape[0]) ])
             total_loss = self.gnll_loss(mean, labels, T.exp(logvar))
             return total_loss, losses
         else:
-            # losses = torch.mean(torch.pow(mean - labels, 2), dim=(1, 2))
-            # total_loss = torch.sum(losses)
             losses = T.tensor([ self.mse_loss(mean[m, :, :], labels[m, :, :]) for m in range(mean.shape[0]) ])
             total_loss = self.mse_loss(mean, labels)
             return total_loss, losses
@@ -368,7 +362,7 @@ class EnsembleModel(nn.Module):
     def train(self, loss):
         self.optimizer.zero_grad()
 
-        loss += 0.01 * torch.sum(self.max_logvar) - 0.01 * torch.sum(self.min_logvar)
+        loss += 0.01 * T.sum(self.max_logvar) - 0.01 * T.sum(self.min_logvar)
 
         if self.use_decay:
             loss += self.compute_wd_loss()
@@ -421,8 +415,8 @@ class EnsembleDynamicsModel():
         holdout_inputs = self.scaler.transform(holdout_inputs)
         # print('EnsembleDynamicsModel: train_inputs', train_inputs.shape)
 
-        # holdout_inputs = torch.from_numpy(holdout_inputs).float().to(device)
-        # holdout_labels = torch.from_numpy(holdout_labels).float().to(device)
+        # holdout_inputs = T.from_numpy(holdout_inputs).float().to(device)
+        # holdout_labels = T.from_numpy(holdout_labels).float().to(device)
         holdout_inputs = holdout_inputs.to(device)
         holdout_labels = holdout_labels.to(device)
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
@@ -439,9 +433,9 @@ class EnsembleDynamicsModel():
             for start_pos in range(0, train_inputs.shape[0], batch_size):
                 idx = train_idx[:, start_pos: start_pos + batch_size]
                 # print('EnsembleDynamicsModel: idx', idx.shape)
-                # train_input = torch.from_numpy(train_inputs[idx]).float().to(device)
+                # train_input = T.from_numpy(train_inputs[idx]).float().to(device)
                 # print('EnsembleDynamicsModel: train_input', train_input.shape)
-                # train_label = torch.from_numpy(train_labels[idx]).float().to(device)
+                # train_label = T.from_numpy(train_labels[idx]).float().to(device)
                 train_input = train_inputs[idx].to(device)
                 train_label = train_labels[idx].to(device)
                 losses = []
@@ -450,17 +444,19 @@ class EnsembleDynamicsModel():
                 self.ensemble_model.train(loss)
                 losses.append(loss)
 
-            with torch.no_grad():
+            with T.no_grad():
                 holdout_mean, holdout_logvar = self.ensemble_model(holdout_inputs, ret_log_var=True)
                 _, holdout_mse_losses = self.ensemble_model.compute_loss(holdout_mean, holdout_logvar, holdout_labels, inc_var_loss=False)
-                holdout_mse_losses = holdout_mse_losses.detach().cpu().numpy()
-                sorted_loss_idx = np.argsort(holdout_mse_losses)
+                # holdout_mse_losses = holdout_mse_losses.detach().cpu().numpy()
+                # sorted_loss_idx = np.argsort(holdout_mse_losses)
+                holdout_mse_losses = holdout_mse_losses.detach().cpu()
+                sorted_loss_idx = T.argsort(holdout_mse_losses)
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
-                    print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10))
+                    print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
                     break
-            print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x,4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
+            print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10), end='\r')
 
         return np.mean(holdout_mse_losses)
 
@@ -492,7 +488,7 @@ class EnsembleDynamicsModel():
         ensemble_mean, ensemble_var = [], []
 
         for i in range(0, inputs.shape[0], batch_size):
-            # input = torch.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
+            # input = T.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
             input = inputs[i:min(i + batch_size, inputs.shape[0])].to(device)
             b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
             # ensemble_mean.append(b_mean.detach().cpu().numpy())
