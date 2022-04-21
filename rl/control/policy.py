@@ -99,7 +99,6 @@ class StochasticPolicy(nn.Module):
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
 		# print('init Policy!')
-		# if seed: random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 		super(StochasticPolicy, self).__init__() # To automatically use 'def forward'
 
 		self.device = device
@@ -124,7 +123,6 @@ class StochasticPolicy(nn.Module):
 
 		self.to(device)
 
-		# Define optimizer
 		self.optimizer = eval(optimizer)(self.parameters(), lr)
 
 
@@ -142,26 +140,26 @@ class StochasticPolicy(nn.Module):
 
 		if reparameterize:
 			sample = normal_ditribution.rsample()
-		# else:
-		# 	sample = normal_ditribution.sample()
+		else:
+			sample = normal_ditribution.sample()
 
 		prob, log_prob = T.tanh(sample), None
 
 		if return_log_prob:
 			log_prob = normal_ditribution.log_prob(sample)
 			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
-			# print('log_prob: ', log_prob.shape)
 			log_prob = log_prob.sum(1, keepdim=True)
 
 		return prob, log_prob
 
 
 	def forward(self,
-				obs, act,
+				obs, act=None,
 				reparameterize=True, # Default: True
 				deterministic=False, # Default: False
 				return_log_pi=False # Default: False
 				):
+		# print('forward.reparameterize: ', reparameterize)
 
 		if isinstance(obs, T.Tensor):
 			obs = (obs.to(self.device) - self.obs_bias) / (self.obs_scale + epsilon)
@@ -178,6 +176,7 @@ class StochasticPolicy(nn.Module):
 			with T.no_grad(): pi = T.tanh(mean)
 
 		else: # Stochastic | Interaction
+			# print('reparameterize: ', reparameterize)
 			pi, log_pi = self.pi_prob(mean, std, reparameterize, return_log_pi)
 
 		pi = (pi * self.act_scale) + self.act_bias
