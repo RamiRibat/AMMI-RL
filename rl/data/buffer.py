@@ -194,7 +194,7 @@ class TrajBuffer:
 
 
 
-class ReplayBufferPT:
+class ReplayBuffer:
     """
     FIFO Replay buffer for off-policy data:
         __init__: initialize: empty matrices for storing traj's, poniter, size, max_size
@@ -352,7 +352,7 @@ class ReplayBufferPT:
 
 
 
-class ReplayBuffer:
+class ReplayBufferNP:
     """
     FIFO Replay buffer for off-policy data:
         __init__: initialize: empty matrices for storing traj's, poniter, size, max_size
