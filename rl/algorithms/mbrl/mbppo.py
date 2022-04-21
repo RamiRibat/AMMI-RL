@@ -25,7 +25,7 @@ import rl.environments.mbpo.static as mbpo_static
 
 class MBPPO(MBRL, PPO):
     """
-    Algorithm: Model-Based Game (PPO) (Dyna-style, Model-Based)
+    Algorithm: Model-Based Game (MB-PPO) (Dyna-style, Model-Based, On-Policy)
 
         1:
         2:
