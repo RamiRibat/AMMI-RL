@@ -85,6 +85,8 @@ def init_weights_(m):
         m.bias.data.fill_(0.0)
 
 
+
+
 class StandardScaler(object):
     def __init__(self):
         pass
@@ -173,6 +175,7 @@ class EnsembleFC(nn.Module):
         )
 
 
+
 class EnsembleModel(nn.Module):
     def __init__(self, state_size, action_size, reward_size, ensemble_size, hidden_size=200, learning_rate=1e-3, use_decay=False, device='cpu'):
         super(EnsembleModel, self).__init__()
@@ -211,13 +214,6 @@ class EnsembleModel(nn.Module):
         nn4_output = self.swish(self.nn4(nn3_output))
         nn5_output = self.nn5(nn4_output)
 
-        # nn1_output = self.activation(self.nn1(x))
-        # nn2_output = self.activation(self.nn2(nn1_output))
-        # nn3_output = self.activation(self.nn3(nn2_output))
-        # nn4_output = self.activation(self.nn4(nn3_output))
-        # nn5_output = self.nn5(nn4_output)
-        # nn_output = nn5_output
-
         mean = nn5_output[:, :, :self.output_dim]
 
         logvar = self.max_logvar - F.softplus(self.max_logvar - nn5_output[:, :, self.output_dim:])
@@ -233,8 +229,6 @@ class EnsembleModel(nn.Module):
         for m in self.children():
             if isinstance(m, EnsembleFC):
                 decay_loss += m.weight_decay * torch.sum(torch.square(m.weight)) / 2.
-                # print(m.weight.shape)
-                # print(m, decay_loss, m.weight_decay)
         return decay_loss
 
     def loss(self, mean, logvar, labels, inc_var_loss=True):
@@ -261,13 +255,9 @@ class EnsembleModel(nn.Module):
         self.optimizer.zero_grad()
 
         loss += 0.01 * torch.sum(self.max_logvar) - 0.01 * torch.sum(self.min_logvar)
-        # print('loss:', loss.item())
         if self.use_decay:
             loss += self.get_decay_loss()
         loss.backward()
-        # for name, param in self.named_parameters():
-        #     if param.requires_grad:
-        #         print(name, param.grad.shape, torch.mean(param.grad), param.grad.flatten()[:5])
         self.optimizer.step()
 
 
@@ -276,6 +266,7 @@ class EnsembleModel(nn.Module):
 
 class EnsembleDynamicsModel():
     def __init__(self, network_size, elite_size, state_size, action_size, reward_size=1, hidden_size=200, use_decay=False, device='cpu'):
+        # print('init EnsembleDynamicsModel')
         self.network_size = network_size
         self.elite_size = elite_size
         self.model_list = []
@@ -315,11 +306,8 @@ class EnsembleDynamicsModel():
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
-        # LossList = []
-
         # for epoch in range(5):
         for epoch in itertools.count():
-            # losses = []
             train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
             # train_idx = np.vstack([np.arange(train_inputs.shape[0])] for _ in range(self.network_size))
             for start_pos in range(0, train_inputs.shape[0], batch_size):
