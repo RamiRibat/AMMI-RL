@@ -458,7 +458,8 @@ class EnsembleDynamicsModel():
                     break
             print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10), end='\r')
 
-        return np.mean(holdout_mse_losses)
+        # return np.mean(holdout_mse_losses)
+        return (T.mean(holdout_mse_losses))
 
     def _save_best(self, epoch, val_losses):
         updated = False
