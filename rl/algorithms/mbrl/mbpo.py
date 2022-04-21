@@ -170,7 +170,7 @@ class MBPO(MBRL, SAC):
                     # AlphaList = [self.alpha]*G_sac
                     for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
-                        print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}', end='\r')
+                        # print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}', end='\r')
                         ## Sample a batch B_sac
                         B_sac = self.sac_batch(real_ratio, batch_size)
                         ## Train networks using batch B_sac
@@ -283,7 +283,7 @@ class MBPO(MBRL, SAC):
     		# with T.no_grad():
     		# 	# A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
     		# 	A, _ = self.actor_critic.actor.step_np(T.as_tensor(O, dtype=T.float32)) # ip:Tensor, op:Numpy
-    		A = self.actor_critic.get_action(O)
+    		A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
 
     		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
     		# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
@@ -343,7 +343,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-C"
+    group_name = f"{env_name}-{alg_name}-D"
     exp_prefix = f"seed:{seed}"
 
     if wb:

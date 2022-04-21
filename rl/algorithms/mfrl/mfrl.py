@@ -5,30 +5,30 @@ import numpy as np
 import torch as T
 
 import rl.environments
-# from rl.data.buffer import TrajBuffer, ReplayBuffer
-from rl.data.buffer import TrajBuffer, ReplayBufferNP
+from rl.data.buffer import TrajBuffer, ReplayBuffer
+# from rl.data.buffer import TrajBuffer, ReplayBufferNP
 
 
 
-def make_env(env_id, seed, idx, capture_video, run_name):
-    def thunk():
-        print('in thunk')
-        env = gym.make(env_id)
-        env = gym.wrappers.RecordEpisodeStatistics(env)
-        if capture_video:
-            if idx == 0:
-                env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
-        env = gym.wrappers.ClipAction(env)
-        env = gym.wrappers.NormalizeObservation(env)
-        env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
-        env = gym.wrappers.NormalizeReward(env)
-        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
-        env.seed(seed)
-        env.action_space.seed(seed)
-        env.observation_space.seed(seed)
-        return env
-
-    return thunk
+# def make_env(env_id, seed, idx, capture_video, run_name):
+#     def thunk():
+#         print('in thunk')
+#         env = gym.make(env_id)
+#         env = gym.wrappers.RecordEpisodeStatistics(env)
+#         if capture_video:
+#             if idx == 0:
+#                 env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
+#         env = gym.wrappers.ClipAction(env)
+#         env = gym.wrappers.NormalizeObservation(env)
+#         env = gym.wrappers.TransformObservation(env, lambda obs: np.clip(obs, -10, 10))
+#         env = gym.wrappers.NormalizeReward(env)
+#         env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+#         env.seed(seed)
+#         env.action_space.seed(seed)
+#         env.observation_space.seed(seed)
+#         return env
+#
+#     return thunk
 
 
 
@@ -86,7 +86,7 @@ class MFRL:
         if self.configs['algorithm']['on-policy']:
             self.buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
         else:
-            self.buffer = ReplayBufferNP(self.obs_dim, self.act_dim, max_size, self.seed, device)
+            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
 
     def initialize_learning(self, NT, Ni):
@@ -144,7 +144,7 @@ class MFRL:
         max_el = self.configs['environment']['horizon']
 
         if n > Nx:
-            a = self.actor_critic.get_action_np(o)
+            a = self.actor_critic.get_action_np(o) # Stochastic action | No reparameterization # Deterministic action | No reparameterization
         else:
             a = self.learn_env.action_space.sample()
 
@@ -211,7 +211,7 @@ class MFRL:
 
                 while not(d or (el == max_el)):
                     # Take deterministic actions at evaluation time
-                    a = self.actor_critic.get_action(o)
+                    a = self.actor_critic.get_action_np(o, deterministic=True) # Deterministic action | No reparameterization
                     o, r, d, info = self.eval_env.step(a)
                     Z += r
                     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': S += info['score']

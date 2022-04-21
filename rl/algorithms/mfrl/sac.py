@@ -84,14 +84,14 @@ class ActorCritic: # Done
         return pi, log_pi
 
 
-    def get_action(self, o, a=None, reparameterize=False, deterministic=True, return_log_pi=False):
+    def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
         with T.no_grad(): a, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
         return a.cpu()
 
 
-    def get_action_np(self, o, a=None, reparameterize=False, deterministic=True, return_log_pi=False):
+    def get_action_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
         return self.get_action(o, a, reparameterize, deterministic, return_log_pi).numpy()
 
 
@@ -268,7 +268,7 @@ class SAC(MFRL):
             # Printing logs
             if self.configs['experiment']['print_logs']:
                 for k, v in logs.items():
-                    print(f'{k}  {round(v, 2)}')
+                    print(f'{k}  {round(v, 2)}'+(' '*10))
 
             # WandB
             if self.WandB:
