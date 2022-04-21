@@ -81,7 +81,7 @@ def init_weights_(m): # source: https://github.com/Xingyu-Lin/mbpo_pytorch/model
             t = T.where(cond, nn.init.normal_(T.ones(t.shape).to(t.device), mean=mean, std=std), t)
         return t
 
-    if type(m) == nn.Linear or isinstance(m, EnsembleFC) or isinstance(m, LinearEnsemble):
+    if type(m) == nn.Linear or isinstance(m, LinearEnsemble):
         input_dim = m.in_features
         # truncated_normal_init(m.weight, std=1 / (2 * np.sqrt(input_dim)))
         truncated_normal_init( m.weight, std=1 / ( 2 * T.sqrt( T.tensor(input_dim) ) ) )
@@ -136,57 +136,6 @@ class Swish(nn.Module):
     def forward(self, x):
         x = x * F.sigmoid(x)
         return x
-
-
-
-
-
-
-class EnsembleFC(nn.Module):
-    __constants__ = ['in_features', 'out_features']
-    in_features: int
-    out_features: int
-    ensemble_size: int
-    weight: T.Tensor
-
-    def __init__(self,
-                 in_features: int,
-                 out_features: int,
-                 ensemble_size: int,
-                 weight_decay: float = 0.,
-                 bias: bool = True
-                 ) -> None:
-
-        super(EnsembleFC, self).__init__()
-
-        self.in_features = in_features
-        self.out_features = out_features
-
-        self.ensemble_size = ensemble_size
-
-        self.weight = nn.Parameter(T.Tensor(ensemble_size, in_features, out_features))
-        self.weight_decay = weight_decay
-
-        if bias:
-            self.bias = nn.Parameter(T.Tensor(ensemble_size, out_features))
-        else:
-            self.register_parameter('bias', None)
-
-        self.reset_parameters()
-
-    def reset_parameters(self) -> None:
-        pass
-
-
-    def forward(self, input: T.Tensor) -> T.Tensor:
-        w_times_x = T.bmm(input, self.weight)
-        return T.add(w_times_x, self.bias[:, None, :])  # w times x + b
-
-    def extra_repr(self) -> str:
-        return 'in_features={}, out_features={}, bias={}'.format(
-            self.in_features, self.out_features, self.bias is not None
-        )
-
 
 
 
@@ -258,11 +207,11 @@ class EnsembleModel(nn.Module):
         self.use_decay = use_decay
         self.output_dim = state_size + reward_size
 
-        self.nn1 = LinearEnsemble(ensemble_size, state_size + action_size, hidden_size, weight_decay=0.000025).to(device)
-        self.nn2 = LinearEnsemble(ensemble_size, hidden_size, hidden_size, weight_decay=0.00005).to(device)
-        self.nn3 = LinearEnsemble(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
-        self.nn4 = LinearEnsemble(ensemble_size, hidden_size, hidden_size, weight_decay=0.000075).to(device)
-        self.nn5 = LinearEnsemble(ensemble_size, hidden_size, self.output_dim * 2, weight_decay=0.0001).to(device)
+        self.nn1 = LinearEnsemble(ensemble_size, state_size + action_size, hidden_size,       weight_decay=0.000025).to(device)
+        self.nn2 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000050).to(device)
+        self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        self.nn4 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        self.nn5 = LinearEnsemble(ensemble_size, hidden_size,              self.output_dim*2, weight_decay=0.000100).to(device)
 
 
         # net_arch = [200, 200, 200, 200] #net_configs['arch']
@@ -302,14 +251,13 @@ class EnsembleModel(nn.Module):
         self.min_logvar = nn.Parameter((-T.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
 
         self.apply(init_weights_)
-        # self.nn_model.to(device)
 
         self.gnll_loss = nn.GaussianNLLLoss()
         self.mse_loss = nn.MSELoss()
 
         self.optimizer = T.optim.Adam(self.parameters(), lr=learning_rate)
 
-        self.activation = nn.ReLU() #Swish()
+        self.activation = Swish() # nn.ReLU()
 
 
     def forward(self, x, ret_log_var=False):
@@ -333,12 +281,14 @@ class EnsembleModel(nn.Module):
         else:
             return mean, T.exp(logvar)
 
+
     def compute_wd_loss(self):
         wd_loss = 0.
         for m in self.children():
-            if isinstance(m, EnsembleFC) or isinstance(m, LinearEnsemble):
+            if isinstance(m, LinearEnsemble):
                 wd_loss += m.weight_decay * T.sum(T.square(m.weight)) / 2.
         return wd_loss
+
 
     def compute_loss(self, mean, logvar, labels, inc_var_loss=True):
         """
@@ -359,14 +309,12 @@ class EnsembleModel(nn.Module):
 
         # return total_loss, mse_loss
 
+
     def train(self, loss):
         self.optimizer.zero_grad()
-
         loss += 0.01 * T.sum(self.max_logvar) - 0.01 * T.sum(self.min_logvar)
-
         if self.use_decay:
             loss += self.compute_wd_loss()
-
         loss.backward()
         self.optimizer.step()
 
@@ -460,6 +408,7 @@ class EnsembleDynamicsModel():
 
         # return np.mean(holdout_mse_losses)
         return (T.mean(holdout_mse_losses))
+
 
     def _save_best(self, epoch, val_losses):
         updated = False
