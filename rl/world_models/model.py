@@ -440,8 +440,8 @@ class EnsembleDynamicsModel():
 
         for i in range(0, inputs.shape[0], batch_size):
             # input = T.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
-            inputs = inputs[i:min(i + batch_size, inputs.shape[0])].to(device)
-            b_mean, b_var = self.ensemble_model(inputs[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
+            input = inputs[i:min(i + batch_size, inputs.shape[0])].to(device)
+            b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
             # ensemble_mean.append(b_mean.detach().cpu().numpy())
             # ensemble_var.append(b_var.detach().cpu().numpy())
             ensemble_mean.append(b_mean.detach().cpu())
