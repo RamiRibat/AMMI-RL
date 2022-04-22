@@ -80,8 +80,8 @@ class FakeWorld:
         return log_prob, stds
 
     def step(self, obs, act, deterministic=False):
-        print('obs: ', obs)
-        print('act: ', act)
+        # print('obs: ', obs)
+        # print('act: ', act)
         if len(obs.shape) == 1:
             obs = obs[None]
             act = act[None]
