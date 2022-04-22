@@ -109,7 +109,7 @@ class FakeWorld:
         if self.model_type == 'pytorch':
             # model_idxes = np.random.choice(self.model.elite_model_idxes, size=batch_size)
             # model_idxes = T.as_tensor(model_idxes)
-            model_idxes = T.multinomial(T.tensor(self.model.elite_model_idxes), size=batch_size, replacement=True)
+            model_idxes = T.multinomial(T.tensor(self.model.elite_model_idxes), num_samples=batch_size, replacement=True)
         # else:
         #     model_idxes = self.model.random_inds(batch_size)
 
