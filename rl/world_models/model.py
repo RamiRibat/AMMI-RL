@@ -285,8 +285,7 @@ class EnsembleModel(nn.Module):
     def compute_wd_loss(self):
         wd_loss = 0.
         for m in self.children():
-            if isinstance(m, LinearEnsemble):
-                wd_loss += m.weight_decay * T.sum(T.square(m.weight)) / 2.
+            if isinstance(m, LinearEnsemble): wd_loss += m.weight_decay * T.sum(T.square(m.weight)) / 2.
         return wd_loss
 
 
@@ -350,8 +349,8 @@ class EnsembleDynamicsModel():
         self._snapshots = {i: (None, 1e10) for i in range(self.network_size)}
 
         num_holdout = int(inputs.shape[0] * holdout_ratio)
-        # permutation = np.random.permutation(inputs.shape[0])
-        permutation = T.randperm(inputs.shape[0])
+        # permutation = np.random.permutation(inputs.shape[0]) # Numpy
+        permutation = T.randperm(inputs.shape[0]) # Torch
         inputs, labels = inputs[permutation], labels[permutation]
         # print('EnsembleDynamicsModel: inputs', inputs.shape)
 
@@ -380,12 +379,12 @@ class EnsembleDynamicsModel():
             # print('EnsembleDynamicsModel: train_idx', train_idx.shape)
             for start_pos in range(0, train_inputs.shape[0], batch_size):
                 idx = train_idx[:, start_pos: start_pos + batch_size]
-                # print('EnsembleDynamicsModel: idx', idx.shape)
                 # train_input = T.from_numpy(train_inputs[idx]).float().to(device)
-                # print('EnsembleDynamicsModel: train_input', train_input.shape)
                 # train_label = T.from_numpy(train_labels[idx]).float().to(device)
-                train_input = train_inputs[idx].to(device)
-                train_label = train_labels[idx].to(device)
+                train_input = train_inputs[idx].float().to(device)
+                train_label = train_labels[idx].float().to(device)
+                # print('EnsembleDynamicsModel: idx', idx.shape)
+                # print('EnsembleDynamicsModel: train_input', train_input.shape)
                 losses = []
                 mean, logvar = self.ensemble_model(train_input, ret_log_var=True)
                 loss, _ = self.ensemble_model.compute_loss(mean, logvar, train_label)
