@@ -334,12 +334,13 @@ class ReplayBuffer:
 
 
     def return_all_stack(self):
-        # data = self.return_all_np()
-        # return {k: np.stack(v) for k, v in data.items()}
         data = self.return_all()
         return {k: T.stack([v])[0] for k, v in data.items()}
-        # state, action, reward, next_state, done = np.stack(state), np.stack(action), np.stack(reward), np.stack(next_state), np.stack(done)
-        # return state, action, reward, next_state, done
+
+
+    def return_all_stack_np(self):
+        data = self.return_all_np()
+        return {k: np.stack(v) for k, v in data.items()}
 
 
 
