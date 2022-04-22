@@ -398,7 +398,7 @@ class EnsembleDynamicsModel():
                 # sorted_loss_idx = np.argsort(holdout_mse_losses)
                 holdout_mse_losses = holdout_mse_losses.detach().cpu()
                 sorted_loss_idx = T.argsort(holdout_mse_losses)
-                print('sorted_loss_idx: ', sorted_loss_idx)
+                # print('sorted_loss_idx: ', sorted_loss_idx)
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
