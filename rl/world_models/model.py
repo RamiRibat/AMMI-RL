@@ -102,10 +102,10 @@ class StandardScaler(object):
 
         Returns: None.
         """
-        # self.mu = np.mean(data, axis=0, keepdims=True)
-        # self.std = np.std(data, axis=0, keepdims=True)
-        self.mu = T.mean(data, axis=0, keepdims=True)
-        self.std = T.std(data, axis=0, keepdims=True)
+        self.mu = np.mean(data, axis=0, keepdims=True)
+        self.std = np.std(data, axis=0, keepdims=True)
+        # self.mu = T.mean(data, axis=0, keepdims=True)
+        # self.std = T.std(data, axis=0, keepdims=True)
         self.std[self.std < 1e-12] = 1.0
 
     def transform(self, data):
@@ -349,8 +349,8 @@ class EnsembleDynamicsModel():
         self._snapshots = {i: (None, 1e10) for i in range(self.network_size)}
 
         num_holdout = int(inputs.shape[0] * holdout_ratio)
-        # permutation = np.random.permutation(inputs.shape[0]) # Numpy
-        permutation = T.randperm(inputs.shape[0]) # Torch
+        permutation = np.random.permutation(inputs.shape[0]) # Numpy
+        # permutation = T.randperm(inputs.shape[0]) # Torch
         inputs, labels = inputs[permutation], labels[permutation]
         # print('EnsembleDynamicsModel: inputs', inputs.shape)
 
@@ -362,10 +362,10 @@ class EnsembleDynamicsModel():
         holdout_inputs = self.scaler.transform(holdout_inputs)
         # print('EnsembleDynamicsModel: train_inputs', train_inputs.shape)
 
-        # holdout_inputs = T.from_numpy(holdout_inputs).float().to(device)
-        # holdout_labels = T.from_numpy(holdout_labels).float().to(device)
-        holdout_inputs = holdout_inputs.to(device)
-        holdout_labels = holdout_labels.to(device)
+        holdout_inputs = T.from_numpy(holdout_inputs).float().to(device)
+        holdout_labels = T.from_numpy(holdout_labels).float().to(device)
+        # holdout_inputs = holdout_inputs.to(device)
+        # holdout_labels = holdout_labels.to(device)
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
@@ -374,15 +374,15 @@ class EnsembleDynamicsModel():
         # for epoch in range(1):
         for epoch in itertools.count():
             # losses = []
-            # train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
-            train_idx = T.vstack([T.randperm(train_inputs.shape[0]) for _ in range(self.network_size)])
+            train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
+            # train_idx = T.vstack([T.randperm(train_inputs.shape[0]) for _ in range(self.network_size)])
             # print('EnsembleDynamicsModel: train_idx', train_idx.shape)
             for start_pos in range(0, train_inputs.shape[0], batch_size):
                 idx = train_idx[:, start_pos: start_pos + batch_size]
-                # train_input = T.from_numpy(train_inputs[idx]).float().to(device)
-                # train_label = T.from_numpy(train_labels[idx]).float().to(device)
-                train_input = train_inputs[idx].float().to(device)
-                train_label = train_labels[idx].float().to(device)
+                train_input = T.from_numpy(train_inputs[idx]).float().to(device)
+                train_label = T.from_numpy(train_labels[idx]).float().to(device)
+                # train_input = train_inputs[idx].float().to(device)
+                # train_label = train_labels[idx].float().to(device)
                 # print('EnsembleDynamicsModel: idx', idx.shape)
                 # print('EnsembleDynamicsModel: train_input', train_input.shape)
                 # losses = []
@@ -394,22 +394,22 @@ class EnsembleDynamicsModel():
             with T.no_grad():
                 holdout_mean, holdout_logvar = self.ensemble_model(holdout_inputs, ret_log_var=True)
                 _, holdout_mse_losses = self.ensemble_model.compute_loss(holdout_mean, holdout_logvar, holdout_labels, inc_var_loss=False)
-                # holdout_mse_losses = holdout_mse_losses.detach().cpu().numpy()
-                # sorted_loss_idx = np.argsort(holdout_mse_losses)
-                holdout_mse_losses = holdout_mse_losses.detach().cpu()
-                sorted_loss_idx = T.argsort(holdout_mse_losses)
+                holdout_mse_losses = holdout_mse_losses.detach().cpu().numpy()
+                sorted_loss_idx = np.argsort(holdout_mse_losses)
+                # holdout_mse_losses = holdout_mse_losses.detach().cpu()
+                # sorted_loss_idx = T.argsort(holdout_mse_losses)
                 # print('sorted_loss_idx: ', sorted_loss_idx)
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
-                    # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10))
-                    print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
+                    print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10))
+                    # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
                     break
-            # print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
-            print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10), end='\r')
+            print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
+            # print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10), end='\r')
 
-        # return np.mean(holdout_mse_losses)
-        return (T.mean(holdout_mse_losses))
+        return np.mean(holdout_mse_losses)
+        # return (T.mean(holdout_mse_losses))
 
 
     def _save_best(self, epoch, val_losses):
@@ -440,25 +440,27 @@ class EnsembleDynamicsModel():
         ensemble_mean, ensemble_var = [], []
 
         for i in range(0, inputs.shape[0], batch_size):
-            # input = T.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
-            input = inputs[i:min(i + batch_size, inputs.shape[0])].to(device)
+            input = T.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
+            # input = inputs[ i : min(i + batch_size, inputs.shape[0]) ].to(device)
             b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
-            # ensemble_mean.append(b_mean.detach().cpu().numpy())
-            # ensemble_var.append(b_var.detach().cpu().numpy())
-            ensemble_mean.append(b_mean.detach().cpu())
-            ensemble_var.append(b_var.detach().cpu())
+            ensemble_mean.append(b_mean.detach().cpu().numpy())
+            ensemble_var.append(b_var.detach().cpu().numpy())
+            # ensemble_mean.append(b_mean.detach().cpu())
+            # ensemble_var.append(b_var.detach().cpu())
 
-        # ensemble_mean = np.hstack(ensemble_mean)
-        # ensemble_var = np.hstack(ensemble_var)
-        ensemble_mean = T.hstack(ensemble_mean)
-        ensemble_var = T.hstack(ensemble_var)
+        ensemble_mean = np.hstack(ensemble_mean)
+        ensemble_var = np.hstack(ensemble_var)
+        # ensemble_mean = T.hstack(ensemble_mean)
+        # ensemble_var = T.hstack(ensemble_var)
 
         if factored:
             return ensemble_mean, ensemble_var
         else:
             assert False, "Need to transform to numpy"
-            mean = T.mean(ensemble_mean, dim=0)
-            var = T.mean(ensemble_var, dim=0) + T.mean(T.square(ensemble_mean - mean[None, :, :]), dim=0)
+            mean = np.mean(ensemble_mean, dim=0)
+            var = np.mean(ensemble_var, dim=0) + np.mean(np.square(ensemble_mean - mean[None, :, :]), dim=0)
+            # mean = T.mean(ensemble_mean, dim=0)
+            # var = T.mean(ensemble_var, dim=0) + T.mean(T.square(ensemble_mean - mean[None, :, :]), dim=0)
             return mean, var
 
 
