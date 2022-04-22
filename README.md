@@ -28,7 +28,7 @@ Algorithms we are re-implementing/plannning to re-implement:
 
 ## Experiments and Results
 
-In thoe following we evaluate our code on the following environments. Download gifs from this Google drive [folder](https://drive.google.com/drive/folders/1l5ina4xFu-LdTMeuF0tfgmS6uooMjZqR?usp=sharing) at drive.
+In thoe following we evaluate our code on the following environments. Download gifs from this Google drive [folder](https://drive.google.com/drive/folders/1l5ina4xFu-LdTMeuF0tfgmS6uooMjZqR?usp=sharing) at drive. Results are averaged across 3 random seeds, and smoothed with 0.75 Exponential Moving Average.
 
 
 ### Locomotion Tasks
