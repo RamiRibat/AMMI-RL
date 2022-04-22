@@ -109,16 +109,16 @@ class FakeWorld:
         if self.model_type == 'pytorch':
             # model_idxes = np.random.choice(self.model.elite_model_idxes, size=batch_size)
             # model_idxes = T.as_tensor(model_idxes)
-            model_idxes = T.multinomial(self.model.elite_model_idxes, size=batch_size, replacement=True)
+            model_idxes = T.multinomial(T.tensor(self.model.elite_model_idxes), size=batch_size, replacement=True)
         # else:
         #     model_idxes = self.model.random_inds(batch_size)
 
         # batch_idxes = np.arange(0, batch_size)
         batch_idxes = T.arange(0, batch_size)
 
-        samples = ensemble_samples[model_idxes, batch_idxes]
+        samples =     ensemble_samples[model_idxes, batch_idxes]
         model_means = ensemble_model_means[model_idxes, batch_idxes]
-        model_stds = ensemble_model_stds[model_idxes, batch_idxes]
+        model_stds =  ensemble_model_stds[model_idxes, batch_idxes]
 
         log_prob, dev = self._get_logprob(samples, ensemble_model_means, ensemble_model_vars)
 
@@ -128,8 +128,8 @@ class FakeWorld:
         batch_size = model_means.shape[0]
         # return_means = np.concatenate((model_means[:, :1], terminals, model_means[:, 1:]), axis=-1)
         # return_stds = np.concatenate((model_stds[:, :1], np.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1)
-        return_means = T.cat((model_means[:, :1], terminals, model_means[:, 1:]), axis=-1)
-        return_stds = T.cat((model_stds[:, :1], T.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1)
+        return_means = T.cat( (model_means[:, :1], terminals, model_means[:, 1:]),               axis=-1 )
+        return_stds =  T.cat( (model_stds [:, :1], T.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1 )
 
         if return_single:
             next_obs = next_obs[0]
@@ -155,11 +155,11 @@ class FakeWorld:
         inputs = T.cat((state, action), axis=-1)
         # print('FakeWorld: inputs', inputs.shape)
         # labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1)
-        labels = T.cat(( T.reshape( reward, (reward.shape[0], -1) ), delta_state ), axis=-1)
+        labels = T.cat( ( T.reshape( reward, (reward.shape[0], -1) ), delta_state ), axis=-1 )
         # print('inputs: ', inputs)
         # print('labels: ', labels)
 
-        holdout_mse_mean = self.model.train(inputs, labels, batch_size=256, holdout_ratio=0.2)
+        holdout_mse_mean = self.model.train( inputs, labels, batch_size=256, holdout_ratio=0.2 )
 
         return holdout_mse_mean
 

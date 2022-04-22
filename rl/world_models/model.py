@@ -385,11 +385,11 @@ class EnsembleDynamicsModel():
                 train_label = train_labels[idx].float().to(device)
                 # print('EnsembleDynamicsModel: idx', idx.shape)
                 # print('EnsembleDynamicsModel: train_input', train_input.shape)
-                losses = []
+                # losses = []
                 mean, logvar = self.ensemble_model(train_input, ret_log_var=True)
                 loss, _ = self.ensemble_model.compute_loss(mean, logvar, train_label)
                 self.ensemble_model.train(loss)
-                losses.append(loss)
+                # losses.append(loss)
 
             with T.no_grad():
                 holdout_mean, holdout_logvar = self.ensemble_model(holdout_inputs, ret_log_var=True)
@@ -398,6 +398,7 @@ class EnsembleDynamicsModel():
                 # sorted_loss_idx = np.argsort(holdout_mse_losses)
                 holdout_mse_losses = holdout_mse_losses.detach().cpu()
                 sorted_loss_idx = T.argsort(holdout_mse_losses)
+                print('sorted_loss_idx: ', sorted_loss_idx)
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
