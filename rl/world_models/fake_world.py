@@ -89,8 +89,8 @@ class FakeWorld:
         else:
             return_single = False
 
-        # inputs = np.concatenate((obs, act), axis=-1)
-        inputs = T.cat((obs, act), axis=-1)
+        inputs = np.concatenate((obs, act), axis=-1) # Numpy
+        # inputs = T.cat((obs, act), axis=-1) # Torch
 
         ensemble_model_means, ensemble_model_vars = self.model.predict(inputs) ###
 
@@ -102,8 +102,8 @@ class FakeWorld:
             ensemble_samples = ensemble_model_means
         else:
             size = ensemble_model_means.shape
-            ensemble_samples = ensemble_model_means + np.random.normal(size=size) * ensemble_model_stds
-            # ensemble_samples = ensemble_model_means + T.normal(0, 1, size=size) * ensemble_model_stds
+            ensemble_samples = ensemble_model_means + np.random.normal(size=size) * ensemble_model_stds # Numpy
+            # ensemble_samples = ensemble_model_means + T.normal(0, 1, size=size) * ensemble_model_stds # Torch
 
         num_models, batch_size, _ = ensemble_model_means.shape
         if self.model_type == 'pytorch':
@@ -126,10 +126,10 @@ class FakeWorld:
         terminals = self._termination_fn(self.env_name, obs, act, next_obs)
 
         batch_size = model_means.shape[0]
-        return_means = np.concatenate((model_means[:, :1], terminals, model_means[:, 1:]), axis=-1)
-        return_stds = np.concatenate((model_stds[:, :1], np.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1)
-        # return_means = T.cat( (model_means[:, :1], terminals, model_means[:, 1:]),               axis=-1 )
-        # return_stds =  T.cat( (model_stds [:, :1], T.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1 )
+        return_means = np.concatenate((model_means[:, :1], terminals, model_means[:, 1:]), axis=-1) # Numpy
+        return_stds = np.concatenate((model_stds[:, :1], np.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1) # Numpy
+        # return_means = T.cat( (model_means[:, :1], terminals, model_means[:, 1:]),               axis=-1 ) # Torch
+        # return_stds =  T.cat( (model_stds [:, :1], T.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1 ) # Torch
 
         if return_single:
             next_obs = next_obs[0]
@@ -143,18 +143,18 @@ class FakeWorld:
 
     def train_fake_world(self, buffer):
         # Get all samples from environment
-        data = buffer.return_all_stack_np()
-        # data = buffer.return_all_stack()
+        data = buffer.return_all_stack_np() # Numpy
+        # data = buffer.return_all_stack() # Torch
         state, action, reward, next_state, done = data.values()
         # print('state: ', state)
         delta_state = next_state - state
         # print('reward: ', reward.shape)
         # print('delta_state: ', delta_state.shape)
 
-        inputs = np.concatenate((state, action), axis=-1)
-        labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1)
-        # inputs = T.cat( (state, action), axis=-1 )
-        # labels = T.cat( ( T.reshape( reward, (reward.shape[0], -1) ), delta_state ), axis=-1 )
+        inputs = np.concatenate((state, action), axis=-1) # Numpy
+        labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1) # Numpy
+        # inputs = T.cat( (state, action), axis=-1 ) # Torch
+        # labels = T.cat( ( T.reshape( reward, (reward.shape[0], -1) ), delta_state ), axis=-1 ) # Torch
         # print('FakeWorld: inputs', inputs.shape)
         # print('inputs: ', inputs)
         # print('labels: ', labels)
