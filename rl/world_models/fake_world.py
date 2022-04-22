@@ -89,6 +89,9 @@ class FakeWorld:
         else:
             return_single = False
 
+        obs = obs.numpy()
+        act = act.numpy()
+
         inputs = np.concatenate((obs, act), axis=-1) # Numpy
         # inputs = T.cat((obs, act), axis=-1) # Torch
 
