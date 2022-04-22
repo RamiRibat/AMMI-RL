@@ -107,8 +107,9 @@ class FakeWorld:
 
         num_models, batch_size, _ = ensemble_model_means.shape
         if self.model_type == 'pytorch':
-            model_idxes = np.random.choice(self.model.elite_model_idxes, size=batch_size)
-            model_idxes = T.as_tensor(model_idxes)
+            # model_idxes = np.random.choice(self.model.elite_model_idxes, size=batch_size)
+            # model_idxes = T.as_tensor(model_idxes)
+            model_idxes = T.multinomial(self.model.elite_model_idxes, size=batch_size, replacement=True)
         # else:
         #     model_idxes = self.model.random_inds(batch_size)
 
@@ -142,13 +143,13 @@ class FakeWorld:
 
     def train_fake_world(self, buffer):
         # Get all samples from environment
-        # data = buffer.return_all_np_stack()
+        # data = buffer.return_all_stack_np()
         data = buffer.return_all_stack()
         state, action, reward, next_state, done = data.values()
         # print('state: ', state)
         delta_state = next_state - state
-        print('reward: ', reward.shape)
-        print('delta_state: ', delta_state.shape)
+        # print('reward: ', reward.shape)
+        # print('delta_state: ', delta_state.shape)
 
         # inputs = np.concatenate((state, action), axis=-1)
         inputs = T.cat((state, action), axis=-1)

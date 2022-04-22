@@ -402,8 +402,10 @@ class EnsembleDynamicsModel():
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
+                    # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10))
                     print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
                     break
+            # print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
             print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10), end='\r')
 
         # return np.mean(holdout_mse_losses)
@@ -439,8 +441,8 @@ class EnsembleDynamicsModel():
 
         for i in range(0, inputs.shape[0], batch_size):
             # input = T.from_numpy(inputs[i:min(i + batch_size, inputs.shape[0])]).float().to(device)
-            input = inputs[i:min(i + batch_size, inputs.shape[0])].to(device)
-            b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
+            inputs = inputs[i:min(i + batch_size, inputs.shape[0])].to(device)
+            b_mean, b_var = self.ensemble_model(inputs[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
             # ensemble_mean.append(b_mean.detach().cpu().numpy())
             # ensemble_var.append(b_var.detach().cpu().numpy())
             ensemble_mean.append(b_mean.detach().cpu())
