@@ -21,7 +21,7 @@ Algorithms we are re-implementing/plannning to re-implement:
 | SAC | False | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
 | MB-Game | True | V | True | False | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
 | MBPO | True | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
-| MoPAC | True | Q | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟣 |
+| MoPAC | True | Q | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟡 |
 | MPC-SAC | True | V/Q | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
 | PETS | True | None | None | True | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
 
