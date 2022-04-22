@@ -225,11 +225,11 @@ class ReplayBuffer:
 
     def override_batch(self, O, A, R, O_next, D, batch_size):
         available_size = self.max_size - self.ptr # 84
-        self.obs_buf[self.ptr:self.ptr+available_size] = O[:available_size,:]
-        self.act_buf[self.ptr:self.ptr+available_size] = A[:available_size,:]
-        self.rew_buf[self.ptr:self.ptr+available_size] = R[:available_size].reshape(-1,1)
-        self.obs_next_buf[self.ptr:self.ptr+available_size] = O_next[:available_size,:]
-        self.ter_buf[self.ptr:self.ptr+available_size] = D[:available_size]
+        self.obs_buf[self.ptr:self.ptr+available_size] = T.Tensor(O[:available_size,:])
+        self.act_buf[self.ptr:self.ptr+available_size] = T.Tensor(A[:available_size,:])
+        self.rew_buf[self.ptr:self.ptr+available_size] = T.tensor(R[:available_size].reshape(-1,1))
+        self.obs_next_buf[self.ptr:self.ptr+available_size] = T.Tensor(O_next[:available_size,:])
+        self.ter_buf[self.ptr:self.ptr+available_size] = T.tensor(D[:available_size])
         self.ptr = (self.ptr+available_size) % self.max_size # 0
         remain_size = batch_size - available_size # 316
         # print('ptr=', self.ptr)
@@ -242,11 +242,11 @@ class ReplayBuffer:
                                 D[available_size:],
                                 remain_size)
         else:
-            self.obs_buf[self.ptr:self.ptr+remain_size] = O[available_size:,:]
-            self.act_buf[self.ptr:self.ptr+remain_size] = A[available_size:,:]
-            self.rew_buf[self.ptr:self.ptr+remain_size] = R[available_size:].reshape(-1,1)
-            self.obs_next_buf[self.ptr:self.ptr+remain_size] = O_next[available_size:,:]
-            self.ter_buf[self.ptr:self.ptr+remain_size] = D[available_size:]
+            self.obs_buf[self.ptr:self.ptr+remain_size] = T.Tensor(O[available_size:,:])
+            self.act_buf[self.ptr:self.ptr+remain_size] = T.Tensor(A[available_size:,:])
+            self.rew_buf[self.ptr:self.ptr+remain_size] = T.tensor(R[available_size:].reshape(-1,1))
+            self.obs_next_buf[self.ptr:self.ptr+remain_size] = T.Tensor(O_next[available_size:,:])
+            self.ter_buf[self.ptr:self.ptr+remain_size] = T.tensor(D[available_size:])
             self.ptr = (self.ptr+remain_size) % self.max_size # 316
 
 
@@ -257,8 +257,8 @@ class ReplayBuffer:
     	if self.ptr+batch_size > self.max_size:
             self.override_batch(O, A, R, O_next, D, batch_size)
     	else:
-    		self.obs_buf[self.ptr:self.ptr+batch_size] = O
-    		self.act_buf[self.ptr:self.ptr+batch_size] = A
+    		self.obs_buf[self.ptr:self.ptr+batch_size] = T.Tensor(O)
+    		self.act_buf[self.ptr:self.ptr+batch_size] = T.Tensor(A)
     		self.rew_buf[self.ptr:self.ptr+batch_size] = T.tensor(R.reshape(-1,1))
     		self.obs_next_buf[self.ptr:self.ptr+batch_size] = T.Tensor(O_next)
     		self.ter_buf[self.ptr:self.ptr+batch_size] = T.tensor([D], dtype=T.bool)
