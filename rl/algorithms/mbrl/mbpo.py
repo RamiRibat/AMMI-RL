@@ -170,7 +170,7 @@ class MBPO(MBRL, SAC):
                     # AlphaList = [self.alpha]*G_sac
                     for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
-                        # print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}', end='\r')
+                        print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}', end='\r')
                         ## Sample a batch B_sac
                         B_sac = self.sac_batch(real_ratio, batch_size)
                         ## Train networks using batch B_sac
