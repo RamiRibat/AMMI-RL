@@ -79,7 +79,7 @@ class FakeWorld:
 
         return log_prob, stds
 
-    def step(self, obs, act, deterministic=False):
+    def step(self, obs, act, deterministic=False): # ip: Torch
         print('obs: ', obs)
         print('act: ', act)
         if len(obs.shape) == 1:
@@ -97,8 +97,8 @@ class FakeWorld:
         ensemble_model_means, ensemble_model_vars = self.model.predict(inputs) # ip: Numpy, op: Torch
 
         ensemble_model_means[:, :, 1:] += obs
-        ensemble_model_stds = np.sqrt(ensemble_model_vars)
-        # ensemble_model_stds = T.sqrt(ensemble_model_vars)
+        ensemble_model_stds = np.sqrt(ensemble_model_vars) # Numpy
+        # ensemble_model_stds = T.sqrt(ensemble_model_vars) # Torch
 
         if deterministic:
             ensemble_samples = ensemble_model_means
