@@ -374,8 +374,8 @@ class EnsembleDynamicsModel():
 
         # LossList = []
 
-        for epoch in range(5):
-        # for epoch in itertools.count():
+        # for epoch in range(5):
+        for epoch in itertools.count():
             # losses = []
             # train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)]) # Numpy
             train_idx = T.vstack( [ T.randperm(train_inputs.shape[0]) for _ in range(self.network_size) ] ) # Torch [2]
