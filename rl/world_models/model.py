@@ -88,11 +88,12 @@ def init_weights_(m): # source: https://github.com/Xingyu-Lin/mbpo_pytorch/model
         m.bias.data.fill_(0.0)
 
 
+
 class StandardScaler(object):
     def __init__(self):
         pass
 
-    def fit(self, data):
+    def fit(self, data): # Work on!
         """Runs two ops, one for assigning the mean of the data to the internal mean, and
         another for assigning the standard deviation of the data to the internal standard deviation.
         This function must be called within a 'with <session>.as_default()' block.
@@ -102,10 +103,10 @@ class StandardScaler(object):
 
         Returns: None.
         """
-        self.mu = np.mean(data, axis=0, keepdims=True)
-        self.std = np.std(data, axis=0, keepdims=True)
-        # self.mu = T.mean(data, axis=0, keepdims=True)
-        # self.std = T.std(data, axis=0, keepdims=True)
+        # self.mu = np.mean(data, axis=0, keepdims=True) # Numpy
+        # self.std = np.std(data, axis=0, keepdims=True) # Numpy
+        self.mu = T.mean(data, axis=0, keepdims=True) # Torch
+        self.std = T.std(data, axis=0, keepdims=True) # Torch
         self.std[self.std < 1e-12] = 1.0
 
     def transform(self, data):
@@ -129,6 +130,7 @@ class StandardScaler(object):
         return self.std * data + self.mu
 
 
+
 class Swish(nn.Module):
     def __init__(self):
         super(Swish, self).__init__()
@@ -136,6 +138,7 @@ class Swish(nn.Module):
     def forward(self, x):
         x = x * F.sigmoid(x)
         return x
+
 
 
 
@@ -183,6 +186,7 @@ class LinearEnsemble(nn.Module): # source: https://github.com/Xingyu-Lin/mbpo_py
         return 'in_features={}, out_features={}, bias={}'.format(
             self.in_features, self.out_features, self.bias is not None
         )
+
 
 
 
@@ -360,12 +364,11 @@ class EnsembleDynamicsModel():
         self.scaler.fit(train_inputs)
         train_inputs = self.scaler.transform(train_inputs)
         holdout_inputs = self.scaler.transform(holdout_inputs)
-        # print('EnsembleDynamicsModel: train_inputs', train_inputs.shape)
 
-        holdout_inputs = T.from_numpy(holdout_inputs).float().to(device) # Numpy
-        holdout_labels = T.from_numpy(holdout_labels).float().to(device) # Numpy
-        # holdout_inputs = holdout_inputs.to(device) # Torch
-        # holdout_labels = holdout_labels.to(device) # Torch
+        # holdout_inputs = T.from_numpy(holdout_inputs).float().to(device) # Numpy
+        # holdout_labels = T.from_numpy(holdout_labels).float().to(device) # Numpy
+        holdout_inputs = holdout_inputs.to(device) # Torch
+        holdout_labels = holdout_labels.to(device) # Torch
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
@@ -379,10 +382,10 @@ class EnsembleDynamicsModel():
             # print('EnsembleDynamicsModel: train_idx', train_idx.shape)
             for start_pos in range(0, train_inputs.shape[0], batch_size):
                 idx = train_idx[:, start_pos: start_pos + batch_size]
-                train_input = T.from_numpy(train_inputs[idx]).float().to(device)
-                train_label = T.from_numpy(train_labels[idx]).float().to(device)
-                # train_input = train_inputs[idx].float().to(device) # Torch [3]
-                # train_label = train_labels[idx].float().to(device) # Torch [4]
+                # train_input = T.from_numpy(train_inputs[idx]).float().to(device) # Numpy
+                # train_label = T.from_numpy(train_labels[idx]).float().to(device) # Numpy
+                train_input = train_inputs[idx].to(device) # Torch [3]
+                train_label = train_labels[idx].to(device) # Torch [4]
                 # print('EnsembleDynamicsModel: idx', idx.shape)
                 # print('EnsembleDynamicsModel: train_input', train_input.shape)
                 # losses = []
@@ -433,15 +436,15 @@ class EnsembleDynamicsModel():
             return False
 
 
-    def predict(self, inputs, batch_size=1024, factored=True): # Torch
+    def predict(self, inputs, batch_size=1024, factored=True): # ip: Numpy, op: Numpy (used in Fakework.step)
         device = self._device_
 
         inputs = self.scaler.transform(inputs)
         ensemble_mean, ensemble_var = [], []
 
         for i in range(0, inputs.shape[0], batch_size):
-            input = T.from_numpy( inputs[ i : min(i + batch_size, inputs.shape[0]) ] ).float().to(device) # Numpy
-            # input = inputs[ i : min(i + batch_size, inputs.shape[0]) ].to(device) # Torch
+            # input = T.from_numpy( inputs[ i : min(i + batch_size, inputs.shape[0]) ] ).float().to(device) # Numpy
+            input = inputs[ i : min(i + batch_size, inputs.shape[0]) ].to(device) # Torch
             b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
             ensemble_mean.append(b_mean.detach().cpu().numpy()) # Numpy
             ensemble_var.append(b_var.detach().cpu().numpy()) # Numpy

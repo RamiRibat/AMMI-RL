@@ -135,15 +135,15 @@ class FakeWorld:
         else:
             return_single = False
 
-        obs = obs.numpy()
-        act = act.numpy()
+        # obs = obs.numpy()
+        # act = act.numpy()
 
-        inputs = np.concatenate((obs, act), axis=-1) # Numpy
-        # inputs = T.cat((obs, act), axis=-1) # Torch
+        # inputs = np.concatenate((obs, act), axis=-1) # Numpy
+        inputs = T.cat((obs, act), axis=-1) # Torch
 
-        ensemble_model_means, ensemble_model_vars = self.model.predict(inputs) # ip: Numpy, op: Numpy
+        ensemble_model_means, ensemble_model_vars = self.model.predict(inputs) # ip: Torch, op: Numpy
 
-        ensemble_model_means[:, :, 1:] += obs
+        ensemble_model_means[:, :, 1:] += obs.numpy()
         ensemble_model_stds = np.sqrt(ensemble_model_vars) # Numpy
         # ensemble_model_stds = T.sqrt(ensemble_model_vars) # Torch
 
@@ -192,20 +192,20 @@ class FakeWorld:
         return next_obs, rewards, terminals, info
 
 
-    def train_fake_world(self, buffer):
+    def train_fake_world(self, buffer): # Work on!
         # Get all samples from environment
-        data = buffer.return_all_stack_np() # Numpy
-        # data = buffer.return_all_stack() # Torch
+        # data = buffer.return_all_stack_np() # Numpy
+        data = buffer.return_all_stack() # Torch
         state, action, reward, next_state, done = data.values()
         # print('state: ', state)
         delta_state = next_state - state
         # print('reward: ', reward.shape)
         # print('delta_state: ', delta_state.shape)
 
-        inputs = np.concatenate((state, action), axis=-1) # Numpy
-        labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1) # Numpy
-        # inputs = T.cat( (state, action), axis=-1 ) # Torch
-        # labels = T.cat( ( T.reshape( reward, (reward.shape[0], -1) ), delta_state ), axis=-1 ) # Torch
+        # inputs = np.concatenate((state, action), axis=-1) # Numpy
+        # labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1) # Numpy
+        inputs = T.cat( (state, action), axis=-1 ) # Torch
+        labels = T.cat( ( T.reshape( reward, (reward.shape[0], -1) ), delta_state ), axis=-1 ) # Torch
         # print('FakeWorld: inputs', inputs.shape)
         # print('inputs: ', inputs)
         # print('labels: ', labels)
