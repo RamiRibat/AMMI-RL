@@ -273,7 +273,7 @@ class MBPO(MBRL, SAC):
     	device = self._device_
     	batch_size = min(batch_size_ro, self.buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-    	B_ro = self.buffer.sample_batch(batch_size, device=device)
+    	B_ro = self.buffer.sample_batch(batch_size)
     	O = B_ro['observations'] # Torch
     	# print('rollout_world_model, O.shape: ', O.shape)
     	# print('a.ptr=', self.model_buffer.ptr)
