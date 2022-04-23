@@ -79,9 +79,11 @@ class FakeWorld:
 
         return log_prob, stds
 
+
     def step(self, obs, act, deterministic=False): # ip: Torch
         print('obs: ', obs)
         print('act: ', act)
+
         if len(obs.shape) == 1:
             obs = obs[None]
             act = act[None]
@@ -94,7 +96,7 @@ class FakeWorld:
         inputs = np.concatenate((obs, act), axis=-1) # Numpy
         # inputs = T.cat((obs, act), axis=-1) # Torch
 
-        ensemble_model_means, ensemble_model_vars = self.model.predict(inputs) # ip: Numpy, op: Torch
+        ensemble_model_means, ensemble_model_vars = self.model.predict(inputs) # ip: Numpy, op: Numpy
 
         ensemble_model_means[:, :, 1:] += obs
         ensemble_model_stds = np.sqrt(ensemble_model_vars) # Numpy
@@ -110,13 +112,13 @@ class FakeWorld:
         num_models, batch_size, _ = ensemble_model_means.shape
         if self.model_type == 'pytorch':
             model_idxes = np.random.choice(self.model.elite_model_idxes, size=batch_size)
-            # model_idxes = T.as_tensor(model_idxes)
+            model_idxes = T.as_tensor(model_idxes)
             # model_idxes = T.multinomial(T.tensor(self.model.elite_model_idxes), num_samples=batch_size, replacement=True)
         # else:
         #     model_idxes = self.model.random_inds(batch_size)
 
-        batch_idxes = np.arange(0, batch_size) # Numpy
-        # batch_idxes = T.arange(0, batch_size) # Torch
+        # batch_idxes = np.arange(0, batch_size) # Numpy
+        batch_idxes = T.arange(0, batch_size) # Torch
 
         samples =     ensemble_samples[model_idxes, batch_idxes]
         model_means = ensemble_model_means[model_idxes, batch_idxes]
@@ -142,6 +144,7 @@ class FakeWorld:
 
         info = {'mean': return_means, 'std': return_stds, 'log_prob': log_prob, 'dev': dev}
         return next_obs, rewards, terminals, info
+
 
     def train_fake_world(self, buffer):
         # Get all samples from environment
