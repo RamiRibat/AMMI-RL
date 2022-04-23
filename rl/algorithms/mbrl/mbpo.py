@@ -270,10 +270,10 @@ class MBPO(MBRL, SAC):
 
     def rollout_world_model(self, batch_size_ro, K, n):
     	#07. Sample st uniformly from Denv
-    	# device = self._device_
+    	device = self._device_
     	batch_size = min(batch_size_ro, self.buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-    	B_ro = self.buffer.sample_batch_np(batch_size)
+    	B_ro = self.buffer.sample_batch(batch_size, device=device)
     	O = B_ro['observations'] # Torch
     	# print('rollout_world_model, O.shape: ', O.shape)
     	# print('a.ptr=', self.model_buffer.ptr)
