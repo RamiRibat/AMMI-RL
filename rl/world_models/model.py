@@ -349,8 +349,8 @@ class EnsembleDynamicsModel():
         self._snapshots = {i: (None, 1e10) for i in range(self.network_size)}
 
         num_holdout = int(inputs.shape[0] * holdout_ratio)
-        permutation = np.random.permutation(inputs.shape[0]) # Numpy
-        # permutation = T.randperm(inputs.shape[0]) # Torch
+        # permutation = np.random.permutation(inputs.shape[0]) # Numpy
+        permutation = T.randperm(inputs.shape[0]) # Torch
         inputs, labels = inputs[permutation], labels[permutation]
         # print('EnsembleDynamicsModel: inputs', inputs.shape)
 
@@ -362,10 +362,10 @@ class EnsembleDynamicsModel():
         holdout_inputs = self.scaler.transform(holdout_inputs)
         # print('EnsembleDynamicsModel: train_inputs', train_inputs.shape)
 
-        holdout_inputs = T.from_numpy(holdout_inputs).float().to(device)
-        holdout_labels = T.from_numpy(holdout_labels).float().to(device)
-        # holdout_inputs = holdout_inputs.to(device)
-        # holdout_labels = holdout_labels.to(device)
+        holdout_inputs = T.from_numpy(holdout_inputs).float().to(device) # Numpy
+        holdout_labels = T.from_numpy(holdout_labels).float().to(device) # Numpy
+        # holdout_inputs = holdout_inputs.to(device) # Torch
+        # holdout_labels = holdout_labels.to(device) # Torch
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
@@ -374,8 +374,8 @@ class EnsembleDynamicsModel():
         # for epoch in range(1):
         for epoch in itertools.count():
             # losses = []
-            train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
-            # train_idx = T.vstack([T.randperm(train_inputs.shape[0]) for _ in range(self.network_size)])
+            # train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)]) # Numpy
+            train_idx = T.vstack( [ T.randperm(train_inputs.shape[0]) for _ in range(self.network_size) ] ) # Torch
             # print('EnsembleDynamicsModel: train_idx', train_idx.shape)
             for start_pos in range(0, train_inputs.shape[0], batch_size):
                 idx = train_idx[:, start_pos: start_pos + batch_size]
