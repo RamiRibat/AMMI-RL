@@ -298,8 +298,13 @@ class MBPO(MBRL, SAC):
     		self.model_buffer.store_batch(O, A, R, O_next, D) # ip:Numpy
     		# print('model buff ptr: ', self.model_buffer.ptr)
 
+    		O_next = T.Tensor(O_next)
+    		D = T.tensor(D, dtype=T.bool)
+    		# print('af: D = ', D)
     		# nonD = ~D
     		nonD = ~D.squeeze(-1)
+    		# print('nonD = ', nonD)
+
     		if nonD.sum() == 0:
     		    print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
     		    break
