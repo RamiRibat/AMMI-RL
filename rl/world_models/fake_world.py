@@ -15,6 +15,49 @@ class FakeWorld:
         self.env_name = env_name
         self.model_type = model_type
 
+    def _termination_fn_np(self, env_name, obs, act, next_obs):
+        # TODO
+        if env_name == "Hopper-v2":
+            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
+
+            height = next_obs[:, 0]
+            angle = next_obs[:, 1]
+            not_done = np.isfinite(next_obs).all(axis=-1) \
+                       * np.abs(next_obs[:, 1:] < 100).all(axis=-1) \
+                       * (height > .7) \
+                       * (np.abs(angle) < .2)
+
+            done = ~not_done
+            done = done[:, None]
+            return done
+        elif env_name == "Walker2d-v2":
+            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
+
+            height = next_obs[:, 0]
+            angle = next_obs[:, 1]
+            not_done = (height > 0.8) \
+                       * (height < 2.0) \
+                       * (angle > -1.0) \
+                       * (angle < 1.0)
+            done = ~not_done
+            done = done[:, None]
+            return done
+        elif 'walker_' in env_name:
+            torso_height =  next_obs[:, -2]
+            torso_ang = next_obs[:, -1]
+            if 'walker_7' in env_name or 'walker_5' in env_name:
+                offset = 0.
+            else:
+                offset = 0.26
+            not_done = (torso_height > 0.8 - offset) \
+                       * (torso_height < 2.0 - offset) \
+                       * (torso_ang > -1.0) \
+                       * (torso_ang < 1.0)
+            done = ~not_done
+            done = done[:, None]
+            return done
+
+
     def _termination_fn(self, env_name, obs, act, next_obs):
         # TODO
         if env_name == "Hopper-v2":
@@ -57,6 +100,7 @@ class FakeWorld:
             done = done[:, None]
             return done
 
+
     def _get_logprob(self, x, means, variances):
 
         k = x.shape[-1]
@@ -81,8 +125,8 @@ class FakeWorld:
 
 
     def step(self, obs, act, deterministic=False): # ip: Torch
-        print('obs: ', obs)
-        print('act: ', act)
+        # print('obs: ', obs)
+        # print('act: ', act)
 
         if len(obs.shape) == 1:
             obs = obs[None]
@@ -90,6 +134,7 @@ class FakeWorld:
             return_single = True
         else:
             return_single = False
+
         obs = obs.numpy()
         act = act.numpy()
 
@@ -130,8 +175,8 @@ class FakeWorld:
         terminals = self._termination_fn(self.env_name, obs, act, next_obs)
 
         batch_size = model_means.shape[0]
-        return_means = np.concatenate((model_means[:, :1], terminals, model_means[:, 1:]), axis=-1) # Numpy
-        return_stds = np.concatenate((model_stds[:, :1], np.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1) # Numpy
+        return_means = None # np.concatenate((model_means[:, :1], terminals, model_means[:, 1:]), axis=-1) # Numpy
+        return_stds = None # np.concatenate((model_stds[:, :1], np.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1) # Numpy
         # return_means = T.cat( (model_means[:, :1], terminals, model_means[:, 1:]),               axis=-1 ) # Torch
         # return_stds =  T.cat( (model_stds [:, :1], T.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1 ) # Torch
 
@@ -143,6 +188,7 @@ class FakeWorld:
             terminals = terminals[0]
 
         info = {'mean': return_means, 'std': return_stds, 'log_prob': log_prob, 'dev': dev}
+        # .detach().cpu().numpy()
         return next_obs, rewards, terminals, info
 
 
