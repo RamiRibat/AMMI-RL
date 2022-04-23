@@ -261,7 +261,7 @@ class ReplayBuffer:
     		self.act_buf[self.ptr:self.ptr+batch_size] = T.Tensor(A)
     		self.rew_buf[self.ptr:self.ptr+batch_size] = T.tensor(R.reshape(-1,1))
     		self.obs_next_buf[self.ptr:self.ptr+batch_size] = T.Tensor(O_next)
-    		self.ter_buf[self.ptr:self.ptr+batch_size] = T.tensor([D], dtype=T.bool)
+    		self.ter_buf[self.ptr:self.ptr+batch_size] = T.tensor(D, dtype=T.bool)
     		self.ptr = (self.ptr+batch_size) % self.max_size
 
     		self.size = min(self.size+batch_size, self.max_size)
