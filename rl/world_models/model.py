@@ -374,8 +374,8 @@ class EnsembleDynamicsModel():
 
         # LossList = []
 
-        # for epoch in range(5):
-        for epoch in itertools.count():
+        for epoch in range(5):
+        # for epoch in itertools.count():
             # losses = []
             # train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)]) # Numpy
             train_idx = T.vstack( [ T.randperm(train_inputs.shape[0]) for _ in range(self.network_size) ] ) # Torch [2]
@@ -397,22 +397,22 @@ class EnsembleDynamicsModel():
             with T.no_grad():
                 holdout_mean, holdout_logvar = self.ensemble_model(holdout_inputs, ret_log_var=True)
                 _, holdout_mse_losses = self.ensemble_model.compute_loss(holdout_mean, holdout_logvar, holdout_labels, inc_var_loss=False)
-                holdout_mse_losses = holdout_mse_losses.detach().cpu().numpy()
-                sorted_loss_idx = np.argsort(holdout_mse_losses)
-                # holdout_mse_losses = holdout_mse_losses.detach().cpu()
-                # sorted_loss_idx = T.argsort(holdout_mse_losses)
+                # holdout_mse_losses = holdout_mse_losses.detach().cpu().numpy()
+                # sorted_loss_idx = np.argsort(holdout_mse_losses)
+                holdout_mse_losses = holdout_mse_losses.detach()
+                sorted_loss_idx = T.argsort(holdout_mse_losses)
                 # print('sorted_loss_idx: ', sorted_loss_idx)
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
-                    print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10))
-                    # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
+                    # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10))
+                    print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
                     break
-            print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
-            # print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10), end='\r')
+            # print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
+            print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10), end='\r')
 
-        return np.mean(holdout_mse_losses)
-        # return (T.mean(holdout_mse_losses))
+        # return np.mean(holdout_mse_losses)
+        return T.mean(holdout_mse_losses)
 
 
     def _save_best(self, epoch, val_losses):
@@ -436,7 +436,7 @@ class EnsembleDynamicsModel():
             return False
 
 
-    def predict(self, inputs, batch_size=1024, factored=True): # ip: Numpy, op: Numpy (used in Fakework.step)
+    def predict(self, inputs, batch_size=1024, factored=True): # ip: Torch, op: Torch (used in Fakework.step)
         device = self._device_
 
         inputs = self.scaler.transform(inputs)
@@ -446,29 +446,30 @@ class EnsembleDynamicsModel():
             # input = T.from_numpy( inputs[ i : min(i + batch_size, inputs.shape[0]) ] ).float().to(device) # Numpy
             input = inputs[ i : min(i + batch_size, inputs.shape[0]) ].to(device) # Torch
             b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
-            ensemble_mean.append(b_mean.detach().cpu().numpy()) # Numpy
-            ensemble_var.append(b_var.detach().cpu().numpy()) # Numpy
-            # ensemble_mean.append(b_mean.detach()) # Torch
-            # ensemble_var.append(b_var.detach()) # Torch
+            # ensemble_mean.append(b_mean.detach().cpu().numpy()) # Numpy
+            # ensemble_var.append(b_var.detach().cpu().numpy()) # Numpy
+            ensemble_mean.append(b_mean.detach()) # Torch
+            ensemble_var.append(b_var.detach()) # Torch
 
-        ensemble_mean = np.hstack(ensemble_mean) # Numpy
-        ensemble_var = np.hstack(ensemble_var) # Numpy
-        # ensemble_mean = T.hstack(ensemble_mean) # Torch
-        # ensemble_var = T.hstack(ensemble_var) # Torch
+        # ensemble_mean = np.hstack(ensemble_mean) # Numpy
+        # ensemble_var = np.hstack(ensemble_var) # Numpy
+        ensemble_mean = T.hstack(ensemble_mean) # Torch
+        ensemble_var = T.hstack(ensemble_var) # Torch
 
         if factored:
             return ensemble_mean, ensemble_var
-        else:
-            assert False, "Need to transform to numpy"
-            mean = np.mean(ensemble_mean, dim=0) # Numpy
-            var = np.mean(ensemble_var, dim=0) + np.mean(np.square(ensemble_mean - mean[None, :, :]), dim=0) # Numpy
-            # mean = T.mean(ensemble_mean, dim=0) # Torch
-            # var = T.mean(ensemble_var, dim=0) + T.mean(T.square(ensemble_mean - mean[None, :, :]), dim=0) # Torch
-            return mean, var
+        # else:
+        #     assert False, "Need to transform to numpy"
+        #     mean = np.mean(ensemble_mean, dim=0) # Numpy
+        #     var = np.mean(ensemble_var, dim=0) + np.mean(np.square(ensemble_mean - mean[None, :, :]), dim=0) # Numpy
+        #     # mean = T.mean(ensemble_mean, dim=0) # Torch
+        #     # var = T.mean(ensemble_var, dim=0) + T.mean(T.square(ensemble_mean - mean[None, :, :]), dim=0) # Torch
+        #     return mean, var
 
 
 
 
+# [ Break Model Training ] Epoch: 248 | HO MSEs: [0.0202, 0.0182, 0.0223, 0.019, 0.0197, 0.0198, 0.0211]
 
 
 
