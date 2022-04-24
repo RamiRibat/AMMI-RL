@@ -56,7 +56,8 @@ configurations = {
         'learn_log_sigma_limits': False,
         'model_train_freq': 250,#250, # Mf
         'model_retain_epochs': 1,
-        'rollout_schedule': [20, 150, 1, 15],
+        # 'rollout_schedule': [20, 150, 1, 15],
+        'rollout_schedule': [10, 150, 1, 50],
         'network': {
             'arch': [200, 200, 200, 200], #@#
             'init_weights': 3e-3,

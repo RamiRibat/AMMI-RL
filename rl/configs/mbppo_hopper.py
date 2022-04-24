@@ -12,17 +12,18 @@ configurations = {
 
     'algorithm': {
         'name': 'MBPPO',
+        'mode': 'PAL', # P: cons (few PG steps) | M: Aggr (many model updates + small real buffer)
+        # 'mode': 'MAL', # P: Aggr (many PG steps) | M: Cons (few model updates + large real buffer)
         'model-based': True,
         'on-policy': True,
         'learning': {
             'epochs': 500, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
-            'init_epochs': 5, # Ni epochs = 5000 exploration steps
-            'expl_epochs': 10, # Nx epochs
-            'real_epochs': 0, # Nr epochs
+            'init_epochs': 2, # Ni-- PAL: 5 | MAL: 10
+            'expl_epochs': 3, # Nx-- PAL: 5 | MAL: 10
 
             'env_steps' : 1, # E: interact E times then train
-            'grad_WM_steps': 50, # G: ac grad
+            'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
             'grad_SAC_steps': 20, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
@@ -48,15 +49,15 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 7, # 7
-        'num_elites': 5, # 5
+        'num_ensembles': 4, # 7
+        'num_elites': 4, # 5
         'sample_type': 'Random',
         'learn_reward': True,
         'model_train_freq': 250,
         'model_retain_epochs': 1,
         'rollout_schedule': [20, 100, 1, 15],
         'network': {
-            'arch': [200,200,200,200], #@#
+            'arch': [512, 512],
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
@@ -65,49 +66,39 @@ configurations = {
             'lr': 1e-3, #@#
             'wd': 1e-5,
             'dropout': None,
-            'batch_size': 250,
+            'batch_size': 256,
             'device': "auto",
         }
     },
 
     'actor': {
-        'type': 'gaussianpolicy',
-        'action_noise': None, # Optional
-        'alpha': 0.2, # Temprature/Entropy #@#
-        'automatic_entropy': False, # trainer_kwargs
-        'target_entropy': "auto",
+        'type': 'ppopolicy',
+        'action_noise': None,
+        'clip_eps': 0.2,
+        'kl_targ': 0.02,
+        'entropy_coef': 0.0,
         'network': {
-            'arch': [256,256], #@#
-            'init_weights': 3e-3,
-            'init_biases': 0,
-            'activation': 'ReLU',
+            'arch': [64, 64],
+            'activation': 'Tanh',
             'output_activation': 'nn.Identity',
-            'optimizer': "Adam", #@#
-            'lr': 3e-4, #@#
-            'wd': 1e-5,
-            'dropout': None,
-            'batch_size': 256,
-            'device': "auto",
+            'optimizer': "Adam",
+            'lr': 3e-4,
+            'max_grad_norm': 0.5,
         }
     },
 
     'critic': {
-        'type': 'sofQ',
-        'number': 2,
-        'gamma': 0.99,
-        'tau': 5e-3,
+        'type': 'V',
+        'number': 1,
+        'gamma': 0.995, # Discount factor - γ
+        'lam': 0.95, # GAE - λ
         'network': {
-            'arch': [256,256], #@#
-            'init_weights': 3e-3,
-            'init_biases': 0,
-            'activation': 'ReLU',
+            'arch': [128, 128],
+            'activation': 'Tanh',
             'output_activation': 'nn.Identity',
-            'optimizer': "Adam", #@#
-            'lr': 3e-4, #@#
-            'wd': 1e-5,
-            'dropout': None,
-            'batch_size': 256,
-            'device': "auto",
+            'optimizer': "Adam",
+            'lr': 3e-4,
+            'max_grad_norm': 0.5,
         }
     },
 
@@ -115,7 +106,7 @@ configurations = {
     'data': {
         'buffer_type': 'simple',
         'optimize_memory_usage': False,
-        'buffer_size': int(5e5),
+        'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
         'model_buffer_size': int(1e7),
         'real_ratio': 0.05,
         'model_val_ratio': 0.2,
