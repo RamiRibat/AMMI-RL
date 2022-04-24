@@ -91,9 +91,9 @@ class ActorCritic: # Done
 
 
 
-class VPG(MFRL):
+class NPG(MFRL):
     """
-    Algorithm: Vanilla Policy Gradient (On-policy, Model-free)
+    Algorithm: Natural Policy Gradient (On-policy, Model-free)
 
         01. Input: θ, φ                                                         > Initial parameters
         02. for k = 0, 1, 2, ... do
@@ -105,6 +105,21 @@ class VPG(MFRL):
         07.     Fit Vθ by MSE(Jv)
                     θ = arg min_θ {(1/T|Dk|) sum sum ( Vθ(st) - RTG )^2 }
         08. end for
+
+        01. Initialize: Models parameters( Policy net πφ0, Value net Vψ0)
+        02. Initialize: Trajectory buffer Dτ = {}
+        03. Hyperparameters: Disc. factor γ, GAE λ
+        04. for n = 0, 1, 2, ..., N:
+        05.     Sample init p(s^k_0) from distribution/buffer
+        05.     Rollout a traj {τ^k_π/M} from {M^θ}_{1:nM} by πn = π(φn) for e = 0, 1, 2, ..., H
+        06.     Aggregate traj τ^k in the traj buffer, Dτ = Dτ U {τ^k_π/M}
+        07.     Compute RTG R^_t, GAE A^_t based on Vn = V(θn)
+        09. Update πφ by maxz Jπ
+                φ = arg max_φ {(1/T|Dk|) sum sum min((π/πk), 1 +- eps) Aπk }
+        10. Fit Vθ by MSE(Jv)
+                θ = arg min_θ {(1/T|Dk|) sum sum (Vθ(st) - RTG)^2 }
+        11. Return: Policy net πθn+1, value net Vφn+1
+        1x. end for
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
         super(VPG, self).__init__(exp_prefix, configs, seed, device)
@@ -303,6 +318,7 @@ class VPG(MFRL):
         if approx_kl_old <= kl_targ:
             Jpg = - ( log_pi * advantages ).mean(axis=0)
             Jentropy = entropy_coef * entropy.mean()
+            JF = 
             Jpi = Jpg + Jentropy
             self.actor_critic.actor.optimizer.zero_grad()
             Jpi.backward()

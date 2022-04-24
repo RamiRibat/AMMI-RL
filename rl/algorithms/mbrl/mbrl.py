@@ -98,34 +98,35 @@ class MBRL:
 
         seed = self.seed
         device = self._device_
-        model_retain_epochs = self.configs['world_model']['model_retain_epochs']
 
-        rollouts_per_epoch = batch_size_ro * (NT / model_train_frequency)
-        model_steps_per_epoch = int(K * rollouts_per_epoch)
-        new_buffer_size = model_retain_epochs * model_steps_per_epoch
+        if self.configs['algorithm']['on-policy']:
+            max_size = self.configs['data']['model_buffer_size']
+            self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+        else:
+            model_retain_epochs = self.configs['world_model']['model_retain_epochs']
+            rollouts_per_epoch = batch_size_ro * (NT / model_train_frequency)
+            model_steps_per_epoch = int(K * rollouts_per_epoch)
+            new_buffer_size = model_retain_epochs * model_steps_per_epoch
 
-        if not hasattr(self, 'model_buffer'):
-        	print('[ MBRL ] Initializing new model buffer with size {:.2e}'.format(new_buffer_size)+(' '*50))
-        	self.model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
-        								act_dim=self.act_dim,
-        								size=new_buffer_size,
-        								seed=seed,
-        								device=device)
+            if not hasattr(self, 'model_buffer'):
+            	print('[ MBRL ] Initializing new model buffer with size {:.2e}'.format(new_buffer_size)+(' '*50))
+            	self.model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
+            								act_dim=self.act_dim,
+            								size=new_buffer_size,
+            								seed=seed,
+            								device=device)
 
-        elif self.model_buffer.max_size != new_buffer_size:
-        	new_model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
-        								act_dim=self.act_dim,
-        								size=new_buffer_size,
-        								seed=seed,
-        								device=device)
-        	old_data = self.model_buffer.return_all_np()
-        	O, A, R, O_next, D = old_data.values()
-        	new_model_buffer.store_batch(O, A, R, O_next, D)
-        	assert self.model_buffer.size == new_model_buffer.size
-        	# # Delete old data buffer and free GPU memory
-        	# del self.model_buffer
-        	# T.cuda.empty_cache()
-        	self.model_buffer = new_model_buffer
+            elif self.model_buffer.max_size != new_buffer_size:
+            	new_model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
+            								act_dim=self.act_dim,
+            								size=new_buffer_size,
+            								seed=seed,
+            								device=device)
+            	old_data = self.model_buffer.return_all_np()
+            	O, A, R, O_next, D = old_data.values()
+            	new_model_buffer.store_batch(O, A, R, O_next, D)
+            	assert self.model_buffer.size == new_model_buffer.size
+            	self.model_buffer = new_model_buffer
 
         print(f'[ Model Buffer ] Size: {self.model_buffer.size}'+(' '*80))
 

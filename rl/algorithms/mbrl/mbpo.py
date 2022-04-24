@@ -49,7 +49,7 @@ class MBPO(MBRL, SAC):
         self._build()
 
 
-    ## build MEMB components: (env, D, AC, alpha)
+    ## build MBPO components: (env, D, AC, alpha)
     def _build(self):
         super(MBPO, self)._build()
         self._set_sac()
@@ -269,50 +269,34 @@ class MBPO(MBRL, SAC):
 
 
     def rollout_world_model(self, batch_size_ro, K, n):
-    	#07. Sample st uniformly from Denv
+    	# 07. Sample st uniformly from Denv
     	device = self._device_
     	batch_size = min(batch_size_ro, self.buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-    	B_ro = self.buffer.sample_batch(batch_size)
-    	O = B_ro['observations'] # Torch
-    	# print('rollout_world_model, O.shape: ', O.shape)
-    	# print('a.ptr=', self.model_buffer.ptr)
+    	B_ro = self.buffer.sample_batch(batch_size) # Torch
+        B_ro = self.buffer.sample_batch_np(batch_size) # Numpy
+    	O = B_ro['observations']
 
-    	#08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
+    	# 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	for k in range(1, K+1):
-    		# with T.no_grad():
-    		# 	# A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
-    		# 	A, _ = self.actor_critic.actor.step_np(T.as_tensor(O, dtype=T.float32)) # ip:Tensor, op:Numpy
-    		A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
+    		A = self.actor_critic.get_action_np(O) # Stochastic action | No reparameterization
 
-    		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
-    		# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
-    		O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Numpy
+    		O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
+    		# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
 
-    		# print('rollout_world_model, O_next.shape: ', O_next.shape)
-
-    		# O = O.detach().cpu().numpy()
-    		# A = A.detach().cpu().numpy()
-
-    		# self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip:Numpy
-    		self.model_buffer.store_batch(O, A, R, O_next, D) # ip:Numpy
-    		# print('model buff ptr: ', self.model_buffer.ptr)
+    		# self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
+    		self.model_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
 
     		O_next = T.Tensor(O_next)
     		D = T.tensor(D, dtype=T.bool)
-    		# print('af: D = ', D)
     		# nonD = ~D
     		nonD = ~D.squeeze(-1)
-    		# print('nonD = ', nonD)
 
     		if nonD.sum() == 0:
     		    print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
     		    break
 
-    		O = O_next[nonD]#.reshape(-1,len(O[0,:]))
-    		# O = T.as_tensor(O, dtype=T.float32)#.to(device)
-
-    	# print('z.ptr=', self.model_buffer.ptr)
+    		O = O_next[nonD]
 
 
     def sac_batch(self, real_ratio, batch_size):
@@ -352,7 +336,6 @@ def main(exp_prefix, config, seed, device, wb):
     exp_prefix = f"seed:{seed}"
 
     if wb:
-        # print('WandB')
         wandb.init(
             name=exp_prefix,
             group=group_name,
