@@ -19,11 +19,11 @@ Algorithms we are re-implementing/plannning to re-implement:
 | NPG | False | V(GAE) | True | False | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🔴 |
 | PPO | False | V(GAE) | True | False | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
 | SAC | False | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
+| PETS | True | None | None | True | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
 | MB-Game | True | V | True | False | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
 | MBPO | True | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
 | MoPAC | True | Q | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟡 |
 | MPC-SAC | True | V/Q | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
-| PETS | True | None | None | True | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
 
 
 ## Experiments and Results
