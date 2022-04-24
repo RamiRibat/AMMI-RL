@@ -356,7 +356,6 @@ class EnsembleDynamicsModel():
         # permutation = np.random.permutation(inputs.shape[0]) # Numpy
         permutation = T.randperm(inputs.shape[0]) # Torch [1]
         inputs, labels = inputs[permutation], labels[permutation]
-        # print('EnsembleDynamicsModel: inputs', inputs.shape)
 
         train_inputs, train_labels = inputs[num_holdout:], labels[num_holdout:]
         holdout_inputs, holdout_labels = inputs[:num_holdout], labels[:num_holdout]
@@ -372,8 +371,6 @@ class EnsembleDynamicsModel():
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
-        # LossList = []
-
         # for epoch in range(5):
         for epoch in itertools.count():
             # losses = []
@@ -386,8 +383,6 @@ class EnsembleDynamicsModel():
                 # train_label = T.from_numpy(train_labels[idx]).float().to(device) # Numpy
                 train_input = train_inputs[idx].to(device) # Torch [3]
                 train_label = train_labels[idx].to(device) # Torch [4]
-                # print('EnsembleDynamicsModel: idx', idx.shape)
-                # print('EnsembleDynamicsModel: train_input', train_input.shape)
                 # losses = []
                 mean, logvar = self.ensemble_model(train_input, ret_log_var=True) # ip: Torch, op: Torch
                 loss, _ = self.ensemble_model.compute_loss(mean, logvar, train_label) # ip: Torch, op: Torch (grad)
@@ -401,7 +396,6 @@ class EnsembleDynamicsModel():
                 # sorted_loss_idx = np.argsort(holdout_mse_losses)
                 holdout_mse_losses = holdout_mse_losses.detach()
                 sorted_loss_idx = T.argsort(holdout_mse_losses)
-                # print('sorted_loss_idx: ', sorted_loss_idx)
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
                 break_train = self._save_best(epoch, holdout_mse_losses)
                 if break_train:
