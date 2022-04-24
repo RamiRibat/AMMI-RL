@@ -22,9 +22,9 @@ configurations = {
             'init_epochs': 2, # Ni-- PAL: 5 | MAL: 10
             'expl_epochs': 3, # Nx-- PAL: 5 | MAL: 10
 
-            'env_steps' : 1, # E: interact E times then train
+            'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
-            'grad_SAC_steps': 20, # ACG: ac grad, 40
+            'grad_PPO_steps': 4, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -107,10 +107,10 @@ configurations = {
         'buffer_type': 'simple',
         'optimize_memory_usage': False,
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
-        'model_buffer_size': int(1e7),
+        'model_buffer_size': int(1e5),
         'real_ratio': 0.05,
         'model_val_ratio': 0.2,
-        'rollout_batch_size': 400,
+        'rollout_batch_size': 200,
         'model_batch_size': 256,
         'batch_size': 256,
         'device': "auto",
