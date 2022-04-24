@@ -31,14 +31,14 @@ class MBPPO(MBRL, PPO):
 
     Algorithm: Model-Based Game: Policy As Leader (PAL) – Practical Version
 
-        01: Initialize: Models parameters( Policy net πφ, Value net Vψ, ensemble of MDP world models {M^θ}_{1:nM} )
+        01: Initialize: Models parameters( Policy net πφ0, Value net Vψ0, ensemble of MDP world models {M^θ0}_{1:nM} )
         02. Initialize: Replay buffer D.
         03: Hyperparameters: Initial samples Ninit, samples per update N, buffer size B ≈ N, number of NPG steps K ≈ 1
         04: Initial Data: Collect N_init samples from the environment by interacting with initial policy. Store data in buffer D.
-        05: for k = 0, 1, 2, ... do
+        05: for n = 0, 1, 2, ..., N (nEpochs) do
         06:    Learn dynamics model(s) Mkat_k+1 using data in the buffer.
-        07:    Policy updates: π_k+1; V_k+1 = MB-PPO(π_k, V_k, Mhat_k+1) // call K times
-        08:    Collect dataset of N samples from World by interacting with πk+1.
+        07:    Policy updates: π_n+1; V_n+1 = MB-PPO(π_n, V_n, Mhat_n+1) // call K times
+        08:    Collect dataset of N samples from World by interacting with πn+1.
         09.    Add data to replay buffer D, discarding old data if size is larger than B.
         10: end for
 
@@ -57,23 +57,25 @@ class MBPPO(MBRL, PPO):
 
     Algorithm: Model-Based Proximal Policy Optimization (On-Policy, Dyna-style, Model-Based)
 
-        01. Inputs: Models parameters( Policy net πφ, Value net Vψ, ensemble of MDP world models {M^θ}_{1:nM}, Replay buffer D)
-        02. Initialize: Trajectory buffer Dτ = {}
-        03. Hyperparameters: Disc. factor γ, GAE λ, num traj's Nτ, model rollout horizon H
-        04. for n = 0, 1, 2, ..., N:
-        05.     Collect set of traj's {τ^πk} by πk = π(φk) for e = 0, 1, 2, ..., E
-        06.     Aggregate the traj's in traj buffer, Dτ = Dτ U {τ^πk}
-        07.     Compute RTG R^_t, GAE A^_t based on Vk = V(θk)
-        08.     for g = 0, 1, 2, ..., G do
-        09.         Update πφ by maxz Jπ
-                        φ = arg max_φ {(1/T|Dk|) sum sum min((π/πk), 1 +- eps) Aπk }
-        10.         Fit Vθ by MSE(Jv)
-                        θ = arg min_θ {(1/T|Dk|) sum sum (Vθ(st) - RTG)^2 }
+        01. Inputs: Models parameters( Policy net πφn, Value net Vψn, ensemble of MDP world models {M^θn+1}_{1:nM}, Replay buffer D)
+        02. Hyperparameters: Disc. factor γ, GAE λ, num traj's Nτ, model rollout horizon H
+        03. Initialize: Trajectory buffer Dτ = {}
+        04. for k = 0, 1, 2, ..., Nτ:
+        05.     Sample init p(s^k_0) from distribution/buffer
+        05.     Rollout a traj {τ^k_π/M} from {M^θ}_{1:nM} by πn = π(φn) for e = 0, 1, 2, ..., H
+        06.     Aggregate traj τ^k in the traj buffer, Dτ = Dτ U {τ^k_π/M}
+        07.     Compute RTG R^_t, GAE A^_t based on Vn = V(θn)
+        08. end for
+        09. Update πφ by maxz Jπ
+                φ = arg max_φ {(1/T|Dk|) sum sum min((π/πk), 1 +- eps) Aπk }
+        10. Fit Vθ by MSE(Jv)
+                θ = arg min_θ {(1/T|Dk|) sum sum (Vθ(st) - RTG)^2 }
         11.     end for
         12. end for
-        1x. Return: Policy net πθ, value net Vφ
+        1x. Return: Policy net πθn+1, value net Vφn+1
 
     Subroutine 1: Model-Based Natural Policy Gradient Update Step
+    
         1: Require: Policy (stochastic) network πθ, value/baseline network V , ensemble of MDP dynamics models fMcφg,
         reward function R, initial state distribution or buffer.
         2: Hyperparameters: Discount factor γ, GAE λ, number of trajectories Nτ, rollout horizon H, normalized NPG step
