@@ -18,12 +18,12 @@ Algorithms we are re-implementing/plannning to re-implement:
 | VPG | False | V(GAE) | True | False | [NeurIPS](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) | 🟢 |
 | NPG | False | V(GAE) | True | False | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🔴 |
 | PPO | False | V(GAE) | True | False | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
-| SAC | False | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
+| SAC | False | 2xQ | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
 | PETS | True | None | None | True | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
 | MB-Game | True | V | True | False | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
-| MBPO | True | Q | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
-| MoPAC | True | Q | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟡 |
-| MPC-SAC | True | V/Q | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
+| MBPO | True | 2xQ | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
+| MoPAC | True | 2xQ | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟡 |
+| MPC-SAC | True | V/2xQ | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
 
 
 ## Experiments and Results
