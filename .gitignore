@@ -12,3 +12,6 @@ rl/wandb
 rl/jpgs/
 rl/lightning_logs
 rl/MUJOCO_LOG.TXT
+
+rl/algorithms/mfrl/ovoq.py
+rl/algorithms/mbrl/movoq.py
