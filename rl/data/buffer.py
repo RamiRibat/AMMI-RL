@@ -292,7 +292,7 @@ class ReplayBuffer:
         			rewards=self.rew_buf[idxs],
         			observations_next=self.obs_next_buf[idxs],
         			terminals=self.ter_buf[idxs])
-        return {k: v for k,v in batch.items()}
+        return {k: v.numpy() for k,v in batch.items()}
 
 
     def get_recent_data(self, batch_size=32, device=False):
