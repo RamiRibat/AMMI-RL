@@ -310,8 +310,6 @@ class EnsembleModel(nn.Module):
             total_loss = self.mse_loss(mean, labels)
             return total_loss, losses # op: Torch
 
-        # return total_loss, mse_loss
-
 
     def train(self, loss):
         self.optimizer.zero_grad()

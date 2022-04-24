@@ -16,6 +16,26 @@ class FakeWorld:
         # self.model_type = model_type
 
 
+    def _reward_fn(self, env_name, obs, act):
+        # TODO
+        next_obs = next_obs.numpy()
+        if env_name == "Hopper-v2":
+            assert len(obs.shape) == len(act.shape) == 2
+            vel_x = obs[:, -6] / 0.02
+            power = np.square(act).sum(axis=-1)
+            height = obs[:, 0]
+            ang = obs[:, 1]
+            alive_bonus = 1.0 * (height > 0.7) * (np.abs(ang) <= 0.2)
+            rewards = vel_x + alive_bonus - 1e-3*power
+
+            return rewards
+        elif env_name == "Walker2d-v2":
+            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
+            pass
+        elif 'walker_' in env_name:
+            pass
+
+
     def _termination_fn(self, env_name, obs, act, next_obs):
         # TODO
         next_obs = next_obs.numpy()
@@ -112,7 +132,6 @@ class FakeWorld:
         else:
             size = ensemble_model_means.shape
             # ensemble_samples = ensemble_model_means + np.random.normal(size=size) * ensemble_model_stds # Numpy
-            # ensemble_samples = ensemble_model_means + T.normal(0, 1, size=size) * ensemble_model_stds # Torch A
             ensemble_samples = ensemble_model_means + T.randn(size=size) * ensemble_model_stds # Torch B
 
         num_models, batch_size, _ = ensemble_model_means.shape
