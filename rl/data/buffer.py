@@ -80,6 +80,22 @@ class TrajBuffer:
         self.ptr +=1
 
 
+    def store_batch(self, O, A, R, D, V, log_Pi):
+        batch_size = len(O[:,0])
+        # print('store_batch/ptr: ', self.ptr)
+        # print('store_batch/buffer_size: ', self.max_size)
+        # print('store_batch/batch_size: ', batch_size)
+
+        self.obs_buf[self.ptr:self.ptr+batch_size] = T.Tensor(O)
+        self.act_buf[self.ptr:self.ptr+batch_size] = T.Tensor(A)
+        self.rew_buf[self.ptr:self.ptr+batch_size] = T.tensor(R.reshape(-1,1))
+        self.ter_buf[self.ptr:self.ptr+batch_size] = T.tensor(D, dtype=T.bool)
+        self.val_buf[self.ptr:self.ptr+batch_size] = T.Tensor(V)
+        self.log_pi_buf[self.ptr:self.ptr+batch_size] = T.Tensor(log_Pi)
+
+        self.ptr +=batch_size
+
+
     def traj_tail(self, next_done, next_value): # Source: CleanRL
         next_done = T.Tensor([next_done])
         if self.gae_lambda: # GAE-lambda
@@ -107,7 +123,7 @@ class TrajBuffer:
 
 
     def sample_batch(self, batch_size=64, device=False):
-        assert self.ptr == self.max_size
+        # assert self.ptr == self.max_size
         # device = self.device
         inds = np.random.randint(0, self.max_size, size=batch_size)
         # inds = np.random.randint(0, self.max_size, size=batch_size)
