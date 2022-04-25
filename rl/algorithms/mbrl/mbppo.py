@@ -203,6 +203,7 @@ class MBPPO(MBRL, PPO):
                     ho_mean = self.fake_world.train_fake_world(self.buffer)
                     JValList.append(ho_mean) # ho: holdout
 
+                    k_list = []
                     for g in range(1, G_ppo+1):
                         # print(f'Actor-Critic Grads...{g}', end='\r')
                         print(f'[ Epoch {n}   Training Actor-Critic ] AC Grads: {g}'+(" "*50), end='\r')
@@ -210,7 +211,8 @@ class MBPPO(MBRL, PPO):
                         self.initialize_model_buffer()
                         # # Generate M k-steps imaginary rollouts for SAC traingin
                         # self.rollout_world_model_op(rollout_trajectories, K, n)
-                        self.rollout_world_model_trajectories(rollout_trajectories, K, n)
+                        k_avg = self.rollout_world_model_trajectories(rollout_trajectories, K, n)
+                        k_list.append(k_avg)
                         # PPO-P >>>>
                         batch_size = int(self.model_buffer.ptr // mini_batch_size)
                         for b in range(0, batch_size, mini_batch_size):
@@ -236,8 +238,12 @@ class MBPPO(MBRL, PPO):
             logs['training/sac/Jpi               '] = np.mean(JPiList)
 
             logs['data/env_buffer                '] = self.buffer.size
-            # if hasattr(self, 'model_buffer'):
-            #     logs['data/model_buffer              '] = self.model_buffer.size
+            if hasattr(self, 'model_buffer'):
+                logs['data/model_buffer              '] = self.model_buffer.ptr
+                logs['data/rollout_horizon           '] = np.mean(k_list)
+            else:
+                logs['data/model_buffer              '] = 0.
+                logs['data/rollout_horizon           '] = 0.
             # else:
             #     logs['data/model_buffer              '] = 0
             # logs['data/rollout_length            '] = K
@@ -321,6 +327,8 @@ class MBPPO(MBRL, PPO):
     	print(f'[ Model Rollout ] Average Breaking : {k_end_total//batch_size}'+(' '*50))
     	with T.no_grad(): v = self.actor_critic.get_v(o)
     	self.model_buffer.traj_tail(d, v)
+
+    	return k_end_total//batch_size
 
 
     def rollout_world_model_op(self, rollout_trajectories, K, n):
