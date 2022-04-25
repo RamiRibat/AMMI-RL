@@ -49,8 +49,8 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 4, # 7
-        'num_elites': 4, # 5
+        'num_ensembles': 7, # 7
+        'num_elites': 5, # 5
         'sample_type': 'Random',
         'learn_reward': True,
         'model_train_freq': 250,
@@ -107,12 +107,14 @@ configurations = {
         'buffer_type': 'simple',
         'optimize_memory_usage': False,
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
-        'model_buffer_size': int(1e5),
+        'model_buffer_size': int(4e5),
         'real_ratio': 0.05,
         'model_val_ratio': 0.2,
-        'rollout_batch_size': 200,
+        'rollout_trajectories': 800, # 4 Models x 200 Traj's
+        'rollout_horizon': 500,
         'model_batch_size': 256,
         'batch_size': 256,
+        'mini_batch_size': 64,
         'device': "auto",
     },
 
