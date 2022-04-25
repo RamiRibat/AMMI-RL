@@ -197,6 +197,39 @@ class MBRL:
         return o, Z, el, t
 
 
+        def evaluate_op(self):
+            evaluate = self.configs['algorithm']['evaluation']
+            if evaluate:
+                print('[ Evaluation ]')
+                EE = self.configs['algorithm']['evaluation']['eval_episodes']
+                max_el = self.configs['environment']['horizon']
+                EZ = [] # Evaluation episodic return
+                ES = [] # Evaluation episodic score
+                EL = [] # Evaluation episodic length
+
+                for ee in range(1, EE+1):
+                    print(f' [ Agent Evaluation ] Episode: {ee}   ', end='\r')
+                    o, d, Z, S, el = self.eval_env.reset(), False, 0, 0, 0
+                    while not(d or (el == max_el)):
+                        # with T.no_grad(): a, _, _ = self.actor_critic.get_pi(T.Tensor(o))
+                        a = self.actor_critic.get_action_np(o)
+                        # a = self.actor_critic.get_action_np(o, deterministic=True)
+                        o, r, d, info = self.eval_env.step(a)
+                        Z += r
+                        if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': S += info['score']
+                        el += 1
+
+                    EZ.append(Z)
+                    if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': ES.append(S/el)
+                    EL.append(el)
+
+                # if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
+                #     for i in range(len(ES)):
+                #         ES[i] /= EL[i]
+
+            return EZ, ES, EL
+
+
     def evaluate(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
