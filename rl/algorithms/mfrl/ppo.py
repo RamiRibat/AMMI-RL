@@ -228,7 +228,7 @@ class PPO(MFRL):
                         # PPO-P >>>>
                         for b in range(0, batch_size, mini_batch_size):
                             # print('ptr: ', self.buffer.ptr)
-                            mini_batch = self.buffer.sample_batch(mini_batch_size)
+                            mini_batch = self.buffer.sample_batch(mini_batch_size, device=self._device_)
                             Jv, Jpi, stop_pi = self.trainAC(g, mini_batch, oldJs)
                             oldJs = [Jv, Jpi]
                             JVList.append(Jv.item())
