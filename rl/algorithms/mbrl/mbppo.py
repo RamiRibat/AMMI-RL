@@ -243,7 +243,8 @@ class MBPPO(MBRL, PPO):
             # logs['data/rollout_length            '] = K
 
             eval_start_real = time.time()
-            EZ, ES, EL = self.evaluate_op()
+            EZ, ES, EL = self.evaluate()
+            # EZ, ES, EL = self.evaluate_op()
 
             # logs['time/evaluation                '] = time.time() - eval_start_real
 
