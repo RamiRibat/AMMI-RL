@@ -305,6 +305,7 @@ class MBPPO(MBRL, PPO):
             for k in range(1, K+1):
                 # print(f'k = {k}', end='\r')
                 with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_pi_and_v(o)
+                a, log_pi, v = a.cpu(), log_pi.cpu(), v.cpu()
 
                 o_next, r, d_next, _ = self.fake_world.step(o, a) # ip: Tensor, op: Tensor
             	# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
