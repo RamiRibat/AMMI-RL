@@ -292,7 +292,6 @@ class MBPPO(MBRL, PPO):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
     	batch_size = rollout_trajectories
-    	# print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Horizon: {K}'+(' '*50))
     	B_ro = self.buffer.sample_batch(batch_size) # Torch
     	O = B_ro['observations_next']
     	D = B_ro['terminals']
@@ -307,18 +306,9 @@ class MBPPO(MBRL, PPO):
                 with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_pi_and_v(o)
                 a, log_pi, v = a.cpu(), log_pi.cpu(), v.cpu()
 
-                o_next, r, d_next, _ = self.fake_world.step(o, a) # ip: Tensor, op: Tensor
-            	# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
+                o_next, r, d_next, _ = self.fake_world.step(o, a, deterministic=True) # ip: Tensor, op: Tensor
 
                 self.model_buffer.store_transition(o, a, r, d, v, log_pi)
-
-                # o_next = T.Tensor(o_next)
-                # d = T.tensor(d, dtype=T.bool)
-                # nond = ~d.squeeze(-1)
-
-                # if nonD.sum() == 0:
-            	#     print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
-            	#     break
 
                 if d_next:
     	            print(f'[ Model Rollout ] Breaking early: {k}'+(' '*50), end='\r')
