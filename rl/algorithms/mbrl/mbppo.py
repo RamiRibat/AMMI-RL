@@ -294,7 +294,7 @@ class MBPPO(MBRL, PPO):
     	batch_size = rollout_trajectories
     	# print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Horizon: {K}'+(' '*50))
     	B_ro = self.buffer.sample_batch(batch_size) # Torch
-    	O = B_ro['observations']
+    	O = B_ro['observations_next']
     	D = B_ro['terminals']
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
