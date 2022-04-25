@@ -209,7 +209,8 @@ class MBPPO(MBRL, PPO):
                         # # Reallocate model buffer
                         self.initialize_model_buffer()
                         # # Generate M k-steps imaginary rollouts for SAC traingin
-                        self.rollout_world_model_op(rollout_trajectories, K, n)
+                        # self.rollout_world_model_op(rollout_trajectories, K, n)
+                        self.rollout_world_model_trajectories(rollout_trajectories, K, n)
                         # PPO-P >>>>
                         batch_size = int(self.model_buffer.ptr // mini_batch_size)
                         for b in range(0, batch_size, mini_batch_size):
@@ -285,6 +286,49 @@ class MBPPO(MBRL, PPO):
 
         self.learn_env.close()
         self.eval_env.close()
+
+
+    def rollout_world_model_trajectories(self, rollout_trajectories, K, n):
+    	# 07. Sample st uniformly from Denv
+    	device = self._device_
+    	batch_size = rollout_trajectories
+    	# print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Horizon: {K}'+(' '*50))
+    	B_ro = self.buffer.sample_batch(batch_size) # Torch
+    	O = B_ro['observations']
+    	D = B_ro['terminals']
+
+        # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
+    	k_end_total = 0
+    	for o, d in zip(O, D):
+            # print('o: ', o.shape)
+            # print('d: ', d.shape)
+            for k in range(1, K+1):
+                # print(f'k = {k}', end='\r')
+                with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_pi_and_v(o)
+
+                o_next, r, d_next, _ = self.fake_world.step(o, a) # ip: Tensor, op: Tensor
+            	# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
+
+                self.model_buffer.store_transition(o, a, r, d, v, log_pi)
+
+                # o_next = T.Tensor(o_next)
+                # d = T.tensor(d, dtype=T.bool)
+                # nond = ~d.squeeze(-1)
+
+                # if nonD.sum() == 0:
+            	#     print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
+            	#     break
+
+                if d_next:
+    	            print(f'[ Model Rollout ] Breaking early: {k}'+(' '*50), end='\r')
+    	            k_end_total += k
+    	            break
+
+                o, d = o_next, d_next
+
+    	print(f'[ Model Rollout ] Average Breaking : {k_end_total//batch_size}'+(' '*50))
+    	with T.no_grad(): v = self.actor_critic.get_v(o)
+    	self.model_buffer.traj_tail(d, v)
 
 
     def rollout_world_model_op(self, rollout_trajectories, K, n):
