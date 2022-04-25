@@ -105,15 +105,21 @@ class FakeWorld:
 
 
     def step(self, obs, act, deterministic=False): # ip: Torch
-        # print('obs: ', obs)
-        # print('act: ', act)
+        # print('obs: ', obs.shape)
+        # print('act: ', act.shape)
 
-        if len(obs.shape) == 1:
+        if len(obs.shape) == 1 and len(act.shape) == 1:
             obs = obs[None]
             act = act[None]
             return_single = True
+        elif len(obs.shape) == 1:
+            obs = obs[None]
+            return_single = True
         else:
             return_single = False
+
+        # print('obs: ', obs.shape)
+        # print('act: ', act.shape)
 
         # obs = obs.numpy()
         # act = act.numpy()
