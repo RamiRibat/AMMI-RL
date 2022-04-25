@@ -198,7 +198,8 @@ class EnsembleModel(nn.Module):
                  action_size,
                  reward_size,
                  ensemble_size,
-                 hidden_size=200,
+                 # hidden_size=200,
+                 hidden_size=512,
                  learning_rate=1e-3,
                  use_decay=False,
                  device='cpu'
@@ -211,11 +212,17 @@ class EnsembleModel(nn.Module):
         self.use_decay = use_decay
         self.output_dim = state_size + reward_size
 
+        # self.nn1 = LinearEnsemble(ensemble_size, state_size + action_size, hidden_size,       weight_decay=0.000025).to(device)
+        # self.nn2 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000050).to(device)
+        # self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        # self.nn4 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        # self.nn5 = LinearEnsemble(ensemble_size, hidden_size,              self.output_dim*2, weight_decay=0.000100).to(device)
+
         self.nn1 = LinearEnsemble(ensemble_size, state_size + action_size, hidden_size,       weight_decay=0.000025).to(device)
         self.nn2 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000050).to(device)
-        self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
-        self.nn4 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
-        self.nn5 = LinearEnsemble(ensemble_size, hidden_size,              self.output_dim*2, weight_decay=0.000100).to(device)
+        # self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        # self.nn4 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              self.output_dim*2, weight_decay=0.000075).to(device)
 
 
         # net_arch = [200, 200, 200, 200] #net_configs['arch']
@@ -249,7 +256,8 @@ class EnsembleModel(nn.Module):
         #     raise 'No network arch!'
         #
         # self.nn_model = nn.Sequential(*layers)
-        # print('self: ', self)
+
+        print('self: ', self)
 
         self.max_logvar = nn.Parameter((T.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
         self.min_logvar = nn.Parameter((-T.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
@@ -266,12 +274,19 @@ class EnsembleModel(nn.Module):
 
     def forward(self, x, ret_log_var=False):
         # print('x: ', x.shape)
+        # nn1_output = self.activation(self.nn1(x))
+        # nn2_output = self.activation(self.nn2(nn1_output))
+        # nn3_output = self.activation(self.nn3(nn2_output))
+        # nn4_output = self.activation(self.nn4(nn3_output))
+        # nn5_output = self.nn5(nn4_output)
+        # nn_output = nn5_output
+
         nn1_output = self.activation(self.nn1(x))
         nn2_output = self.activation(self.nn2(nn1_output))
-        nn3_output = self.activation(self.nn3(nn2_output))
-        nn4_output = self.activation(self.nn4(nn3_output))
-        nn5_output = self.nn5(nn4_output)
-        nn_output = nn5_output
+        # nn3_output = self.activation(self.nn3(nn2_output))
+        # nn4_output = self.activation(self.nn4(nn3_output))
+        nn3_output = self.nn3(nn2_output)
+        nn_output = nn3_output
 
         # nn_output = self.nn_model(x)
 
@@ -369,8 +384,8 @@ class EnsembleDynamicsModel():
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
-        # for epoch in range(5):
-        for epoch in itertools.count():
+        for epoch in range(25):
+        # for epoch in itertools.count():
             # losses = []
             # train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)]) # Numpy
             train_idx = T.vstack( [ T.randperm(train_inputs.shape[0]) for _ in range(self.network_size) ] ) # Torch [2]
@@ -395,11 +410,11 @@ class EnsembleDynamicsModel():
                 holdout_mse_losses = holdout_mse_losses.detach()
                 sorted_loss_idx = T.argsort(holdout_mse_losses)
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
-                break_train = self._save_best(epoch, holdout_mse_losses)
-                if break_train:
-                    # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10))
-                    print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
-                    break
+                # break_train = self._save_best(epoch, holdout_mse_losses)
+                # if break_train:
+                #     # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10))
+                #     print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
+                #     break
             # print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
             print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10), end='\r')
 
