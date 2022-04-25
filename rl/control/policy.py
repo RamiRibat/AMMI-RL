@@ -65,6 +65,7 @@ class PPOPolicy(nn.Module):
 
 
 	def forward(self, obs, act=None,
+				reparameterize=False, # Default: True
 				deterministic=False, # Default: False
 				return_log_pi=True, # Default: False
 				return_entropy=True, # Default: False
@@ -77,8 +78,8 @@ class PPOPolicy(nn.Module):
 		entropy = None
 
 		if act is None: act = probs.sample()
-		if return_log_pi: log_probs = probs.log_prob(act).sum(1, keepdims=True)
-		if return_entropy: entropy = probs.entropy().sum(1, keepdims=True)
+		if return_log_pi: log_probs = probs.log_prob(act).sum(-1, keepdims=True)
+		if return_entropy: entropy = probs.entropy().sum(-1, keepdims=True)
 		return act, log_probs, entropy
 
 
@@ -135,7 +136,7 @@ class StochasticPolicy(nn.Module):
 		return mean, std
 
 
-	def pi_prob(self, mean, std, reparameterize, return_log_prob):
+	def pi_prob(self, mean, std, reparameterize, return_log_prob, return_entropy=True):
 		normal_ditribution = Normal(mean, std)
 
 		if reparameterize:
@@ -143,21 +144,24 @@ class StochasticPolicy(nn.Module):
 		else:
 			sample = normal_ditribution.sample()
 
-		prob, log_prob = T.tanh(sample), None
+		prob, log_prob, entropy = T.tanh(sample), None, None
 
 		if return_log_prob:
 			log_prob = normal_ditribution.log_prob(sample)
 			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
-			log_prob = log_prob.sum(1, keepdim=True)
+			log_prob = log_prob.sum(-1, keepdim=True)
+			# print('log_prob: ', log_prob.shape)
+		if return_entropy: entropy = normal_ditribution.entropy().sum(-1, keepdims=True)
 
-		return prob, log_prob
+		return prob, log_prob, entropy
 
 
 	def forward(self,
 				obs, act=None,
 				reparameterize=True, # Default: True
 				deterministic=False, # Default: False
-				return_log_pi=False # Default: False
+				return_log_pi=False, # Default: False
+				return_entropy=True
 				):
 		# print('forward.reparameterize: ', reparameterize)
 
@@ -171,17 +175,18 @@ class StochasticPolicy(nn.Module):
 		)
 
 		log_pi = None
+		entropy = None
 
 		if deterministic: # Evaluation
 			with T.no_grad(): pi = T.tanh(mean)
 
 		else: # Stochastic | Interaction
 			# print('reparameterize: ', reparameterize)
-			pi, log_pi = self.pi_prob(mean, std, reparameterize, return_log_pi)
+			pi, log_pi, entropy = self.pi_prob(mean, std, reparameterize, return_log_pi, return_entropy=True)
 
 		pi = (pi * self.act_scale) + self.act_bias
 
-		return pi, log_pi
+		return pi, log_pi, entropy
 
 
 	def to(self, device):
