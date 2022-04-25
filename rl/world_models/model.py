@@ -257,7 +257,7 @@ class EnsembleModel(nn.Module):
         #
         # self.nn_model = nn.Sequential(*layers)
 
-        print('self: ', self)
+        # print('self: ', self)
 
         self.max_logvar = nn.Parameter((T.ones((1, self.output_dim)).float() / 2).to(device), requires_grad=False)
         self.min_logvar = nn.Parameter((-T.ones((1, self.output_dim)).float() * 10).to(device), requires_grad=False)
