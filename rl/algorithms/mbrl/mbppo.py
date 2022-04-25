@@ -36,8 +36,8 @@ class MBPPO(MBRL, PPO):
         03: Hyperparameters: Initial samples Ni = 2 epochs, samples per update E=1000, buffer size B = 2500 ≈ N, number of NPG steps K = 4 ≈ 1
         04: Initial Data: Collect N_init samples from the environment by interacting with initial policy. Store data in buffer D.
         05: for n = 0, 1, 2, ..., N (nEpochs) do
-        06:    Learn dynamics model(s) Mkat_k+1 using data in the buffer.
-        07:    Policy updates: π_n+1; V_n+1 = MB-PPO(π_n, V_n, Mhat_n+1) // call K times
+        06:    Learn dynamics model(s) M^_n+1 using data in the buffer.
+        07:    Policy updates: π_n+1; V_n+1 = MB-PPO(π_n, V_n, M^_n+1) // call K times
         08:    Collect dataset of N samples from World by interacting with πn+1.
         09.    Add data to replay buffer D, discarding old data if size is larger than B.
         10: end for
