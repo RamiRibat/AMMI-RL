@@ -220,7 +220,7 @@ class PPO(MFRL):
                 # Taking gradient steps after exploration
                 if n > Ni and n % F == 0:
                     # print('updateAC')
-                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o))
+                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
                     self.buffer.traj_tail(d, v)
                     # Optimizing policy and value networks
                     # b_inds = np.arange(batch_size)
