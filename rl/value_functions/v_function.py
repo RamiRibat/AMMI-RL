@@ -29,6 +29,8 @@ class VFunction(nn.Module):
 
 	    super().__init__() # To automatically use forward
 
+	    self.device = device
+
 	    # self.v = MLPNet(obs_dim, 1, net_configs)
 	    # self.apply(init_weights_)
 
@@ -42,4 +44,8 @@ class VFunction(nn.Module):
 
 
     def forward(self, o):
-        return self.v(T.as_tensor(o, dtype=T.float32))
+        if isinstance(o, T.Tensor):
+        	o = o.to(self.device)
+        else:
+        	o = o
+        return self.v(o)
