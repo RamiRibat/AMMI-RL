@@ -440,10 +440,10 @@ class EnsembleDynamicsModel():
             b_mean, b_var = self.ensemble_model(input[None, :, :].repeat([self.network_size, 1, 1]), ret_log_var=False)
             # ensemble_mean.append(b_mean.detach().cpu().numpy()) # Numpy
             # ensemble_var.append(b_var.detach().cpu().numpy()) # Numpy
-            # ensemble_mean.append(b_mean.detach().cpu()) # Torch
-            # ensemble_var.append(b_var.detach().cpu()) # Torch
-            ensemble_mean.append(b_mean.detach()) # Torch
-            ensemble_var.append(b_var.detach()) # Torch
+            ensemble_mean.append(b_mean.detach().cpu()) # Torch
+            ensemble_var.append(b_var.detach().cpu()) # Torch
+            # ensemble_mean.append(b_mean.detach()) # Torch
+            # ensemble_var.append(b_var.detach()) # Torch
 
         # ensemble_mean = np.hstack(ensemble_mean) # Numpy
         # ensemble_var = np.hstack(ensemble_var) # Numpy
