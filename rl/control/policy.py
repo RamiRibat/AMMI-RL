@@ -71,6 +71,11 @@ class PPOPolicy(nn.Module):
 				return_entropy=True, # Default: False
 				):
 
+		if isinstance(obs, T.Tensor):
+			obs = obs.to(self.device)
+		else:
+			obs = obs
+
 		mean = self.mean(obs)
 		std = T.exp(self.log_std)
 		probs = Normal(mean, std)
