@@ -97,10 +97,12 @@ class TrajBuffer:
 
 
     def traj_tail(self, next_done, next_value): # Source: CleanRL
+        # print('ptr: ', self.ptr)
         next_done = T.Tensor([next_done])
         if self.gae_lambda: # GAE-lambda
             lastgaelam = 0
-            for t in reversed(range(self.max_size)):
+            # for t in reversed(range(self.max_size)):
+            for t in reversed(range(self.ptr)):
                 if t == self.max_size - 1:
                     next_nonterminal = 1.0 - next_done
                     next_values = next_value
@@ -110,16 +112,16 @@ class TrajBuffer:
                 delta = self.rew_buf[t] + self.gamma * next_values * next_nonterminal - self.val_buf[t]
                 self.adv_buf[t] = lastgaelam = delta + self.gamma * self.gae_lambda * next_nonterminal * lastgaelam
             self.ret_buf = self.adv_buf + self.val_buf
-        else:
-            for t in reversed(range(self.max_size)):
-                if t == self.max_size - 1:
-                    next_nonterminal = 1.0 - next_done
-                    next_return = next_value
-                else:
-                    next_nonterminal = 1.0 - self.ter_buf[t + 1]
-                    next_return = self.ret_buf[t + 1]
-                self.ret_buf[t] = self.rew_buf[t] + self.gamma * next_nonterminal * next_return
-            aself.adv_buf = returns - values
+        # else:
+        #     for t in reversed(range(self.max_size)):
+        #         if t == self.max_size - 1:
+        #             next_nonterminal = 1.0 - next_done
+        #             next_return = next_value
+        #         else:
+        #             next_nonterminal = 1.0 - self.ter_buf[t + 1]
+        #             next_return = self.ret_buf[t + 1]
+        #         self.ret_buf[t] = self.rew_buf[t] + self.gamma * next_nonterminal * next_return
+        #     aself.adv_buf = returns - values
 
 
     def sample_batch(self, batch_size=64, device=False):
