@@ -385,12 +385,13 @@ def main(exp_prefix, config, seed, device, wb):
         random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
     alg_name = configs['algorithm']['name']
+    alg_mode = configs['algorithm']['mode']
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-X"
+    group_name = f"{env_name}-{alg_name}-{alg_mode}"
     exp_prefix = f"seed:{seed}"
 
     if wb:
