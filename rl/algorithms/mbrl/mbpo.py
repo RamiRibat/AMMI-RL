@@ -274,12 +274,11 @@ class MBPO(MBRL, SAC):
     	batch_size = min(batch_size_ro, self.buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
     	B_ro = self.buffer.sample_batch(batch_size) # Torch
-        B_ro = self.buffer.sample_batch_np(batch_size) # Numpy
     	O = B_ro['observations']
 
     	# 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	for k in range(1, K+1):
-    		A = self.actor_critic.get_action_np(O) # Stochastic action | No reparameterization
+    		A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
 
     		O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
     		# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy

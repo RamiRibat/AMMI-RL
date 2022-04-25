@@ -4,7 +4,7 @@ from gym.spaces import Box
 import torch as T
 # T.multiprocessing.set_sharing_strategy('file_system')
 
-from rl.data.buffer import ReplayBuffer
+from rl.data.buffer import TrajBuffer, ReplayBuffer
 # from rl.data.buffer import DataBuffer
 from rl.data.dataset import RLDataModule
 # from rl.world_models.world_model import WorldModel
@@ -71,10 +71,10 @@ class MBRL:
         # self.env_buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
         max_size = self.configs['data']['buffer_size']
         device = self._device_
-        if self.configs['algorithm']['on-policy']:
-            self.buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
-        else:
-            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+        # if self.configs['algorithm']['on-policy']:
+        #     self.buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+        # else:
+        self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
 
     def _set_data_module(self):
@@ -84,18 +84,29 @@ class MBRL:
 
     def _set_world_model(self):
         device = self._device_
+        num_ensembles = self.configs['world_model']['num_ensembles']
+        num_elites = self.configs['world_model']['num_elites']
+        # net_arch = self.configs['world_model']['network']['arch']
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
-        self.world_model = EnsembleDynamicsModel(7, 5,
-                                      self.obs_dim, self.act_dim, 1,
-                                      200, use_decay=True,
-                                      device=device)
+        self.world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
+                                                 self.obs_dim, self.act_dim, 1,
+                                                 200, use_decay=True, device=device)
 
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
 
-    def reallocate_model_buffer(self, batch_size_ro, K, NT, model_train_frequency):
-        # print('Rellocate Model Buffer..')
+    def initialize_model_buffer(self):
+        # print('Initialize Model Buffer..')
+        seed = self.seed
+        device = self._device_
 
+        if self.configs['algorithm']['on-policy']:
+            max_size = self.configs['data']['model_buffer_size']
+            self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+
+
+    def reallocate_model_buffer(self, batch_size_ro=None, K=None, NT=None, model_train_frequency=None):
+        print('Rellocate Model Buffer..')
         seed = self.seed
         device = self._device_
 
@@ -128,7 +139,7 @@ class MBRL:
             	assert self.model_buffer.size == new_model_buffer.size
             	self.model_buffer = new_model_buffer
 
-        print(f'[ Model Buffer ] Size: {self.model_buffer.size}'+(' '*80))
+        print(f'[ Model Buffer ] Size: {self.model_buffer.max_size}'+(' '*80))
 
 
     def initialize_learning(self, NT, Ni):

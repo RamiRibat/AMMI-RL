@@ -24,7 +24,7 @@ from torch.distributions.normal import Normal
 nn = T.nn
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import PPOPolicy
+from rl.control.policy import PPOPolicy, StochasticPolicy
 from rl.value_functions.v_function import VFunction
 
 
@@ -64,6 +64,10 @@ class ActorCritic: # Done
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
+        # return StochasticPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -73,25 +77,43 @@ class ActorCritic: # Done
             net_configs, self._device_, self.seed)
 
 
-    def get_v(self, x):
-        return self.critic(x)
+    def get_v(self, o):
+        return self.critic(o)
 
 
-    def get_pi(self, x, action=None):
-        action, log_pi, entropy = self.actor(x, action)
+    def get_pi(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
+        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
         return action, log_pi, entropy
 
 
-    def get_action(self, o, a=None):
+    # def get_action(self, o, a=None):
+    #     o = T.Tensor(o)
+    #     if a: a = T.Tensor(a)
+    #     with T.no_grad(): action, _, _ = self.actor(T.Tensor(o), a)
+    #     return action.cpu().numpy()
+
+
+    def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): action, _, _ = self.actor(T.Tensor(o), a)
-        return action.cpu().numpy()
+        with T.no_grad(): a, _, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return a.cpu()
 
 
-    def get_pi_and_v(self, x, action=None):
-        action, log_pi, entropy = self.actor(x, action)
-        return action, log_pi, entropy, self.critic(x)
+    def get_action_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
+        return self.get_action(o, a, reparameterize, deterministic, return_log_pi).numpy()
+
+
+    def get_pi_and_v(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
+        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return action, log_pi, entropy, self.critic(o)
+
+
+    def get_a_and_v_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
+        o = T.Tensor(o)
+        if a: a = T.Tensor(a)
+        with T.no_grad(): a, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
 
 
 
@@ -201,7 +223,7 @@ class PPO(MFRL):
                     with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o))
                     self.buffer.traj_tail(d, v)
                     # Optimizing policy and value networks
-                    b_inds = np.arange(batch_size)
+                    # b_inds = np.arange(batch_size)
                     for g in range(1, G+1):
                         # PPO-P >>>>
                         for b in range(0, batch_size, mini_batch_size):
@@ -325,7 +347,7 @@ class PPO(MFRL):
         # if approx_kl_old <= kl_targ:
         clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
         Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
-        Jentropy = entropy_coef * entropy.mean()
+        Jentropy = entropy_coef * 0. #entropy.mean()
         Jpi = Jpg + Jentropy
         self.actor_critic.actor.optimizer.zero_grad()
         Jpi.backward()
@@ -359,7 +381,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}"
+    group_name = f"{env_name}-{alg_name}-X"
     exp_prefix = f"seed:{seed}"
 
     if wb:

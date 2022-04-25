@@ -61,14 +61,14 @@ class ActorCritic: # Done
         return StochasticPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
-            net_configs, self._device_, self.seed)#.to(self._device_)
+            net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
         net_configs = self.configs['critic']['network']
         return SoftQFunction(
             self.obs_dim, self.act_dim,
-            net_configs, self._device_, self.seed)#.to(self._device_)
+            net_configs, self._device_, self.seed)
 
 
     def get_q(self, o, a):
@@ -80,14 +80,14 @@ class ActorCritic: # Done
 
 
     def get_pi(self, o, a=None, reparameterize=True, deterministic=False, return_log_pi=False):
-        pi, log_pi = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        pi, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
         return pi, log_pi
 
 
     def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): a, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        with T.no_grad(): a, _, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
         return a.cpu()
 
 
@@ -96,7 +96,7 @@ class ActorCritic: # Done
 
 
     def get_pi_and_q(self, o, a=None):
-        pi, log_pi = self.actor(o, a)
+        pi, log_pi, entropy = self.actor(o, a)
         return pi, log_pi, self.critic(o)
 
 

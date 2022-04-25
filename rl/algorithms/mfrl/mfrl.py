@@ -124,7 +124,8 @@ class MFRL:
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
 
-        a = self.actor_critic.get_action_np(o)
+        # a = self.actor_critic.get_action_np(o)
+        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
 
         o_next, r, d_next, _ = self.learn_env.step(a)
         Z += r
@@ -179,6 +180,7 @@ class MFRL:
                 while not(d or (el == max_el)):
                     # with T.no_grad(): a, _, _ = self.actor_critic.get_pi(T.Tensor(o))
                     a = self.actor_critic.get_action_np(o)
+                    # a = self.actor_critic.get_action_np(o, deterministic=True)
                     o, r, d, info = self.eval_env.step(a)
                     Z += r
                     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': S += info['score']

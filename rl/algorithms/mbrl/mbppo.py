@@ -125,7 +125,7 @@ class MBPPO(MBRL, PPO):
 
     ## PPO
     def _set_ppo(self):
-        SAC._build_ppo(self)
+        PPO._build_ppo(self)
 
 
     ## FakeEnv
@@ -154,13 +154,17 @@ class MBPPO(MBRL, PPO):
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
         real_ratio = self.configs['data']['real_ratio'] # rr
         batch_size = self.configs['data']['batch_size'] # bs
-        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
+        mini_batch_size = self.configs['data']['mini_batch_size'] # bs
+        rollout_trajectories = self.configs['data']['rollout_trajectories'] # bs_ro
+        K = self.configs['data']['rollout_horizon']
 
+        global_step = 0
+        start_time = time.time()
         o, Z, el, t = self.learn_env.reset(), 0, 0, 0
-
+        oldJs = [0, 0]
+        JVList, JPiList = [0]*Ni, [0]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
-        K = 1
 
         start_time_real = time.time()
         for n in range(1, N+1):
@@ -168,18 +172,18 @@ class MBPPO(MBRL, PPO):
                 print('=' * 50)
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
-                    oldJs = [0, 0, 0]
-                    JQList, JAlphaList, JPiList = [0], [0], [0]
-                    JTrainList, JValList, LossTestList = [0], [0], [0]
+                    oldJs = [0, 0]
+                    JVList, JPiList = [0], [0]
+                    JValList = [0]
                 elif n > Ni:
                     print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
-                    JQList, JPiList = [], []
-                    JTrainList, JValList, LossTestList = [], [], []
+                    JVList, JPiList = [], []
+                    JValList = []
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
-                    oldJs = [0, 0, 0]
-                    JQList, JAlphaList, JPiList = [0], [0], [0]
-                    JTrainList, JValList, LossTestList = [0], [0], [0]
+                    oldJs = [0, 0]
+                    JVList, JPiList = [0], [0]
+                    JValList = [0]
 
             print(f'[ Replay Buffer ] Size: {self.buffer.size}')
             nt = 0
@@ -188,40 +192,34 @@ class MBPPO(MBRL, PPO):
                 # Interaction steps
                 for e in range(1, E+1):
                     o, Z, el, t = self.internact(n, o, Z, el, t)
-                    print(f'[ Epoch {n}   Interaction ] Env Steps: {nt+1} | Return: {round(Z, 2)}'+(" "*10), end='\r')
+                    print(f'[ Epoch {n}   Interaction ] Env Steps: {e} | Return: {round(Z, 2)}'+(" "*10), end='\r')
 
                 # Taking gradient steps after exploration
                 if n > Ni:
                     # if nt % model_train_frequency == 0:
                     # 03. Train model pθ on Denv via maximum likelihood
-                    print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
+                    # print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
 
                     ho_mean = self.fake_world.train_fake_world(self.buffer)
                     JValList.append(ho_mean) # ho: holdout
-
-                    # # Reallocate model buffer
-                    # self.reallocate_model_buffer(batch_size_ro, K, NT, model_train_frequency)
-
-                    # # Generate M k-steps imaginary rollouts for SAC traingin
-                    # self.rollout_world_model(batch_size_ro, K, n)
 
                     for g in range(1, G_ppo+1):
                         # print(f'Actor-Critic Grads...{g}', end='\r')
                         print(f'[ Epoch {n}   Training Actor-Critic ] AC Grads: {g}'+(" "*50), end='\r')
                         # # Reallocate model buffer
-                        self.reallocate_model_buffer(batch_size_ro, K, NT, model_train_frequency)
+                        self.initialize_model_buffer()
                         # # Generate M k-steps imaginary rollouts for SAC traingin
-                        self.rollout_world_model(batch_size_ro, K, n)
-                        ## Sample a batch B_sac
-                        B_ppo = self.ppo_batch(real_ratio, batch_size)
-                        ## Train networks using batch B_sac
-                        Jq, Jalpha, Jpi = self.trainAC(g, B_sac, oldJs)
-                        oldJs = [Jq, Jalpha, Jpi]
-                        JQList.append(Jq.item())
-                        JPiList.append(Jpi.item())
-                        if self.configs['actor']['automatic_entropy']:
-                            JAlphaList.append(Jalpha.item())
-                            AlphaList.append(self.alpha)
+                        self.rollout_world_model_op(rollout_trajectories, K, n)
+                        # PPO-P >>>>
+                        batch_size = int(self.model_buffer.ptr // mini_batch_size)
+                        for b in range(0, batch_size, mini_batch_size):
+                            # print('ptr: ', self.buffer.ptr)
+                            mini_batch = self.model_buffer.sample_batch(mini_batch_size)
+                            Jv, Jpi, stop_pi = self.trainAC(g, mini_batch, oldJs)
+                            oldJs = [Jv, Jpi]
+                            JVList.append(Jv.item())
+                            JPiList.append(Jpi.item())
+                        # PPO-P <<<<
 
                 nt += E
 
@@ -233,21 +231,18 @@ class MBPPO(MBRL, PPO):
             logs['training/wm/Jval               '] = np.mean(JValList)
             # logs['training/wm/test_mse           '] = np.mean(LossTestList)
 
-            logs['training/sac/Jq                '] = np.mean(JQList)
+            logs['training/sac/Jv                '] = np.mean(JVList)
             logs['training/sac/Jpi               '] = np.mean(JPiList)
-            if self.configs['actor']['automatic_entropy']:
-                logs['training/obj/sac/Jalpha        '] = np.mean(JAlphaList)
-                logs['training/obj/sac/alpha         '] = np.mean(AlphaList)
 
             logs['data/env_buffer                '] = self.buffer.size
-            if hasattr(self, 'model_buffer'):
-                logs['data/model_buffer              '] = self.model_buffer.size
-            else:
-                logs['data/model_buffer              '] = 0
-            logs['data/rollout_length            '] = K
+            # if hasattr(self, 'model_buffer'):
+            #     logs['data/model_buffer              '] = self.model_buffer.size
+            # else:
+            #     logs['data/model_buffer              '] = 0
+            # logs['data/rollout_length            '] = K
 
             eval_start_real = time.time()
-            EZ, ES, EL = self.evaluate()
+            EZ, ES, EL = self.evaluate_op()
 
             # logs['time/evaluation                '] = time.time() - eval_start_real
 
@@ -292,65 +287,42 @@ class MBPPO(MBRL, PPO):
         self.eval_env.close()
 
 
-    def set_rollout_length(self, n):
-        if self.configs['world_model']['rollout_schedule'] == None:
-        	K = 1
-        else:
-        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['rollout_schedule']
-
-        	if n <= min_epoch:
-        		K = min_length
-        	else:
-        		dx = (n - min_epoch) / (max_epoch - min_epoch)
-        		dx = min(dx, 1)
-        		K = dx * (max_length - min_length) + min_length
-
-        K = int(K)
-        return K
-
-
-    def rollout_world_model(self, batch_size_ro, K, n):
+    def rollout_world_model_op(self, rollout_trajectories, K, n):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
-    	batch_size = min(batch_size_ro, self.buffer.size)
-    	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
+    	batch_size = rollout_trajectories
+    	# print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Horizon: {K}'+(' '*50))
     	B_ro = self.buffer.sample_batch(batch_size) # Torch
-        B_ro = self.buffer.sample_batch_np(batch_size) # Numpy
     	O = B_ro['observations']
+    	D = B_ro['terminals']
 
-    	# 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
+        # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	for k in range(1, K+1):
-    		A = self.actor_critic.get_action_np(O) # Stochastic action | No reparameterization
+            # print('k = ', k)
+            # print('k = ', k, end='\r')
+            A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
+            with T.no_grad(): A, log_Pi, _, V = self.actor_critic.get_pi_and_v(O)
 
-    		O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
-    		# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
+            O_next, R, D_next, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
+        	# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
 
-    		# self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
-    		self.model_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
+            self.model_buffer.store_batch(O, A, R, D, V, log_Pi)
 
-    		O_next = T.Tensor(O_next)
-    		D = T.tensor(D, dtype=T.bool)
-    		# nonD = ~D
-    		nonD = ~D.squeeze(-1)
+            O_next = T.Tensor(O_next)
+            D = T.tensor(D, dtype=T.bool)
+            nonD = ~D.squeeze(-1)
+            if nonD.sum() == 0:
+        	    print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
+        	    break
 
-    		if nonD.sum() == 0:
-    		    print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
-    		    break
+            O, D = O_next[nonD], D_next[nonD]
 
-    		O = O_next[nonD]
+    	with T.no_grad(): V = self.actor_critic.get_v(O)
+    	self.model_buffer.traj_tail(D, V)
 
 
-    def sac_batch(self, real_ratio, batch_size):
-    	batch_size_real = int(real_ratio * batch_size) # 0.05*256
-    	batch_size_img = batch_size - batch_size_real # 256 - (0.05*256)
-    	B_real = self.buffer.sample_batch(batch_size_real, self._device_)
-
-    	if batch_size_img > 0:
-    		B_img = self.model_buffer.sample_batch(batch_size_img, self._device_)
-    		keys = B_real.keys()
-    		B = {k: T.cat((B_real[k], B_img[k]), dim=0) for k in keys}
-    	else:
-    		B = B_real
+    def ppo_mini_batch(self, mini_batch_size):
+    	B = self.model_buffer.sample_batch(mini_batch_size, self._device_)
     	return B
 
 
