@@ -299,29 +299,30 @@ class MBPPO(MBRL, PPO):
     def rollout_real_world_trajectories(self, rollout_trajectories, K, n):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
-    	Nτ = 200 * 4 # number of trajectories x number of models
+    	Nτ = 200 #* 4 # number of trajectories x number of models
+    	# Nτ = self.configs['data']['rollout_trajectories']
     	o, d, el = self.traj_env.reset(), 0, 0
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
-    	k_end_total = 0
+    	# k_end_total = 0
     	for nτ in range(1, Nτ+1): # Generate trajectories
             # print(f'nτ = {nτ}'+(' '*70), end='\r')
             for k in range(1, K+1): # Generate rollouts
-                # print(f'k = {k}'+(' '*70), end='\r')
+                print(f'[ Model Rollout ] nτ = {nτ} | k = {k}'+(' '*70), end='\r')
                 with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
                 o_next, r, d_next, _ = self.traj_env.step(a)
                 el += 1
 
                 self.model_buffer.store_transition(o, a, r, d, v, log_pi)
                 if d_next or (el == K):
-                    o, d, el = self.traj_env.reset(), 0, 0
+                    o_next, d_next, el = self.traj_env.reset(), 0, 0
                     print(f'[ Model Rollout ] Breaking early: {k}'+(' '*50), end='\r')
-                    k_end_total += k
-                    break
-
+                    # k_end_total += k
+                    # break
+                # else:
                 o, d = o_next, d_next
 
-    	print(f'[ Model Rollout ] Average Breaking : {k_end_total//Nτ}'+(' '*50))
+    	# print(f'[ Model Rollout ] Average Breaking : {k_end_total//Nτ}'+(' '*50))
     	with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
     	self.model_buffer.traj_tail(d, v)
 
