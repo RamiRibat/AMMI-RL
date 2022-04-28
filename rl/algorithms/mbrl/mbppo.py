@@ -326,7 +326,7 @@ class MBPPO(MBRL, PPO):
     	with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
     	self.model_buffer.traj_tail(d, v)
 
-    	return k_end_total//Nτ
+    	return K//Nτ
 
 
     def rollout_world_model_trajectories(self, rollout_trajectories, K, n):
