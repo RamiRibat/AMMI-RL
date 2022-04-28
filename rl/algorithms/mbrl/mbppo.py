@@ -200,7 +200,7 @@ class MBPPO(MBRL, PPO):
                     # 03. Train model pθ on Denv via maximum likelihood
                     # print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
 
-                    ho_mean = self.fake_world.train_fake_world(self.buffer)
+                    ho_mean = 0. #self.fake_world.train_fake_world(self.buffer)
                     JValList.append(ho_mean) # ho: holdout
 
                     k_list = []
@@ -211,7 +211,8 @@ class MBPPO(MBRL, PPO):
                         self.initialize_model_buffer()
                         # # Generate M k-steps imaginary rollouts for SAC traingin
                         # self.rollout_world_model_op(rollout_trajectories, K, n)
-                        k_avg = self.rollout_world_model_trajectories(rollout_trajectories, K, n)
+                        # k_avg = self.rollout_world_model_trajectories(rollout_trajectories, K, n)
+                        k_avg = self.rollout_real_world_trajectories(rollout_trajectories, K, n)
                         k_list.append(k_avg)
                         # PPO-P >>>>
                         batch_size = int(self.model_buffer.ptr // mini_batch_size)
@@ -234,16 +235,16 @@ class MBPPO(MBRL, PPO):
             logs['training/wm/Jval               '] = np.mean(JValList)
             # logs['training/wm/test_mse           '] = np.mean(LossTestList)
 
-            logs['training/sac/Jv                '] = np.mean(JVList)
-            logs['training/sac/Jpi               '] = np.mean(JPiList)
+            logs['training/ppo/Jv                '] = np.mean(JVList)
+            logs['training/ppo/Jpi               '] = np.mean(JPiList)
 
             logs['data/env_buffer                '] = self.buffer.size
             if hasattr(self, 'model_buffer'):
                 logs['data/model_buffer              '] = self.model_buffer.ptr
-                logs['data/rollout_horizon           '] = np.mean(k_list)
+                logs['data/rollout_horizon_mean      '] = np.mean(k_list)
             else:
                 logs['data/model_buffer              '] = 0.
-                logs['data/rollout_horizon           '] = 0.
+                logs['data/rollout_horizon_mean      '] = 0.
             # else:
             #     logs['data/model_buffer              '] = 0
             # logs['data/rollout_length            '] = K
@@ -293,6 +294,38 @@ class MBPPO(MBRL, PPO):
 
         self.learn_env.close()
         self.eval_env.close()
+
+
+    def rollout_real_world_trajectories(self, rollout_trajectories, K, n):
+    	# 07. Sample st uniformly from Denv
+    	device = self._device_
+    	Nτ = 200 * 4 # number of trajectories x number of models
+    	o, d, el = self.traj_env.reset(), 0, 0
+
+        # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
+    	k_end_total = 0
+    	for nτ in range(1, Nτ+1): # Generate trajectories
+            # print(f'nτ = {nτ}'+(' '*70), end='\r')
+            for k in range(1, K+1): # Generate rollouts
+                # print(f'k = {k}'+(' '*70), end='\r')
+                with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+                o_next, r, d_next, _ = self.traj_env.step(a)
+                el += 1
+
+                self.model_buffer.store_transition(o, a, r, d, v, log_pi)
+                if d_next or (el == K):
+                    o, d, el = self.traj_env.reset(), 0, 0
+                    print(f'[ Model Rollout ] Breaking early: {k}'+(' '*50), end='\r')
+                    k_end_total += k
+                    break
+
+                o, d = o_next, d_next
+
+    	print(f'[ Model Rollout ] Average Breaking : {k_end_total//Nτ}'+(' '*50))
+    	with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+    	self.model_buffer.traj_tail(d, v)
+
+    	return k_end_total//Nτ
 
 
     def rollout_world_model_trajectories(self, rollout_trajectories, K, n):

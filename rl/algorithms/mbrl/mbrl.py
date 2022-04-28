@@ -43,6 +43,10 @@ class MBRL:
         self._seed_env(self.learn_env)
         assert isinstance (self.learn_env.action_space, Box), "Works only with continuous action space"
 
+        if True:
+            self.traj_env = gym.make(name)
+            self._seed_env(self.traj_env)
+
         if evaluate:
             # Ininialize Evaluation environment
             self.eval_env = gym.make(name)
