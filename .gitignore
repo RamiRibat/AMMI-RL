@@ -15,3 +15,4 @@ rl/MUJOCO_LOG.TXT
 
 rl/algorithms/mfrl/ovoq.py
 rl/algorithms/mbrl/movoq.py
+rl/algorithms/mbrl/movoq_.py
