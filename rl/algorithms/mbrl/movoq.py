@@ -16,7 +16,7 @@ import torch.nn.functional as F
 from rl.algorithms.mbrl.mbrl import MBRL
 from rl.algorithms.mfrl.sac import SAC
 from rl.world_models.fake_world import FakeWorld
-import rl.environments.mbpo.static as mbpo_static
+import rl.environmenmovoq.static as mbpo_static
 # from rl.data.dataset import RLDataModule
 
 
@@ -24,24 +24,39 @@ import rl.environments.mbpo.static as mbpo_static
 
 
 class MOVOQ(MBRL, OVOQ):
+# class MOVOQ(MBRL, SAC, PPO):
     """
     Algorithm: Model-based On-policy(V) Off-policy(Q) policy optimization (Dyna-style, Model-Based)
 
-        1: Initialize policy πφ, predictive model pθ, environment dataset Denv, model dataset Dmodel
-        2: for N epochs do
-        3:      Train model pθ on Denv via maximum likelihood
-        4:      for E steps do
-        5:          Take action in environment according to πφ; add to Denv
-        6:          for M model rollouts do
-        7:              Sample st uniformly from Denv
-        8:              Perform k-step model rollout starting from st using policy πφ; add to Dmodel
-        9:          for G gradient updates do
-        10:             Update policy parameters on model data: φ ← φ − λπ ˆ∇φ Jπ(φ, Dmodel)
+        01: Initialize:
+            Models parameters( Policy net πφ0, Value net Vψ0, Quality net Qω0, ensemble of MDP world models {M^θ0}_{1:nM} )
+        02. Initialize: Replay Buffer D
+        03. Hyperparameters:
+        04. for n = 1, 2, ..., N (nEpochs) do
+            // Model-Based Off-Policy Gradient (Quality-function)
+        05.     for e = 1, 2, ..., E do
+        06.         Interact with World by πφn --> {s, a, r, s'}
+        07.         Aggregate the Replay Buffer: D = D U {s, a, r, s'}
+        08.         Fit dynamics model(s) M^ using all data in the buffer D [with frequency = f]
+        09.         Reallocate: Replay Model Buffer D_model (growing size)
+        10.         for k = 1, 2, ..., Kq (Off-policy rollout horizon) do
+        11.             Rollout transitions {s, a, r, s'}^k from {M^θ}_{1:nM} by πφ starting from p(s0) ~ D
+        12.             Aggregate the Replay Model Buffer: D_model = D_model U {s, a, r, s'}^k
+        13.         for g = 1, 2, ..., Gq (Off-policy PG updates) do
+        14.             Update Off-policy Actor-Critic (Qω, πφ; D_model)
+            // Model-Based On-Policy Gradient (Value-function)
+        15.     Fit dynamics model(s) M^ using recent data B in the buffer D [B << D_max]
+        16.     Initialize: Trajectory Model Buffer Dτ_model (fixed size)
+        17.     for k = 1, 2, ..., Kv (On-policy rollout horizon) do
+        18.         Rollout a traj {τ_π/M^}^k from {M^θ}_{1:nM} by πφ starting from p(s0) ~ B (recent data of D)
+        19.         Aggregate the Trajectory Model Buffer: Dτ_model = Dτ_model U {τ}^k
+        20.     for g = 1, 2, ..., Gv:
+        21.         Update On-policy Actor-Critic (Vψ, πφ; Dτ_model)
 
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
-        super(MBPO, self).__init__(exp_prefix, configs, seed, device)
-        # print('init MBPO Algorithm!')
+        super(MOVOQ, self).__init__(exp_prefix, configs, seed, device)
+        # print('init MOVOQ Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -51,14 +66,14 @@ class MOVOQ(MBRL, OVOQ):
 
     ## build MEMB components: (env, D, AC, alpha)
     def _build(self):
-        super(MBPO, self)._build()
-        self._set_sac()
+        super(MOVOQ, self)._build()
+        self._set_ovoq()
         self._set_fake_world()
 
 
     ## SAC
-    def _set_sac(self):
-        SAC._build_sac(self)
+    def _set_ovoq(self):
+        OVOQ._build_ovoq(self)
 
 
     ## FakeEnv
@@ -81,7 +96,8 @@ class MOVOQ(MBRL, OVOQ):
         Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         E = self.configs['algorithm']['learning']['env_steps']
-        G_sac = self.configs['algorithm']['learning']['grad_SAC_steps']
+        Gq = self.configs['algorithm']['learning']['grad_SAC_steps']
+        Gv = self.configs['algorithm']['learning']['grad_PPO_steps']
 
         # batch_size = self.configs['data']['batch_size']
 
@@ -93,16 +109,6 @@ class MOVOQ(MBRL, OVOQ):
         batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
 
         o, Z, el, t = self.learn_env.reset(), 0, 0, 0
-        # o, Z, el, t = self.initialize_learning(NT, Ni)
-        # oldJs = [0, 0, 0]
-        # JQList, JAlphaList, JPiList = [0], [0], [0]
-        # AlphaList = [self.alpha]*Ni
-
-        # JTrainList, JValList, LossTestList = [0], [0], [0]
-        # WMList = {'mu': [0]*Ni, 'sigma': [0]*Ni}
-        # JMeanTrainList, JTrainList, JMeanValList, JValList = [], [], [], []
-        # LossTestList = []
-        # WMList = {'mu': [], 'sigma': []}
 
         logs = dict()
         lastEZ, lastES = 0, -2
@@ -114,8 +120,6 @@ class MOVOQ(MBRL, OVOQ):
                 print('=' * 50)
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
-                    # JQList, JPiList = [], []
-                    # JTrainList, JValList, LossTestList = [], [], []
                     oldJs = [0, 0, 0]
                     JQList, JAlphaList, JPiList = [0], [0], [0]
                     JTrainList, JValList, LossTestList = [0], [0], [0]
@@ -142,33 +146,17 @@ class MOVOQ(MBRL, OVOQ):
                 if n > Ni:
                     if nt % model_train_frequency == 0:
                         #03. Train model pθ on Denv via maximum likelihood
-                        # PyTorch Lightning Model Training
                         print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
-                        # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}
-                        # self.data_module = RLDataModule(self.buffer, self.configs['data'])
-
-                        # JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
-                        # JTrainList.append(JTrainLog)
-                        # JValList.append(JValLog)
-                        # LossTestList.append(LossTest)
 
                         ho_mean = self.fake_world.train_fake_world(self.buffer)
                         JValList.append(ho_mean) # ho: holdout
 
                         # Update K-steps length
                         K = self.set_rollout_length(n)
-
-                        # Reallocate model buffer
-                        # if K != K_new:
-                        #     K = K_new
                         self.reallocate_model_buffer(batch_size_ro, K, NT, model_train_frequency)
-
-                        # Generate M k-steps imaginary rollouts for SAC traingin
                         self.rollout_world_model(batch_size_ro, K, n)
 
-                    # JQList, JPiList = [], []
-                    # AlphaList = [self.alpha]*G_sac
-                    for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
+                    for g in range(1, Gq+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
                         print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}'+(" "*10), end='\r')
                         ## Sample a batch B_sac
@@ -334,7 +322,7 @@ class MOVOQ(MBRL, OVOQ):
 
 def main(exp_prefix, config, seed, device, wb):
 
-    print('Start an MBPO experiment...')
+    print('Start an MOVOQ experiment...')
     print('\n')
 
     configs = config.configurations
@@ -361,12 +349,12 @@ def main(exp_prefix, config, seed, device, wb):
             config=configs
         )
 
-    agent = MBPO(exp_prefix, configs, seed, device, wb)
+    agent = MOVOQ(exp_prefix, configs, seed, device, wb)
 
     agent.learn()
 
     print('\n')
-    print('... End the MBPO experiment')
+    print('... End the MOVOQ experiment')
 
 
 if __name__ == "__main__":
