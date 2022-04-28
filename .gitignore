@@ -14,4 +14,4 @@ rl/lightning_logs
 rl/MUJOCO_LOG.TXT
 
 rl/algorithms/mfrl/ovoq.py
-rl/algorithms/mbrl/_movoq.py
+rl/algorithms/mbrl/movoq.py
