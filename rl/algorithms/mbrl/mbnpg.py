@@ -1,4 +1,4 @@
-import os, subprocess, sys
+npgimport os, subprocess, sys
 import argparse
 import importlib
 import datetime
@@ -14,7 +14,7 @@ import torch.nn.functional as F
 # T.multiprocessing.set_sharing_strategy('file_system')
 
 from rl.algorithms.mbrl.mbrl import MBRL
-from rl.algorithms.mfrl.ppo import PPO
+from rl.algorithms.mfrl.npg import NPG
 from rl.world_models.fake_world import FakeWorld
 import rl.environments.mbpo.static as mbpo_static
 # from rl.data.dataset import RLDataModule
@@ -23,7 +23,7 @@ import rl.environments.mbpo.static as mbpo_static
 
 
 
-class MBPPO(MBRL, PPO):
+class MBNPG(MBRL, NPG):
     """
     Greek alphabet:
         Α α, Β β, Γ γ, Δ δ, Ε ε, Ζ ζ, Η η, Θ θ, Ι ι, Κ κ, Λ λ, Μ μ,
@@ -37,7 +37,7 @@ class MBPPO(MBRL, PPO):
         04: Initial Data: Collect N_init samples from the environment by interacting with initial policy. Store data in buffer D.
         05: for n = 0, 1, 2, ..., N (nEpochs) do
         06:    Learn dynamics model(s) M^_n+1 using data in the buffer.
-        07:    Policy updates: π_n+1; V_n+1 = MB-PPO(π_n, V_n, M^_n+1) // call K times
+        07:    Policy updates: π_n+1; V_n+1 = MB-NPG(π_n, V_n, M^_n+1) // call K times
         08:    Collect dataset of N samples from World by interacting with πn+1.
         09.    Add data to replay buffer D, discarding old data if size is larger than B.
         10: end for
@@ -45,11 +45,11 @@ class MBPPO(MBRL, PPO):
 
     Algorithm: Model-Based Game: Model As Leader (MAL) – Practical Version
         1: Initialize: Policy network π_0, model network(s) Mhat_0, value network V_0.
-        2: Hyperparameters: Initial samples N_init, samples per update N, number of PPO steps K >> 1
+        2: Hyperparameters: Initial samples N_init, samples per update N, number of NPG steps K >> 1
         3: Initial Data: Collect N_init samples from the environment by interacting with initial policy. Store data in buffer D.
         4: Initial Model: Learn model(s) Mhat_0 using data in D.
         5: for k = 0, 1, 2, ... do
-        6:    Optimize π_k+1 using Mck by running K >> 1 steps of model-based PPO (Subroutine 1).
+        6:    Optimize π_k+1 using Mck by running K >> 1 steps of model-based NPG (Subroutine 1).
         7:    Collect dataset D_k+1 of N samples from world using πk+1. Aggregate data D = D U D_k+1.
         8:    Learn dynamics model(s) Mhat_k+1 using data in D.
         9: end for
@@ -97,8 +97,8 @@ class MBPPO(MBRL, PPO):
 
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
-        super(MBPPO, self).__init__(exp_prefix, configs, seed, device)
-        # print('init MBPPO Algorithm!')
+        super(MBNPG, self).__init__(exp_prefix, configs, seed, device)
+        # print('init MBNPG Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -107,8 +107,8 @@ class MBPPO(MBRL, PPO):
 
 
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
-        super(MBPPO, self).__init__(exp_prefix, configs, seed, device)
-        # print('init MBPPO Algorithm!')
+        super(MBNPG, self).__init__(exp_prefix, configs, seed, device)
+        # print('init MBNPG Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -116,16 +116,16 @@ class MBPPO(MBRL, PPO):
         self._build()
 
 
-    ## build MBPPO components: (env, D, AC, alpha)
+    ## build MBNPG components: (env, D, AC, alpha)
     def _build(self):
-        super(MBPPO, self)._build()
-        self._set_ppo()
+        super(MBNPG, self)._build()
+        self._set_npg()
         self._set_fake_world()
 
 
-    ## PPO
-    def _set_ppo(self):
-        PPO._build_ppo(self)
+    ## NPG
+    def _set_npg(self):
+        NPG._build_npg(self)
 
 
     ## FakeEnv
@@ -147,7 +147,7 @@ class MBPPO(MBRL, PPO):
         Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         E = self.configs['algorithm']['learning']['env_steps']
-        G_ppo = self.configs['algorithm']['learning']['grad_PPO_steps']
+        G_npg = self.configs['algorithm']['learning']['grad_NPG_steps']
 
         model_train_frequency = self.configs['world_model']['model_train_freq']
         batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
@@ -204,7 +204,7 @@ class MBPPO(MBRL, PPO):
                     JValList.append(ho_mean) # ho: holdout
 
                     k_list = []
-                    for g in range(1, G_ppo+1):
+                    for g in range(1, G_npg+1):
                         # print(f'Actor-Critic Grads...{g}', end='\r')
                         # print(f'[ Epoch {n}   Training Actor-Critic ] AC Grads: {g}'+(" "*50), end='\r')
                         # # Reallocate model buffer
@@ -214,7 +214,7 @@ class MBPPO(MBRL, PPO):
                         # k_avg = self.rollout_world_model_trajectories(rollout_trajectories, K, n)
                         k_avg = self.rollout_real_world_trajectories(rollout_trajectories, K, g, n)
                         k_list.append(k_avg)
-                        # PPO-P >>>>
+                        # NPG-P >>>>
                         # batch_size = int(self.model_buffer.ptr // mini_batch_size) # Stubid!!
                         batch_size = int(self.model_buffer.ptr)
                         for b in range(0, batch_size, mini_batch_size):
@@ -224,7 +224,7 @@ class MBPPO(MBRL, PPO):
                             oldJs = [Jv, Jpi]
                             JVList.append(Jv.item())
                             JPiList.append(Jpi.item())
-                        # PPO-P <<<<
+                        # NPG-P <<<<
 
                 nt += E
 
@@ -236,8 +236,8 @@ class MBPPO(MBRL, PPO):
             logs['training/wm/Jval               '] = np.mean(JValList)
             # logs['training/wm/test_mse           '] = np.mean(LossTestList)
 
-            logs['training/ppo/Jv                '] = np.mean(JVList)
-            logs['training/ppo/Jpi               '] = np.mean(JPiList)
+            logs['training/npg/Jv                '] = np.mean(JVList)
+            logs['training/npg/Jpi               '] = np.mean(JPiList)
 
             logs['data/env_buffer                '] = self.buffer.size
             if hasattr(self, 'model_buffer'):
@@ -400,7 +400,7 @@ class MBPPO(MBRL, PPO):
     	self.model_buffer.traj_tail(D, V)
 
 
-    def ppo_mini_batch(self, mini_batch_size):
+    def npg_mini_batch(self, mini_batch_size):
     	B = self.model_buffer.sample_batch(mini_batch_size, self._device_)
     	return B
 
@@ -410,7 +410,7 @@ class MBPPO(MBRL, PPO):
 
 def main(exp_prefix, config, seed, device, wb):
 
-    print('Start an MBPPO experiment...')
+    print('Start an MBNPG experiment...')
     print('\n')
 
     configs = config.configurations
@@ -437,12 +437,12 @@ def main(exp_prefix, config, seed, device, wb):
             config=configs
         )
 
-    agent = MBPPO(exp_prefix, configs, seed, device, wb)
+    agent = MBNPG(exp_prefix, configs, seed, device, wb)
 
     agent.learn()
 
     print('\n')
-    print('... End the MBPPO experiment')
+    print('... End the MBNPG experiment')
 
 
 if __name__ == "__main__":

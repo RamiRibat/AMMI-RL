@@ -24,14 +24,13 @@ from torch.distributions.normal import Normal
 nn = T.nn
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.algorithms.mfrl.reinforce import Reinforce
-from rl.control.policy import ReinforcePolicy, StochasticPolicy
+from rl.control.policy import ReinforcePolicy
 from rl.value_functions.v_function import VFunction
 
 
 
 
-
+# class ActorCritic(nn.Module): # Done
 class ActorCritic: # Done
     """
     Actor-Critic
@@ -50,6 +49,9 @@ class ActorCritic: # Done
         self.configs, self.seed = configs, seed
         self._device_ = device
 
+        optimizer = 'T.optim.' + self.configs['actor']['network']['optimizer']
+        lr = self.configs['actor']['network']['lr']
+
         self.actor, self.critic = None, None
         self._build()
 
@@ -61,11 +63,7 @@ class ActorCritic: # Done
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        # return PPOPolicy(
-        #     self.obs_dim, self.act_dim,
-        #     self.act_up_lim, self.act_low_lim,
-        #     net_configs, self._device_, self.seed)
-        return StochasticPolicy(
+        return PPOPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
@@ -78,68 +76,39 @@ class ActorCritic: # Done
             net_configs, self._device_, self.seed)
 
 
-    def get_v(self, o):
-        return self.critic(o)
+    def get_v(self, x):
+        return self.critic(x)
 
 
-    def get_pi(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
-        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+    def get_pi(self, x, action=None):
+        action, log_pi, entropy = self.actor(x, action)
         return action, log_pi, entropy
 
 
-    # def get_action(self, o, a=None):
-    #     o = T.Tensor(o)
-    #     if a: a = T.Tensor(a)
-    #     with T.no_grad(): action, _, _ = self.actor(T.Tensor(o), a)
-    #     return action.cpu().numpy()
-
-
-    def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
-        o = T.Tensor(o)
-        if a: a = T.Tensor(a)
-        with T.no_grad(): a, _, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        return a.cpu()
-
-
-    def get_action_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
-        return self.get_action(o, a, reparameterize, deterministic, return_log_pi).numpy()
-
-
-    def get_pi_and_v(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
-        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        return action, log_pi, entropy, self.critic(o)
-
-
-    def get_a_and_v_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
-        o = T.Tensor(o)
-        if a: a = T.Tensor(a)
-        with T.no_grad(): a, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
+    def get_pi_and_v(self, x, action=None):
+        action, log_pi, entropy = self.actor(x, action)
+        return action, log_pi, entropy, self.critic(x)
 
 
 
-class NPG(MFRL, Reinforce):
+class Reinforce(MFRL):
     """
-    Algorithm: Natural Policy Gradient (On-Policy, Model-Free)
+    Algorithm: Vanilla Policy Gradient (Reinforce) (On-policy, Model-free)
 
-        01. Initialize: Models parameters( Policy net πφ, Value net Vψ )
-        02. Initialize: Trajectory buffer Dτ = {}
-        03. Hyperparameters: Disc. factor γ, GAE λ, num traj's Nτ, rollout horizon H
-        04. for n = 0, 1, 2, ..., N:
-        05.     Collect set of traj's {τ^πk} by πk = π(φk) for e = 0, 1, 2, ..., E
-        06.     Aggregate the traj's in traj buffer, Dτ = Dτ U {τ^πk}
-        07.     Compute RTG R^_t, GAE A^_t based on Vk = V(θk)
-        08.     for g = 0, 1, 2, ..., G do
-        09.         Update πφ by maxz Jπ
-                        φ = arg max_φ {(1/T|Dk|) sum sum min((π/πk), 1 +- eps) Aπk }
-        10.         Fit Vθ by MSE(Jv)
-                        ψ = arg min_ψ {(1/T|Dk|) sum sum (Vψ(st) - RTG)^2 }
-        11.     end for
-        12. end for
+        01. Input: θ, φ                                                         > Initial parameters
+        02. for k = 0, 1, 2, ... do
+        03.     Collect set of traj's D = {τi} by πk = π(φk)
+        04.     Compute RTG Rhat_t
+        05.     Compute advantage estimate Ahat_t based on Vk = V(θk)
+        06.     Update πφ by maxz Jπ
+                    φ = arg max_φ {(1/T|Dk|) sum sum min((π/πk), 1 +- eps) Aπk }
+        07.     Fit Vθ by MSE(Jv)
+                    θ = arg min_θ {(1/T|Dk|) sum sum ( Vθ(st) - RTG )^2 }
+        08. end for
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
-        super(NPG, self).__init__(exp_prefix, configs, seed, device)
-        # print('init NPG Algorithm!')
+        super(Reinforce, self).__init__(exp_prefix, configs, seed, device)
+        # print('init Reinforce Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -148,11 +117,11 @@ class NPG(MFRL, Reinforce):
 
 
     def _build(self):
-        super(NPG, self)._build()
-        self._build_npg()
+        super(Reinforce, self)._build()
+        self._build_reinforce()
 
 
-    def _build_npg(self):
+    def _build_reinforce(self):
         self._set_actor_critic()
 
 
@@ -209,7 +178,7 @@ class NPG(MFRL, Reinforce):
                     if t % 1000 == 0:
                         # print(f"Training: global_step={global_step}, return={round(Z, 2)}, ep_length={el}")
                         EZ, ES, EL = self.evaluate_op()
-                        print(f"Evaluation: global_step={t}, return={round(np.mean(EZ), 2)}, ep_length={np.mean(EL)}")
+                        print(f"Evaluation: global_step={global_step}, return={round(np.mean(EZ), 2)}, ep_length={np.mean(EL)}")
                         logs['evaluation/episodic_return_mean'] = np.mean(EZ)
                         logs['evaluation/episodic_length_mean'] = np.mean(EL)
                         if self.WandB:
@@ -221,33 +190,24 @@ class NPG(MFRL, Reinforce):
                 # Taking gradient steps after exploration
                 if n > Ni and n % F == 0:
                     # print('updateAC')
-                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o))
                     self.buffer.traj_tail(d, v)
                     # Optimizing policy and value networks
-                    # b_inds = np.arange(batch_size)
+                    b_inds = np.arange(batch_size)
                     for g in range(1, G+1):
-                        # NPG-P >>>>
                         for b in range(0, batch_size, mini_batch_size):
                             # print('ptr: ', self.buffer.ptr)
-                            mini_batch = self.buffer.sample_batch(mini_batch_size, device=self._device_)
+                            mini_batch = self.buffer.sample_batch(mini_batch_size)
                             Jv, Jpi, stop_pi = self.trainAC(g, mini_batch, oldJs)
                             oldJs = [Jv, Jpi]
                             JVList.append(Jv.item())
                             JPiList.append(Jpi.item())
-                        # NPG-P <<<<
-
-                        # np.random.shuffle(b_inds)
-                        # for start in range(0, batch_size, mini_batch_size):
-                        #     end = start + mini_batch_size
-                        #     mb_inds = b_inds[start:end]
-                        #     mini_batch = self.buffer.sample_inds(mb_inds)
-                        #     self.trainAC(mini_batch)
                     self.buffer.reset()
                 nt += E
 
             # logs['time/training                  '] = time.time() - learn_start_real
-            # logs['training/npg/Jv                '] = np.mean(JVList)
-            # logs['training/npg/Jpi               '] = np.mean(JPiList)
+            # logs['training/reinforce/Jv                '] = np.mean(JVList)
+            # logs['training/reinforce/Jpi               '] = np.mean(JPiList)
             #
             # eval_start_real = time.time()
             # EZ, ES, EL = self.evaluate_op()
@@ -340,27 +300,18 @@ class NPG(MFRL, Reinforce):
             approx_kl_old = (-logratio).mean()
             approx_kl = ((ratio - 1) - logratio).mean()
 
-        # clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
-        # Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
-        # Jentropy = entropy_coef * entropy.mean()
-        # Jpi = Jpg + Jentropy
-
-        # if approx_kl_old <= kl_targ:
-        clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
-        Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
-        Jentropy = entropy_coef * 0. #entropy.mean()
-        Jpi = Jpg + Jentropy
-        self.actor_critic.actor.optimizer.zero_grad()
-        Jpi.backward()
-        nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm)
-        self.actor_critic.actor.optimizer.step()
-        # else:
-        #     # print('Stop policy gradient updates!')
-        #     Jpi = Jpi_old
-        #     stop_pi = True
-
-        # if approx_kl > 1.5 * kl_targ:
-        #     stop = True
+        if approx_kl_old <= kl_targ:
+            Jpg = - ( log_pi * advantages ).mean(axis=0)
+            Jentropy = entropy_coef * entropy.mean()
+            Jpi = Jpg + Jentropy
+            self.actor_critic.actor.optimizer.zero_grad()
+            Jpi.backward()
+            nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm)
+            self.actor_critic.actor.optimizer.step()
+        else:
+            # print('Stop policy gradient updates!')
+            Jpi = Jpi_old
+            stop_pi = True
 
         return Jpi, stop_pi
 
@@ -370,7 +321,7 @@ class NPG(MFRL, Reinforce):
 
 def main(exp_prefix, config, seed, device, wb):
 
-    print('Start an NPG experiment...')
+    print('Start an Reinforce experiment...')
     print('\n')
 
     configs = config.configurations
@@ -382,7 +333,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-X"
+    group_name = f"{env_name}-{alg_name}"
     exp_prefix = f"seed:{seed}"
 
     if wb:
@@ -394,12 +345,12 @@ def main(exp_prefix, config, seed, device, wb):
             config=configs
         )
 
-    agent = NPG(exp_prefix, configs, seed, device, wb)
+    agent = Reinforce(exp_prefix, configs, seed, device, wb)
 
     agent.learn()
 
     print('\n')
-    print('... End the NPG experiment')
+    print('... End the Reinforce experiment')
 
 
 if __name__ == "__main__":
