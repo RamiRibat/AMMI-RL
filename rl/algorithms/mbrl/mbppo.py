@@ -356,7 +356,7 @@ class MBPPO(MBRL, PPO):
     	K = 500
 
     	O = O_init = self.buffer.sample_init_obs_batch(Nτ)
-    	init_size = len(O_init)
+    	O_Nτ = len(O_init)
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	k_end_total = 0
@@ -366,7 +366,7 @@ class MBPPO(MBRL, PPO):
     	for nτ, o in enumerate(O_init): # Generate trajectories
             Z, el = 0, 0
             for k in range(1, K+1): # Generate rollouts
-                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
+                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{O_Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
                 # print('\no: ', o)
                 # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
                 with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
