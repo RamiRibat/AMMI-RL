@@ -125,11 +125,11 @@ python evaluate_agent.py -env Walker2d-v2 -alg SAC -seed 1 -EE 5
 
 
 ## AMMI-RL Team, Group 2
-(last name alphabetical order)
-- [Rami Ahmed](https://github.com/RamiSketche) (VPG, PPO, SAC, MBPO)
-- [Wafaa Mohammed](https://github.com/Wafaa014) (SAC)
-- [Ruba Mutasim](https://github.com/ruba128) (SAC)
-- [MohammedElfatih Salah](https://github.com/mohammedElfatihSalah) (SAC)
+(last name alphabetical order) | contribution 
+- [Rami Ahmed](https://github.com/RamiSketche) | VPG, PPO, SAC, MBPO
+- [Wafaa Mohammed](https://github.com/Wafaa014) | SAC
+- [Ruba Mutasim](https://github.com/ruba128) | SAC
+- [MohammedElfatih Salah](https://github.com/mohammedElfatihSalah) | SAC
 
 
 
