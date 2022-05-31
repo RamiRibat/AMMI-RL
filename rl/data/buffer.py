@@ -318,17 +318,41 @@ class TrajBuffer:
             return {k: v            for k,v in batch.items()}
 
 
-    def sample_init_obs_batch(self, batch_size=200, device=False):
-        last_idx = min(self.last_traj+1, self.num_traj)
-        live_traj = T.count_nonzero(self.ter_idx[:last_idx])
-        self.init_obs = T.zeros((live_traj, self.obs_dim), dtype=T.float32)
+    def update_init_obs(self):
+        # print('update_init_obs!')
+        old_size = len(self.init_obs)
+        if self.ptr > old_size:
+            start = old_size
+            add_size = self.ptr - old_size
+        else:
+            start = 0
+            add_size = self.ptr
+        # print(f'ptr={self.ptr} | add_size={add_size}')
+        new_init_obs = T.zeros((old_size+add_size, self.obs_dim), dtype=T.float32)
+        new_init_obs[:old_size] = self.init_obs
 
-        i = 0
-        for traj in range(self.last_traj+1):
+        i = old_size
+        for traj in range(start, start+add_size+1):
             j = int(self.ter_idx[traj])
             if j > 0:
-                self.init_obs[i] = self.obs_buf[traj, 0, :]
+                new_init_obs[i, :] = self.obs_buf[traj, 0, :]
                 i +=1
+        self.init_obs = new_init_obs
+
+
+    def sample_init_obs_batch(self, batch_size=200, device=False):
+        if not hasattr(self, 'init_obs'):
+            last_idx = min(self.ptr+1, self.num_traj)
+            live_traj = T.count_nonzero(self.ter_idx[:last_idx])
+            self.init_obs = T.zeros((live_traj, self.obs_dim), dtype=T.float32)
+            i = 0
+            for traj in range(self.last_traj+1):
+                j = int(self.ter_idx[traj])
+                if j > 0:
+                    self.init_obs[i, :] = self.obs_buf[traj, 0, :]
+                    i +=1
+        elif (self.ptr > len(self.init_obs)) or (self.ptr < self.last_traj):
+            self.update_init_obs()
 
         batch_size = min(batch_size, len(self.init_obs))
         idxs = np.random.randint(0, len(self.init_obs), size=batch_size)
