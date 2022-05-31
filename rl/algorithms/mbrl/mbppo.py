@@ -350,7 +350,7 @@ class MBPPO(MBRL, PPO):
     	Nτ = 200
     	K = 500
 
-    	O = O_init = self.buffer.sample_init_obs_batch(Nτ, self._device_)
+    	O = O_init = self.buffer.sample_init_obs_batch(Nτ)
     	init_size = len(O_init)
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
