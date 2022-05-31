@@ -11,7 +11,7 @@ configurations = {
         },
 
     'algorithm': {
-        'name': 'MBPPO',
+        'name': 'MBNPG',
         'mode': 'PAL', # P: cons (few PG steps) | M: Aggr (many model updates + small real buffer)
         # 'mode': 'MAL', # P: Aggr (many PG steps) | M: Cons (few model updates + large real buffer)
         'model-based': True,
@@ -19,12 +19,12 @@ configurations = {
         'learning': {
             'epochs': 500, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
-            'init_epochs': 4, # Ni-- PAL: 5 | MAL: 10
-            'expl_epochs': 4, # Nx-- PAL: 5 | MAL: 10
+            'init_epochs': 0, # Ni-- PAL: 5 | MAL: 10
+            'expl_epochs': 0, # Nx-- PAL: 5 | MAL: 10
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
-            'grad_PPO_steps': 5, # ACG: ac grad, 40
+            'grad_NPG_steps': 5, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -75,10 +75,11 @@ configurations = {
         'type': 'ppopolicy',
         'action_noise': None,
         'clip_eps': 0.2,
-        'kl_targ': 0.015,
+        'kl_targ': 0.02,
+        'normz_step_size': 0.01,
         'entropy_coef': 0.0,
         'network': {
-            'arch': [256,256],
+            'arch': [64, 64],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
@@ -90,14 +91,14 @@ configurations = {
     'critic': {
         'type': 'V',
         'number': 1,
-        'gamma': 0.99, # Discount factor - γ
-        'lam': 0.97, # GAE - λ
+        'gamma': 0.995, # Discount factor - γ
+        'lam': 0.95, # GAE - λ
         'network': {
-            'arch': [256, 256],
+            'arch': [128, 128],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 1e-3,
+            'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
     },
@@ -110,7 +111,7 @@ configurations = {
         'model_buffer_size': int(4e5),
         'real_ratio': 0.05,
         'model_val_ratio': 0.2,
-        'rollout_trajectories': 200, # 4 Models x 200 Traj's
+        'rollout_trajectories': 800, # 4 Models x 200 Traj's
         'rollout_horizon': 500,
         'model_batch_size': 256,
         'batch_size': 256,
