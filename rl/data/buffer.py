@@ -22,20 +22,24 @@ def combined_shape(length, shape=None):
     return (length, shape) if np.isscalar(shape) else (length, *shape)
 
 
-# def discount_cumsum(x, discount): # source: https://github.com/openai/spinningup/
-#     """
-#     magic from rllab for computing discounted cumulative sums of vectors.
-#     input:
-#         vector x,
-#         [x0,
-#          x1,
-#          x2]
-#     output:
-#         [x0 + discount * x1 + discount^2 * x2,
-#          x1 + discount * x2,
-#          x2]
-#     """
-#     return scipy.signal.lfilter([1], [1, float(-discount)], x[::-1], axis=0)[::-1]
+import scipy.signal
+
+def discount_cumsum(x, discount): # source: https://github.com/openai/spinningup/
+    """
+    magic from rllab for computing discounted cumulative sums of vectors.
+    input:
+        vector x,
+        [x0,
+         x1,
+         x2]
+    output:
+        [x0 + discount * x1 + discount^2 * x2,
+         x1 + discount * x2,
+         x2]
+    """
+    # return scipy.signal.lfilter( [1], [1, float(-discount)], x[::-1], axis=0 )[::-1]
+    y = scipy.signal.lfilter( [1], [1, float(-discount)], T.flip(x, [0]), axis=0 )
+    return T.flip(T.tensor(y), [0])
 
 
 
@@ -44,6 +48,386 @@ def combined_shape(length, shape=None):
 
 
 class TrajBuffer:
+    """
+    A simple buffer for storing trajectories
+    """
+
+    def __init__(self, obs_dim, act_dim, horizon, num_traj, max_size, seed, device='cpu', gamma=0.99, gae_lambda=0.97):
+        # print('Initialize Trajectory Buffer..')
+        self.obs_buf = T.zeros((num_traj, horizon, obs_dim), dtype=T.float32)
+        self.act_buf = T.zeros((num_traj, horizon, act_dim), dtype=T.float32)
+        self.rew_buf = T.zeros((num_traj, horizon+1, 1), dtype=T.float32)
+        self.obs_next_buf = T.zeros((num_traj, horizon, obs_dim), dtype=T.float32)
+        self.ter_buf = T.zeros((num_traj, horizon, 1), dtype=T.float32)
+        self.ret_buf = T.zeros((num_traj, horizon, 1), dtype=T.float32)
+        self.val_buf = T.zeros((num_traj, horizon+1, 1), dtype=T.float32)
+        self.adv_buf = T.zeros((num_traj, horizon, 1), dtype=T.float32)
+        self.log_pi_buf = T.zeros((num_traj, horizon, 1), dtype=T.float32)
+
+        self.ter_idx = T.zeros((num_traj, 1), dtype=T.float32)
+
+        self.obs_dim, self.act_dim = obs_dim, act_dim
+        self.horizon, self.num_traj, self.max_size = horizon, num_traj, max_size
+        self.ptr, self.last_traj = 0, 0
+        self.last_z = 0
+        self.gamma, self.gae_lambda = gamma, gae_lambda
+        self.normz_adv = True
+
+
+    def total_size(self):
+        last_idx = min(self.last_traj+1, self.num_traj)
+        return int(self.ter_idx[:last_idx].sum())
+
+
+    def average_horizon(self):
+        last_idx = min(self.last_traj+1, self.num_traj)
+        total_size = self.ter_idx[:last_idx].sum()
+        live_traj = T.count_nonzero(self.ter_idx[:last_idx])
+        # print('live_traj: ', )
+        if live_traj > 0:
+            return int(total_size//live_traj)
+        else:
+            return 0
+
+
+    def normalize(self, x):
+        return (x - x.mean()) / (x.std() + 1e-8)
+
+
+    def clean_buffer(self):
+        # print('Clean Buffer: Max size reached!'+(' ')*50)
+        if self.last_traj == self.num_traj-1:
+            ptr = self.ptr
+        else:
+            ptr = self.last_z
+        a = ptr
+        while self.total_size() >= self.max_size:
+            # print(f'Reduce buffer size: ptr={ptr}')
+            self.ter_idx[ptr] = 0
+            ptr += 1
+            if ptr == self.num_traj:
+                ptr = 0
+        self.last_z = z = ptr
+        # print(f'Reduce buffer size: a={a}-->z={z} | ptr={self.ptr} | last_traj={self.last_traj} | size={self.total_size()}')
+
+
+    def batch_data(self):
+        # print('self.total_size: ', self.total_size())
+        full_size = self.total_size()
+
+        self.obs_batch = T.zeros((full_size, self.obs_dim), dtype=T.float32)
+        self.act_batch = T.zeros((full_size, self.act_dim), dtype=T.float32)
+        self.rew_batch = T.zeros((full_size, 1), dtype=T.float32)
+        self.obs_next_batch = T.zeros((full_size, self.obs_dim), dtype=T.float32)
+        self.ter_batch = T.zeros((full_size, 1), dtype=T.float32)
+        self.ret_batch = T.zeros((full_size, 1), dtype=T.float32)
+        self.val_batch = T.zeros((full_size, 1), dtype=T.float32)
+        self.adv_batch = T.zeros((full_size, 1), dtype=T.float32)
+        self.log_pi_batch = T.zeros((full_size, 1), dtype=T.float32)
+
+        i = 0
+        # for pt in range(self.ptr):
+        for traj in range(self.last_traj+1):
+            j = int(self.ter_idx[traj])
+            self.obs_batch[i:i+j] = self.obs_buf[traj, :j, :]
+            self.act_batch[i:i+j] = self.act_buf[traj, :j, :]
+            self.rew_batch[i:i+j] = self.rew_buf[traj, :j, :]
+            self.obs_next_batch[i:i+j] = self.obs_next_buf[traj, :j, :]
+            self.ter_batch[i:i+j] = self.ter_buf[traj, :j, :]
+            self.ret_batch[i:i+j] = self.ret_buf[traj, :j, :]
+            self.val_batch[i:i+j] = self.val_buf[traj, :j, :]
+            self.adv_batch[i:i+j] = self.adv_buf[traj, :j, :]
+            self.log_pi_batch[i:i+j] = self.log_pi_buf[traj, :j, :]
+
+            i = i+j
+
+
+    def store_transition(self, o, a, r, o_next, d, v, log_pi, e):
+        assert self.total_size() < self.max_size
+
+        self.obs_buf[ self.ptr, e-1, : ] = T.Tensor(o)
+        self.act_buf[ self.ptr, e-1, : ] = T.Tensor(a)
+        self.rew_buf[ self.ptr, e-1, : ] = T.tensor(r)
+        self.obs_next_buf[ self.ptr, e-1, : ] = T.Tensor(o_next)
+        # self.ter_buf[ self.ptr, e-1, : ] = T.Tensor([d])
+        self.val_buf[ self.ptr, e-1, : ] = T.Tensor(v)
+        self.log_pi_buf[ self.ptr, e-1, : ] = T.Tensor(log_pi)
+
+
+    def traj_tail(self, next_done, next_value, e): # Source: CleanRL
+        # print('ptr: ', self.ptr)
+        next_done = T.Tensor([next_done])
+        if self.gae_lambda: # GAE-lambda
+            lastgaelam = 0
+            for t in reversed(range(e)):
+                if t == e-1:
+                    next_nonterminal = 1.0 - next_done
+                    next_values = next_value
+                else:
+                    next_nonterminal = 1.0 - self.ter_buf[ self.ptr, t + 1, : ]
+                    next_values = self.val_buf[ self.ptr, t + 1, : ]
+                delta = self.rew_buf[ self.ptr, t, : ] + self.gamma * next_values * next_nonterminal - self.val_buf[ self.ptr, t, : ]
+                self.adv_buf[ self.ptr, t, : ] = lastgaelam = delta + self.gamma * self.gae_lambda * next_nonterminal * lastgaelam
+            self.ret_buf[self.ptr] = self.adv_buf[self.ptr] + self.val_buf[self.ptr]
+
+        self.ter_idx[self.ptr] = e
+
+        # if self.total_size() > self.max_size:
+        #     self.ptr = 0
+        #     print('new buffer!')
+        # else:
+        self.ptr +=1
+        # print(f'new trajectory [{self.ptr}]')
+
+
+    def store(self, o, a, r, o_next, v, log_pi, e):
+        if self.total_size() >= self.max_size:
+            self.clean_buffer()
+        self.obs_buf[ self.ptr, e-1, : ] = T.Tensor(o)
+        self.act_buf[ self.ptr, e-1, : ] = T.Tensor(a)
+        self.rew_buf[ self.ptr, e-1, : ] = T.tensor(r)
+        self.obs_next_buf[ self.ptr, e-1, : ] = T.Tensor(o_next)
+        # self.ter_buf[ self.ptr, e-1, : ] = T.Tensor([d])
+        self.val_buf[ self.ptr, e-1, : ] = T.Tensor(v)
+        self.log_pi_buf[ self.ptr, e-1, : ] = T.Tensor(log_pi)
+
+
+    def finish_path(self, e, v):
+        # print(f'\n[ finish_path ] e={e} | ptr={self.ptr} | size={self.total_size()}')
+        self.rew_buf[ self.ptr, e, : ] = T.Tensor(v)
+        self.val_buf[ self.ptr, e, : ] = T.Tensor(v)
+        # the next two lines implement GAE-Lambda advantage calculation
+        deltas = self.rew_buf[ self.ptr, :e, : ] + self.gamma * self.val_buf[ self.ptr, 1:e+1, : ] - self.val_buf[ self.ptr, :e, : ]
+        self.adv_buf[ self.ptr, :e, : ] = discount_cumsum(deltas, self.gamma * self.gae_lambda)
+        # the next line computes rewards-to-go, to be targets for the value function
+        self.ret_buf[ self.ptr, :e, : ] = discount_cumsum(self.rew_buf[ self.ptr, :e+1, : ], self.gamma)[:e, :]
+        self.ter_idx[self.ptr] = e
+        # print(f'\n[ finish_path ] e={e} | ptr={self.ptr} | size={self.total_size()}')
+        if self.last_traj < self.num_traj-1:
+            self.ptr +=1
+            self.last_traj +=1
+        elif self.ptr < self.num_traj-1:
+            self.ptr +=1
+        else:
+            self.ptr = 0
+
+
+    def store_batch(self, O, A, R, O_next, V, Log_Pi, e):
+        # print('store_batch!')
+        if self.total_size() >= self.max_size:
+            self.clean_buffer()
+
+        batch_size = len(O)
+
+        self.obs_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(O)
+        self.act_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(A)
+        self.rew_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.tensor(R)
+        self.obs_next_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(O_next)
+        # self.ter_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor([d])
+        self.val_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(V)
+        self.log_pi_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(Log_Pi)
+
+
+    def finish_path_batch(self, E, V):
+        # print('finish_path_batch!')
+        # print(f'\n[ finish_path_batch ] ptr={self.ptr} | size={self.total_size()}')
+        batch_size = len(E)
+        for i, e in enumerate(E):
+            e = int(e)
+            # print(f'ptr={self.ptr} | i={i} | e={e} | V={V[i]}')
+            self.rew_buf[ self.ptr+i, e, : ] = T.Tensor(V[i])
+            self.val_buf[ self.ptr+i, e, : ] = T.Tensor(V[i])
+            deltas = self.rew_buf[ self.ptr+i, :e, : ] + self.gamma * self.val_buf[ self.ptr+i, 1:e+1, : ] - self.val_buf[ self.ptr+i, :e, : ]
+            self.adv_buf[ self.ptr+i, :e, : ] = discount_cumsum(deltas, self.gamma * self.gae_lambda)
+            self.ret_buf[ self.ptr+i, :e, : ] = discount_cumsum(self.rew_buf[ self.ptr+i, :e+1, : ], self.gamma)[:e, :]
+
+        self.ter_idx[self.ptr:self.ptr+batch_size] = E
+
+        # A = T.cat([E,self.adv_buf[self.ptr:self.ptr+batch_size, :int(E.max()), :],self.ret_buf[self.ptr:self.ptr+batch_size, :int(E.max()), :]], axis=1)
+
+        # print(f'\n[ finish_path ] e={e} | ptr={self.ptr} | size={self.total_size()}')
+        if self.last_traj < self.num_traj-1:
+            self.ptr +=batch_size
+            self.last_traj +=batch_size
+        elif self.ptr < self.num_traj-1:
+            self.ptr +=batch_size
+        else:
+            self.ptr = 0
+
+
+    def store_transition_batch(self, O, A, R, D, V, log_Pi, e):
+        assert self.total_size() < self.max_size
+
+        batch_size = len(O[:,0])
+
+        self.obs_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(O)
+        self.act_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(A)
+        self.rew_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.tensor(R.reshape(-1,1))
+        self.ter_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.tensor(D, dtype=T.bool)
+        self.val_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(V)
+        self.log_pi_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(log_Pi)
+
+        # self.ptr +=batch_size
+
+
+    def traj_tail_batch(self, next_done, next_value, e): # Source: CleanRL
+        # print('ptr: ', self.ptr)
+        # next_done = T.Tensor([next_done])
+        # if self.gae_lambda: # GAE-lambda
+        #     lastgaelam = 0
+        #     for t in reversed(range(e)):
+        #         if t == e - 1:
+        #             next_nonterminal = 1.0 - next_done
+        #             next_values = next_value
+        #         else:
+        #             next_nonterminal = 1.0 - self.ter_buf[self.ptr][t + 1]
+        #             next_values = self.val_buf[self.ptr][t + 1]
+        #         delta = self.rew_buf[self.ptr][t] + self.gamma * next_values * next_nonterminal - self.val_buf[self.ptr][t]
+        #         self.adv_buf[self.ptr][t] = lastgaelam = delta + self.gamma * self.gae_lambda * next_nonterminal * lastgaelam
+        #     self.ret_buf[self.ptr] = self.adv_buf[self.ptr] + self.val_buf[self.ptr]
+
+        self.ter_idx[self.ptr] = e
+        if self.total_size() > self.max_size:
+            self.ptr = 0
+        else:
+            self.ptr +=batch_size
+
+
+    def sample_batch(self, batch_size=64, device=False):
+        # assert self.ptr == self.max_size
+        # device = self.device
+        batch_size = min(batch_size, self.total_size())
+        idxs = np.random.randint(0, self.total_size(), size=batch_size)
+
+        self.batch_data()
+
+        # Adv normalization
+        if self.normz_adv:
+            self.adv_batch[idxs] = self.normalize(self.adv_batch[idxs])
+
+        batch = dict(observations=self.obs_batch[idxs],
+        			 actions=self.act_batch[idxs],
+                     observations_next=self.obs_next_batch[idxs],
+        			 returns=self.ret_batch[idxs],
+                     values=self.val_batch[idxs],
+        			 advantages=self.adv_batch[idxs],
+        			 log_pis=self.log_pi_batch[idxs])
+        if device:
+            return {k: v.to(device) for k,v in batch.items()}
+        else:
+            return {k: v            for k,v in batch.items()}
+
+
+    def sample_init_obs_batch(self, batch_size=200, device=False):
+        last_idx = min(self.last_traj+1, self.num_traj)
+        live_traj = T.count_nonzero(self.ter_idx[:last_idx])
+        self.init_obs = T.zeros((live_traj, self.obs_dim), dtype=T.float32)
+
+        i = 0
+        for traj in range(self.last_traj+1):
+            j = int(self.ter_idx[traj])
+            if j > 0:
+                self.init_obs[i] = self.obs_buf[traj, 0, :]
+                i +=1
+
+        batch_size = min(batch_size, len(self.init_obs))
+        idxs = np.random.randint(0, len(self.init_obs), size=batch_size)
+
+        if device:
+            return self.init_obs[idxs].to(device)
+        else:
+            return self.init_obs[idxs]
+
+
+    def sample_inds(self, inds, device=False):
+        assert self.ptr == self.max_size
+
+        # Adv normalization
+        if self.normz_adv:
+            self.adv_buf[inds] = self.normalize(self.adv_buf[inds])
+
+        batch = dict(observations=self.obs_buf[inds],
+        			 actions=self.act_buf[inds],
+        			 returns=self.ret_buf[inds],
+                     values=self.val_buf[inds],
+        			 advantages=self.adv_buf[inds],
+        			 log_pis=self.log_pi_buf[inds])
+        if device:
+            return {k: v.to(device) for k,v in batch.items()}
+        else:
+            return {k: v            for k,v in batch.items()}
+
+
+    def return_all(self, device=False):
+        assert self.ptr == self.max_size
+        self.reset()
+
+        # Adv normalization
+        if self.normz_adv:
+            self.adv_buf = self.normalize(self.adv_buf)
+
+        buffer = dict(observations=self.obs_buf,
+                      actions=self.act_buf,
+                      returns=self.ret_buf,
+                      values=self.val_buf,
+                      advantages=self.adv_buf,
+                      log_pis=self.log_pi_buf)
+
+        if device:
+            return {k: v.to(device) for k,v in buffer.items()}
+        else:
+            return {k: v            for k,v in buffer.items()}
+
+
+    def return_all_np(self):
+        assert self.ptr == self.max_size
+        self.reset()
+
+        # Adv normalization
+        if self.normz_adv:
+            self.adv_buf = self.normalize(self.adv_buf)
+
+        buffer = dict(observations=self.obs_buf,
+                      actions=self.act_buf,
+                      returns=self.ret_buf,
+                      values=self.val_buf,
+                      advantages=self.adv_buf,
+                      log_pis=self.log_pi_buf)
+
+        return {k: v.numpy() for k, v in buffer.items()}
+
+
+    def data_for_WM(self, device=False):
+        idxs = np.random.randint(0, self.total_size(), size=self.total_size())
+        self.batch_data()
+        buffer = dict(observations=self.obs_batch[idxs],
+        			 actions=self.act_batch[idxs],
+                     rewards=self.rew_batch[idxs],
+                     observations_next=self.obs_next_batch[idxs],
+                     terminals=self.ter_batch[idxs])
+        if device:
+            return {k: v.to(device) for k,v in buffer.items()}
+        else:
+            return {k: v            for k,v in buffer.items()}
+
+
+    def data_for_WM_stack(self):
+        data = self.data_for_WM()
+        return {k: T.stack([v])[0] for k, v in data.items()}
+
+
+    def reset(self):
+        # print('Reset Buffer!')
+        self.ter_idx = T.zeros((self.num_traj, 1), dtype=T.float32)
+        self.ptr, self.last_traj = 0, 0
+        self.last_z = 0
+
+
+
+
+
+
+class TrajBufferB:
     """
     A simple buffer for storing trajectories
     """
@@ -212,6 +596,7 @@ class TrajBuffer:
 
 
 
+
 class ReplayBuffer:
     """
     FIFO Replay buffer for off-policy data:
@@ -326,7 +711,7 @@ class ReplayBuffer:
             return {k: v            for k,v in batch.items()}
 
 
-    def return_all(self, device=False):
+    def data_for_WM_all(self, device=False):
         # device = self.device
         idxs = np.random.randint(0, self.size, size=self.size)
         buffer = dict(observations=self.obs_buf[idxs],
@@ -340,7 +725,7 @@ class ReplayBuffer:
             return {k: v            for k,v in buffer.items()}
 
 
-    def return_all_np(self):
+    def data_for_WM_np(self):
     	# device = self.device
     	idxs = np.random.randint(0, self.size, size=self.size)
     	buffer = dict(observations=self.obs_buf[idxs],
@@ -351,12 +736,12 @@ class ReplayBuffer:
     	return {k: v.numpy() for k, v in buffer.items()}
 
 
-    def return_all_stack(self):
-        data = self.return_all()
+    def data_for_WM_stack(self):
+        data = self.data_for_WM()
         return {k: T.stack([v])[0] for k, v in data.items()}
 
 
-    def return_all_stack_np(self):
+    def data_for_WM_stack_np(self):
         data = self.return_all_np()
         return {k: np.stack(v) for k, v in data.items()}
 
