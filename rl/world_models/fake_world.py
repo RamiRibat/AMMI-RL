@@ -181,8 +181,9 @@ class FakeWorld:
     def train_fake_world(self, buffer): # Work on!
         # Get all samples from environment
         # data = buffer.return_all_stack_np() # Numpy
-        data = buffer.return_all_stack() # Torch
-        state, action, reward, next_state, done = data.values()
+        # data = buffer.return_all_stack() # Torch
+        data = buffer.data_for_WM_stack() # Torch (TrajBuffer)
+        state, action, reward, next_state, _ = data.values()
         delta_state = next_state - state
 
         # inputs = np.concatenate((state, action), axis=-1) # Numpy
@@ -192,7 +193,8 @@ class FakeWorld:
 
         holdout_mse_mean = self.model.train( inputs, labels, batch_size=256, holdout_ratio=0.2 ) ###
 
-        return holdout_mse_mean
+        # return holdout_mse_mean
+        return holdout_mse_mean.item()
 
 
 
