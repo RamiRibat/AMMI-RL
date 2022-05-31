@@ -385,8 +385,8 @@ class EnsembleDynamicsModel():
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
-        for epoch in range(2):
-        # for epoch in itertools.count():
+        # for epoch in range(2):
+        for epoch in itertools.count():
             # losses = []
             # train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)]) # Numpy
             train_idx = T.vstack( [ T.randperm(train_inputs.shape[0]) for _ in range(self.network_size) ] ) # Torch [2]
@@ -411,11 +411,11 @@ class EnsembleDynamicsModel():
                 holdout_mse_losses = holdout_mse_losses.detach()
                 sorted_loss_idx = T.argsort(holdout_mse_losses)
                 self.elite_model_idxes = sorted_loss_idx[:self.elite_size].tolist()
-                # break_train = self._save_best(epoch, holdout_mse_losses)
-                # if break_train: # Used with itertools.count()
-                #     # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10))
-                #     # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
-                #     break
+                break_train = self._save_best(epoch, holdout_mse_losses)
+                if break_train: # Used with itertools.count()
+                    # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10))
+                    # print(f"[ Break Model Training ] Epoch: {epoch} | HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10))
+                    break
             # print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses]}"+(" "*10), end='\r')
             print(f"[ Model Training ] Epoch: {epoch}, HO MSEs: {[round(x, 4) for x in holdout_mse_losses.numpy()]}"+(" "*10), end='\r')
 
