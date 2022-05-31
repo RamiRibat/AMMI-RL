@@ -226,7 +226,7 @@ class MBPPO(MBRL, PPO):
                         batch_size = int(self.model_buffer.total_size())
                         stop_pi = False
                         kl = 0
-                        print(f'\n\n[ Epoch {n}   Training Actor-Critic ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
+                        print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
                         for gg in range(1, 81): # 101
                             print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
                             batch = self.model_buffer.sample_batch(batch_size, self._device_)
@@ -355,6 +355,12 @@ class MBPPO(MBRL, PPO):
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	k_end_total = 0
+    	# slope = 400/15
+    	# Ksurr = 100 + slope*(n-5)
+    	# K = min(K, int(Ksurr))
+    	slope = 22.5
+    	Ksurr = 50 + slope*(n-5)
+    	K = min(K, int(Ksurr))
     	for nτ, o in enumerate(O_init): # Generate trajectories
             Z, el = 0, 0
             for k in range(1, K+1): # Generate rollouts
@@ -454,7 +460,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{alg_mode}-F"
+    group_name = f"{env_name}-{alg_name}-{alg_mode}-G"
     exp_prefix = f"seed:{seed}"
 
     if wb:
