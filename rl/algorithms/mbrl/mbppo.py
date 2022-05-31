@@ -162,9 +162,11 @@ class MBPPO(MBRL, PPO):
                     JVList, JPiList, KLList = [0], [0], [0]
                     # JHOList = [0]
                     ho_mean = 0
+                    # init_obs_size = 0
                 elif n > Ni:
                     print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
                     JVList, JPiList, KLList = [], [], []
+                    # init_obs_size = len(self.buffer.init_obs)
                     # JHOList = []
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
@@ -172,6 +174,7 @@ class MBPPO(MBRL, PPO):
                     JVList, JPiList, KLList = [0], [0], [0]
                     # JHOList = [0]
                     ho_mean = 0
+                    # init_obs_size = 0
 
             nt = 0
             o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
@@ -255,9 +258,11 @@ class MBPPO(MBRL, PPO):
             logs['data/env_buffer                '] = self.buffer.total_size()
             logs['data/env_rollout_steps         '] = self.buffer.average_horizon()
             if hasattr(self, 'model_buffer'):
+                logs['data/init_obs                  '] = len(self.buffer.init_obs)
                 logs['data/model_buffer              '] = self.model_buffer.total_size()
                 logs['data/model_rollout_steps       '] = self.model_buffer.average_horizon()
             else:
+                logs['data/init_obs                  '] = 0.
                 logs['data/model_buffer              '] = 0.
                 logs['data/model_rollout_steps       '] = 0.
             # else:
@@ -355,9 +360,6 @@ class MBPPO(MBRL, PPO):
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	k_end_total = 0
-    	# slope = 400/15
-    	# Ksurr = 100 + slope*(n-5)
-    	# K = min(K, int(Ksurr))
     	slope = 22.5
     	Ksurr = 50 + slope*(n-5)
     	K = min(K, int(Ksurr))
