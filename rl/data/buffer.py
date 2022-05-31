@@ -737,7 +737,7 @@ class ReplayBuffer:
 
 
     def data_for_WM_stack(self):
-        data = self.data_for_WM()
+        data = self.data_for_WM_all()
         return {k: T.stack([v])[0] for k, v in data.items()}
 
 
