@@ -105,7 +105,7 @@ class ActorCritic: # Done
 
 
     def get_pi_and_v(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
-        print('get_pi_and_v\ actor: ', self.actor.device)
+        print('\nget_pi_and_v\ actor: ', self.actor.device)
         action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
         return action, log_pi, entropy, self.critic(o)
 
