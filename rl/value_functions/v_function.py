@@ -26,6 +26,8 @@ class VFunction(nn.Module):
 
 	    optimizer = 'T.optim.' + net_configs['optimizer']
 	    lr = net_configs['lr']
+	    # hid = 64
+	    hid = 256 # PPO-G
 
 	    super().__init__() # To automatically use forward
 
@@ -34,9 +36,9 @@ class VFunction(nn.Module):
 	    # self.v = MLPNet(obs_dim, 1, net_configs)
 	    # self.apply(init_weights_)
 
-	    self.v = nn.Sequential(layer_init(nn.Linear(obs_dim, 64)), nn.Tanh(),
-							   layer_init(nn.Linear(64, 64)), nn.Tanh(),
-							   layer_init(nn.Linear(64, 1), std=1.0))
+	    self.v = nn.Sequential(layer_init(nn.Linear(obs_dim, hid)), nn.Tanh(),
+							   layer_init(nn.Linear(hid, hid)), nn.Tanh(),
+							   layer_init(nn.Linear(hid, 1), std=1.0))
 
 	    self.to(device)
 
