@@ -124,12 +124,12 @@ python evaluate_agent.py -env Walker2d-v2 -alg SAC -seed 1 -EE 5
 
 
 
-## Catalyst Agents Team, Group 2
+## AMMI-RL Team, Group 2
 (first name alphabetical order)
-- [MohammedElfatih Salah](https://github.com/mohammedElfatihSalah)
-- Rami Ahmed
-- [Ruba Mutasim](https://github.com/ruba128)
-- [Wafaa Mohammed](https://github.com/Wafaa014)
+- [MohammedElfatih Salah](https://github.com/mohammedElfatihSalah) (SAC)
+- [Rami Ahmed](https://github.com/RamiSketche) (VPG, PPO, SAC, MBPO)
+- [Ruba Mutasim](https://github.com/ruba128) (SAC)
+- [Wafaa Mohammed](https://github.com/Wafaa014) (SAC)
 
 
 
