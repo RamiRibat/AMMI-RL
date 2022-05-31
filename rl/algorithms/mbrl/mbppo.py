@@ -106,16 +106,6 @@ class MBPPO(MBRL, PPO):
         self._build()
 
 
-    def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
-        super(MBPPO, self).__init__(exp_prefix, configs, seed, device)
-        # print('init MBPPO Algorithm!')
-        self.configs = configs
-        self.seed = seed
-        self._device_ = device
-        self.WandB = wb
-        self._build()
-
-
     ## build MBPPO components: (env, D, AC, alpha)
     def _build(self):
         super(MBPPO, self)._build()
@@ -153,10 +143,6 @@ class MBPPO(MBRL, PPO):
         batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
         real_ratio = self.configs['data']['real_ratio'] # rr
-        batch_size = self.configs['data']['batch_size'] # bs
-        mini_batch_size = self.configs['data']['mini_batch_size'] # bs
-        rollout_trajectories = self.configs['data']['rollout_trajectories'] # bs_ro
-        K = self.configs['data']['rollout_horizon']
 
         global_step = 0
         start_time = time.time()
@@ -173,58 +159,84 @@ class MBPPO(MBRL, PPO):
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
                     oldJs = [0, 0]
-                    JVList, JPiList = [0], [0]
-                    JValList = [0]
+                    JVList, JPiList, KLList = [0], [0], [0]
+                    # JHOList = [0]
+                    ho_mean = 0
                 elif n > Ni:
                     print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
-                    JVList, JPiList = [], []
-                    JValList = []
+                    JVList, JPiList, KLList = [], [], []
+                    # JHOList = []
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
                     oldJs = [0, 0]
-                    JVList, JPiList = [0], [0]
-                    JValList = [0]
+                    JVList, JPiList, KLList = [0], [0], [0]
+                    # JHOList = [0]
+                    ho_mean = 0
 
-            print(f'[ Replay Buffer ] Size: {self.buffer.size}')
             nt = 0
+            o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
+
             learn_start_real = time.time()
             while nt < NT: # full epoch
                 # Interaction steps
                 for e in range(1, E+1):
-                    o, Z, el, t = self.internact(n, o, Z, el, t)
+                    # o, Z, el, t = self.internact(n, o, Z, el, t)
+                    o, Z, el, t = self.internact_opB(n, o, Z, el, t)
                     print(f'[ Epoch {n}   Interaction ] Env Steps: {e} | Return: {round(Z, 2)}'+(" "*10), end='\r')
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+                # self.buffer.traj_tail(d, v, el)
+                self.buffer.finish_path(el, v)
 
+                # print(f'Buffer size = {self.buffer.total_size()}')
                 # Taking gradient steps after exploration
                 if n > Ni:
-                    # if nt % model_train_frequency == 0:
                     # 03. Train model pθ on Denv via maximum likelihood
                     # print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
+                    ho_mean = self.fake_world.train_fake_world(self.buffer)
 
-                    ho_mean = 0. #self.fake_world.train_fake_world(self.buffer)
-                    JValList.append(ho_mean) # ho: holdout
+                    # model_fit_bs = self.configs['data']['buffer_size']
+                    # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
+                    # s, a, sp, _, _, _, _ = model_fit_batch.values()
+                    # if n == Ni+1:
+                    #     samples_to_collect = 4000
+                    # else:
+                    #     samples_to_collect = 1000
 
-                    k_list = []
+                    # for i, model in enumerate(self.models):
+                    #     print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
+                    #     loss_general = model.compute_loss(s[-samples_to_collect:],
+                    #                                       a[-samples_to_collect:],
+                    #                                       sp[-samples_to_collect:]) # generalization error
+                    #     dynamics_loss = model.fit_dynamics(s, a, sp, **job_data)
+                    #     logger.log_kv('dyn_loss_' + str(i), dynamics_loss[-1])
+                    #     logger.log_kv('dyn_loss_gen_' + str(i), loss_general)
+                    #     if job_data['learn_reward']:
+                    #         reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), **job_data)
+                    #         logger.log_kv('rew_loss_' + str(i), reward_loss[-1])
+
+                    self.init_model_traj_buffer()
+                    # PPO-P >>>>
                     for g in range(1, G_ppo+1):
-                        # print(f'Actor-Critic Grads...{g}', end='\r')
-                        # print(f'[ Epoch {n}   Training Actor-Critic ] AC Grads: {g}'+(" "*50), end='\r')
-                        # # Reallocate model buffer
-                        self.initialize_model_buffer()
-                        # # Generate M k-steps imaginary rollouts for SAC traingin
-                        # self.rollout_world_model_op(rollout_trajectories, K, n)
-                        # k_avg = self.rollout_world_model_trajectories(rollout_trajectories, K, n)
-                        k_avg = self.rollout_real_world_trajectories(rollout_trajectories, K, g, n)
-                        k_list.append(k_avg)
-                        # PPO-P >>>>
-                        # batch_size = int(self.model_buffer.ptr // mini_batch_size) # Stubid!!
-                        batch_size = int(self.model_buffer.ptr)
-                        for b in range(0, batch_size, mini_batch_size):
-                            # print('ptr: ', self.buffer.ptr)
-                            mini_batch = self.model_buffer.sample_batch(mini_batch_size, self._device_)
-                            Jv, Jpi, stop_pi = self.trainAC(g, mini_batch, oldJs)
+                        # Reset model buffer
+                        self.model_buffer.reset()
+                        # # Generate M k-steps imaginary rollouts for PPO training
+                        # k_avg = self.rollout_real_world_trajectories(g, n)
+                        k_avg = self.rollout_world_trajectories(g, n)
+                        # self.rollout_world_model_trajectories(g, n)
+                        batch_size = int(self.model_buffer.total_size())
+                        stop_pi = False
+                        kl = 0
+                        print(f'\n\n[ Epoch {n}   Training Actor-Critic ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
+                        for gg in range(1, 81): # 101
+                            print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
+                            batch = self.model_buffer.sample_batch(batch_size, self._device_)
+                            Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs)
+                            # print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || PG={stop_pi} | KL={kl}'+(' '*80), end='\r')
                             oldJs = [Jv, Jpi]
                             JVList.append(Jv.item())
                             JPiList.append(Jpi.item())
-                        # PPO-P <<<<
+                            KLList.append(kl)
+                    # PPO-P <<<<
 
                 nt += E
 
@@ -233,19 +245,21 @@ class MBPPO(MBRL, PPO):
 
             # logs['training/wm/Jtrain_mean        '] = np.mean(JMeanTrainList)
             # logs['training/wm/Jtrain             '] = np.mean(JTrainList)
-            logs['training/wm/Jval               '] = np.mean(JValList)
+            logs['training/wm/Jval               '] = ho_mean
             # logs['training/wm/test_mse           '] = np.mean(LossTestList)
 
             logs['training/ppo/Jv                '] = np.mean(JVList)
             logs['training/ppo/Jpi               '] = np.mean(JPiList)
+            logs['training/ppo/KL                '] = np.mean(KLList)
 
-            logs['data/env_buffer                '] = self.buffer.size
+            logs['data/env_buffer                '] = self.buffer.total_size()
+            logs['data/env_rollout_steps         '] = self.buffer.average_horizon()
             if hasattr(self, 'model_buffer'):
-                logs['data/model_buffer              '] = self.model_buffer.ptr
-                logs['data/rollout_horizon_mean      '] = np.mean(k_list)
+                logs['data/model_buffer              '] = self.model_buffer.total_size()
+                logs['data/model_rollout_steps       '] = self.model_buffer.average_horizon()
             else:
                 logs['data/model_buffer              '] = 0.
-                logs['data/rollout_horizon_mean      '] = 0.
+                logs['data/model_rollout_steps       '] = 0.
             # else:
             #     logs['data/model_buffer              '] = 0
             # logs['data/rollout_length            '] = K
@@ -287,7 +301,7 @@ class MBPPO(MBRL, PPO):
             # Printing logs
             if self.configs['experiment']['print_logs']:
                 for k, v in logs.items():
-                    print(f'{k}  {round(v, 2)}'+(' '*10))
+                    print(f'{k}  {round(v, 4)}'+(' '*10))
 
             # WandB
             if self.WandB:
@@ -297,107 +311,122 @@ class MBPPO(MBRL, PPO):
         self.eval_env.close()
 
 
-    def rollout_real_world_trajectories(self, rollout_trajectories, K, g, n):
+    def rollout_real_world_trajectories(self, g, n):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
-    	Nτ = 200 * 4 # number of trajectories x number of models
-    	# Nτ = self.configs['data']['rollout_trajectories']
-    	o, d, el = self.traj_env.reset(), 0, 0
-
-        # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
-    	# k_end_total = 0
-    	for nτ in range(1, Nτ+1): # Generate trajectories
-            # print(f'nτ = {nτ}'+(' '*70), end='\r')
-            for k in range(1, K+1): # Generate rollouts
-                print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k}'+(' '*10), end='\r')
-                with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
-                o_next, r, d_next, _ = self.traj_env.step(a)
-                el += 1
-
-                self.model_buffer.store_transition(o, a, r, d, v, log_pi)
-                if d_next or (el == K):
-                    o_next, d_next, el = self.traj_env.reset(), 0, 0
-                    print(f'[ Model Rollout ] Breaking early: {k}'+(' '*50), end='\r')
-                    # k_end_total += k
-                    # break
-                # else:
-                o, d = o_next, d_next
-
-    	# print(f'[ Model Rollout ] Average Breaking : {k_end_total//Nτ}'+(' '*50))
-    	with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
-    	self.model_buffer.traj_tail(d, v)
-
-    	return K#//Nτ
-
-
-    def rollout_world_model_trajectories(self, rollout_trajectories, K, n):
-    	# 07. Sample st uniformly from Denv
-    	device = self._device_
-    	batch_size = rollout_trajectories
-    	B_ro = self.buffer.sample_batch(batch_size) # Torch
-    	O = B_ro['observations_next']
-    	D = B_ro['terminals']
+    	Nτ = 200 # number of trajectories x number of models
+    	K = 500
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	k_end_total = 0
-    	for o, d in zip(O, D):
-            # print('o: ', o.shape)
-            # print('d: ', d.shape)
-            for k in range(1, K+1):
-                # print(f'k = {k}', end='\r')
-                with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_pi_and_v(o)
-                a, log_pi, v = a.cpu(), log_pi.cpu(), v.cpu()
+    	for nτ in range(1, Nτ+1): # Generate trajectories
+            o, Z, el = self.traj_env.reset(), 0, 0
+            # print(f'nτ = {nτ}'+(' '*70), end='\r')
+            for k in range(1, K+1): # Generate rollouts
+                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ}/{Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
+                # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
+                with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+                o_next, r, d, _ = self.traj_env.step(a)
+                Z += r
+                el += 1
+                self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
+                o = o_next
+                if d or (el == K):
+                    break
+            if el == K:
+                # print(f'[ Model Rollout ] Average Breaking : {k_end_total//Nτ}'+(' '*50))
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+            else:
+                v = T.Tensor([0.0])
+            self.model_buffer.finish_path(el, v)
+            k_end_total += k
 
-                o_next, r, d_next, _ = self.fake_world.step(o, a, deterministic=True) # ip: Tensor, op: Tensor
-
-                self.model_buffer.store_transition(o, a, r, d, v, log_pi)
-
-                if d_next:
-    	            print(f'[ Model Rollout ] Breaking early: {k}'+(' '*50), end='\r')
-    	            k_end_total += k
-    	            break
-
-                o, d = o_next, d_next
-
-    	print(f'[ Model Rollout ] Average Breaking : {k_end_total//batch_size}'+(' '*50))
-    	with T.no_grad(): v = self.actor_critic.get_v(o)
-    	self.model_buffer.traj_tail(d, v)
-
-    	return k_end_total//batch_size
+    	return k_end_total//Nτ
 
 
-    def rollout_world_model_op(self, rollout_trajectories, K, n):
+    def rollout_world_trajectories(self, g, n):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
-    	batch_size = rollout_trajectories
-    	# print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Horizon: {K}'+(' '*50))
-    	B_ro = self.buffer.sample_batch(batch_size) # Torch
-    	O = B_ro['observations']
-    	D = B_ro['terminals']
+    	Nτ = 200
+    	K = 500
+
+    	O = O_init = self.buffer.sample_init_obs_batch(Nτ, self._device_)
+    	init_size = len(O_init)
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
-    	for k in range(1, K+1):
-            # print('k = ', k)
-            # print('k = ', k, end='\r')
-            A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
-            with T.no_grad(): A, log_Pi, _, V = self.actor_critic.get_pi_and_v(O)
+    	k_end_total = 0
+    	for nτ, o in enumerate(O_init): # Generate trajectories
+            Z, el = 0, 0
+            for k in range(1, K+1): # Generate rollouts
+                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
+                # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
+                with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_pi_and_v(T.Tensor(o))
+                # o_next, r, d, _ = self.traj_env.step(a)
+                o_next, r, d, _ = self.fake_world.step(o, a, deterministic=True) # ip: Tensor, op: Tensor
+                Z += float(r)
+                el += 1
+                self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
+                o = o_next
+                if d or (el == K):
+                    break
+            if el == K:
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+            else:
+                v = T.Tensor([0.0])
+            self.model_buffer.finish_path(el, v)
+            k_end_total += k
 
-            O_next, R, D_next, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
-        	# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
+    	return k_end_total//Nτ
 
-            self.model_buffer.store_batch(O, A, R, D, V, log_Pi)
 
-            O_next = T.Tensor(O_next)
+    def rollout_world_model_trajectories(self, g, n):
+        # 07. Sample st uniformly from Denv
+        device = self._device_
+
+        rollout_trajs = self.configs['data']['rollout_trajectories'] # bs_ro
+        Ksteps = self.configs['data']['rollout_horizon']
+        # K = 500
+
+        O = O_init = self.buffer.sample_init_obs_batch(rollout_trajs, self._device_)
+        init_size = len(O_init)
+        Z, el = 0, 0
+        ZZ = T.zeros((init_size, 1), dtype=T.float32)
+        EL = T.zeros((init_size, 1), dtype=T.float32)
+
+        # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
+        env_avg_horizon = self.buffer.average_horizon()
+        K = min(Ksteps, int(env_avg_horizon*n*0.5))
+        print('\n')
+        for k in range(1, K+1):
+            print(f'[ Epoch {n} | AC: {g} ] Model Rollout: k={k}/{K}'+(' '*50), end='\r')
+            # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
+            with T.no_grad(): A, Log_Pi, _, V = self.actor_critic.get_pi_and_v(T.Tensor(O)) # Stoch action | No repara
+            O_next, R, D, _ = self.fake_world.step(O, A, deterministic=True) # ip: Tensor, op: Tensor
+
+            self.model_buffer.store_batch(O, A, R, O_next, V, Log_Pi, k) # ip: Tensor
+
+            # O_next = T.Tensor(O_next)
             D = T.tensor(D, dtype=T.bool)
             nonD = ~D.squeeze(-1)
+
+            ZZ[nonD] += R[nonD]
+            EL[nonD] += T.ones((nonD.sum(), 1), dtype=T.float32)
+
             if nonD.sum() == 0:
-        	    print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
-        	    break
+                print(f'[ Epoch {n} Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
+                break
 
-            O, D = O_next[nonD], D_next[nonD]
+            O = O_next
 
-    	with T.no_grad(): V = self.actor_critic.get_v(O)
-    	self.model_buffer.traj_tail(D, V)
+        V = T.zeros((init_size, 1), dtype=T.float32)
+        if k == K:
+            for i, e in enumerate(EL):
+                if e == K and nonD[i]:
+                    with T.no_grad(): V[i] = self.actor_critic.get_v(T.Tensor(O[i])).cpu()
+        # print('EL: ', EL)
+        # print('ZZ: ', ZZ)
+
+        self.model_buffer.finish_path_batch(EL, V)
 
 
     def ppo_mini_batch(self, mini_batch_size):
@@ -425,7 +454,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{alg_mode}-A"
+    group_name = f"{env_name}-{alg_name}-{alg_mode}-F"
     exp_prefix = f"seed:{seed}"
 
     if wb:

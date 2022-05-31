@@ -9,6 +9,7 @@ from rl.data.buffer import TrajBuffer, ReplayBuffer
 from rl.data.dataset import RLDataModule
 # from rl.world_models.world_model import WorldModel
 from rl.world_models.model import EnsembleDynamicsModel
+from rl.dynamics.world_model import WorldModel
 
 
 
@@ -73,17 +74,19 @@ class MBRL:
         # max_size = self.configs['data']['buffer_size']
         # device = self._device_
         # self.env_buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+        num_traj = 1000
+        horizon = 1000
         max_size = self.configs['data']['buffer_size']
         device = self._device_
-        # if self.configs['algorithm']['on-policy']:
-        #     self.buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
-        # else:
-        self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+        if self.configs['algorithm']['on-policy']:
+            self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
+        else:
+            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
 
-    def _set_data_module(self):
-        self.data_module = RLDataModule(self.buffer, self.configs['data'])
-        pass
+    # def _set_data_module(self):
+    #     self.data_module = RLDataModule(self.buffer, self.configs['data'])
+    #     pass
 
 
     def _set_world_model(self):
@@ -98,15 +101,19 @@ class MBRL:
 
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
+        # self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m) for m in range(num_ensembles) ]
 
-    def initialize_model_buffer(self):
+
+    def init_model_traj_buffer(self):
         # print('Initialize Model Buffer..')
         seed = self.seed
         device = self._device_
 
         if self.configs['algorithm']['on-policy']:
+            num_traj = int(200*1.25)
+            horizon = 500
             max_size = self.configs['data']['model_buffer_size']
-            self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+            self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
 
 
     def reallocate_model_buffer(self, batch_size_ro=None, K=None, NT=None, model_train_frequency=None):
@@ -177,6 +184,53 @@ class MBRL:
         return o, Z, el, t
 
 
+    def internact_op(self, n, o, d, Z, el, t):
+        Nt = self.configs['algorithm']['learning']['epoch_steps']
+        max_el = self.configs['environment']['horizon']
+
+        # a = self.actor_critic.get_action_np(o)
+        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+
+        o_next, r, d_next, _ = self.learn_env.step(a)
+        Z += r
+        el += 1
+        t += 1
+
+        self.buffer.store_transition(o, a, r, d, v, log_pi)
+
+        if d_next or (el == max_el):
+            # print(f'termination: {d_next}')
+            with T.no_grad(): v_next = self.actor_critic.get_v(T.Tensor(o_next)).cpu()
+            self.buffer.traj_tail(d_next, v_next, el)
+            o_next, d_next, Z, el = self.learn_env.reset(), 0, 0, 0
+
+        o, d = o_next, d_next
+
+        return o, d, Z, el, t
+
+
+    def internact_opB(self, n, o, Z, el, t):
+        Nt = self.configs['algorithm']['learning']['epoch_steps']
+        max_el = self.configs['environment']['horizon']
+        # a = self.actor_critic.get_action_np(o)
+        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+        o_next, r, d, _ = self.learn_env.step(a)
+        Z += r
+        el += 1
+        t += 1
+        self.buffer.store(o, a, r, o_next, v, log_pi, el)
+        o = o_next
+        if d or (el == max_el):
+            if el == max_el:
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+            else:
+                # print('v=0')
+                v = T.Tensor([0.0])
+            self.buffer.finish_path(el, v)
+            o, Z, el = self.learn_env.reset(), 0, 0
+        return o, Z, el, t
+
+
     def internact(self, n, o, Z, el, t):
         Nx = self.configs['algorithm']['learning']['expl_epochs']
         max_el = self.configs['environment']['horizon']
@@ -216,7 +270,8 @@ class MBRL:
                 o, d, Z, S, el = self.eval_env.reset(), False, 0, 0, 0
                 while not(d or (el == max_el)):
                     # with T.no_grad(): a, _, _ = self.actor_critic.get_pi(T.Tensor(o))
-                    a = self.actor_critic.get_action_np(o)
+                    # a = self.actor_critic.get_action_np(o)
+                    a = self.actor_critic.get_action_np(o, deterministic=True) # MB-PPO
                     # a = self.actor_critic.get_action_np(o, deterministic=True)
                     o, r, d, info = self.eval_env.step(a)
                     Z += r

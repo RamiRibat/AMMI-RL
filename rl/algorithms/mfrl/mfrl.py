@@ -84,9 +84,24 @@ class MFRL:
         max_size = self.configs['data']['buffer_size']
         device = self._device_
         if self.configs['algorithm']['on-policy']:
-            self.buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+            num_traj = 1000
+            horizon = 1000
+            max_size = 4000
+            self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
         else:
             self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+
+
+    def initialize_buffer(self, num_traj=400):
+        # print('Initialize a New Buffer..')
+        seed = self.seed
+        device = self._device_
+
+        if self.configs['algorithm']['on-policy']:
+            # num_traj = 40
+            horizon = 1000
+            max_size = 4000
+            self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
 
 
     def initialize_learning(self, NT, Ni):
@@ -126,18 +141,53 @@ class MFRL:
 
         # a = self.actor_critic.get_action_np(o)
         with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+        # print('log_pi: ', log_pi)
 
         o_next, r, d_next, _ = self.learn_env.step(a)
         Z += r
         el += 1
         t += 1
 
-        self.buffer.store_transition(o, a, r, d, v, log_pi)
+        self.buffer.store_transition(o, a, r, d, v, log_pi, el)
 
-        if d_next or (el == max_el): o_next, Z, el = self.learn_env.reset(), 0, 0
+        if d_next or (el == max_el):
+            # o_next, Z, el = self.learn_env.reset(), 0, 0
+            with T.no_grad(): v_next = self.actor_critic.get_v(T.Tensor(o_next)).cpu()
+            self.buffer.traj_tail(d_next, v_next, el)
+
+            # print(f'termination: t={t} | el={el} | total_size={self.buffer.total_size()}')
+
+            o_next, d_next, Z, el = self.learn_env.reset(), 0, 0, 0
+
         o, d = o_next, d_next
 
         return o, d, Z, el, t
+
+
+    def internact_opB(self, n, o, Z, el, t):
+        Nt = self.configs['algorithm']['learning']['epoch_steps']
+        max_el = self.configs['environment']['horizon']
+
+        # a = self.actor_critic.get_action_np(o)
+        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+        # print('log_pi: ', log_pi)
+        o_next, r, d, _ = self.learn_env.step(a)
+        Z += r
+        el += 1
+        t += 1
+        self.buffer.store(o, a, r, o_next, v, log_pi, el)
+        o = o_next
+        if d or (el == max_el):
+            if el == max_el:
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+            else:
+                # print('v=0')
+                v = T.Tensor([0.0])
+            self.buffer.finish_path(el, v)
+
+            # print(f'termination: t={t} | el={el} | total_size={self.buffer.total_size()}')
+            o, Z, el = self.learn_env.reset(), 0, 0
+        return o, Z, el, t
 
 
     def internact(self, n, o, Z, el, t):

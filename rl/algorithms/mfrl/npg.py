@@ -24,8 +24,8 @@ from torch.distributions.normal import Normal
 nn = T.nn
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.algorithms.mfrl.reinforce import Reinforce
-from rl.control.policy import ReinforcePolicy, StochasticPolicy
+# from rl.algorithms.mfrl.reinforce import Reinforce
+from rl.control.policy import NPGPolicy, StochasticPolicy
 from rl.value_functions.v_function import VFunction
 
 
@@ -118,7 +118,7 @@ class ActorCritic: # Done
 
 
 
-class NPG(MFRL, Reinforce):
+class NPG(MFRL):
     """
     Algorithm: Natural Policy Gradient (On-Policy, Model-Free)
 
@@ -324,10 +324,14 @@ class NPG(MFRL, Reinforce):
         """
         Jπ(φ) =
         """
+
         clip_eps = self.configs['actor']['clip_eps']
         kl_targ = self.configs['actor']['kl_targ']
+        normz_step_size = self.configs['actor']['normz_step_size']
+
         entropy_coef = self.configs['actor']['entropy_coef']
         max_grad_norm = self.configs['actor']['network']['max_grad_norm']
+
 
         observations, actions, _, _, advantages, log_pis_old = batch.values()
 
@@ -350,17 +354,16 @@ class NPG(MFRL, Reinforce):
         Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
         Jentropy = entropy_coef * 0. #entropy.mean()
         Jpi = Jpg + Jentropy
+
+
+        # Jvp =
+        # Jnp =
+
+
         self.actor_critic.actor.optimizer.zero_grad()
         Jpi.backward()
-        nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm)
+        # nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm)
         self.actor_critic.actor.optimizer.step()
-        # else:
-        #     # print('Stop policy gradient updates!')
-        #     Jpi = Jpi_old
-        #     stop_pi = True
-
-        # if approx_kl > 1.5 * kl_targ:
-        #     stop = True
 
         return Jpi, stop_pi
 

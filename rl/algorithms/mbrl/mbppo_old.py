@@ -14,7 +14,7 @@ import torch.nn.functional as F
 # T.multiprocessing.set_sharing_strategy('file_system')
 
 from rl.algorithms.mbrl.mbrl import MBRL
-from rl.algorithms.mfrl.npg import NPG
+from rl.algorithms.mfrl.ppo import PPO
 from rl.world_models.fake_world import FakeWorld
 import rl.environments.mbpo.static as mbpo_static
 # from rl.data.dataset import RLDataModule
@@ -23,7 +23,7 @@ import rl.environments.mbpo.static as mbpo_static
 
 
 
-class MBNPG(MBRL, NPG):
+class MBPPO(MBRL, PPO):
     """
     Greek alphabet:
         Α α, Β β, Γ γ, Δ δ, Ε ε, Ζ ζ, Η η, Θ θ, Ι ι, Κ κ, Λ λ, Μ μ,
@@ -37,7 +37,7 @@ class MBNPG(MBRL, NPG):
         04: Initial Data: Collect N_init samples from the environment by interacting with initial policy. Store data in buffer D.
         05: for n = 0, 1, 2, ..., N (nEpochs) do
         06:    Learn dynamics model(s) M^_n+1 using data in the buffer.
-        07:    Policy updates: π_n+1; V_n+1 = MB-NPG(π_n, V_n, M^_n+1) // call K times
+        07:    Policy updates: π_n+1; V_n+1 = MB-PPO(π_n, V_n, M^_n+1) // call K times
         08:    Collect dataset of N samples from World by interacting with πn+1.
         09.    Add data to replay buffer D, discarding old data if size is larger than B.
         10: end for
@@ -45,11 +45,11 @@ class MBNPG(MBRL, NPG):
 
     Algorithm: Model-Based Game: Model As Leader (MAL) – Practical Version
         1: Initialize: Policy network π_0, model network(s) Mhat_0, value network V_0.
-        2: Hyperparameters: Initial samples N_init, samples per update N, number of NPG steps K >> 1
+        2: Hyperparameters: Initial samples N_init, samples per update N, number of PPO steps K >> 1
         3: Initial Data: Collect N_init samples from the environment by interacting with initial policy. Store data in buffer D.
         4: Initial Model: Learn model(s) Mhat_0 using data in D.
         5: for k = 0, 1, 2, ... do
-        6:    Optimize π_k+1 using Mck by running K >> 1 steps of model-based NPG (Subroutine 1).
+        6:    Optimize π_k+1 using Mck by running K >> 1 steps of model-based PPO (Subroutine 1).
         7:    Collect dataset D_k+1 of N samples from world using πk+1. Aggregate data D = D U D_k+1.
         8:    Learn dynamics model(s) Mhat_k+1 using data in D.
         9: end for
@@ -97,8 +97,8 @@ class MBNPG(MBRL, NPG):
 
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
-        super(MBNPG, self).__init__(exp_prefix, configs, seed, device)
-        # print('init MBNPG Algorithm!')
+        super(MBPPO, self).__init__(exp_prefix, configs, seed, device)
+        # print('init MBPPO Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -107,8 +107,8 @@ class MBNPG(MBRL, NPG):
 
 
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
-        super(MBNPG, self).__init__(exp_prefix, configs, seed, device)
-        # print('init MBNPG Algorithm!')
+        super(MBPPO, self).__init__(exp_prefix, configs, seed, device)
+        # print('init MBPPO Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -116,16 +116,16 @@ class MBNPG(MBRL, NPG):
         self._build()
 
 
-    ## build MBNPG components: (env, D, AC, alpha)
+    ## build MBPPO components: (env, D, AC, alpha)
     def _build(self):
-        super(MBNPG, self)._build()
-        self._set_npg()
-        self._set_fake_world()
+        super(MBPPO, self)._build()
+        self._set_ppo()
+        # self._set_fake_world()
 
 
-    ## NPG
-    def _set_npg(self):
-        NPG._build_npg(self)
+    ## PPO
+    def _set_ppo(self):
+        PPO._build_ppo(self)
 
 
     ## FakeEnv
@@ -147,7 +147,7 @@ class MBNPG(MBRL, NPG):
         Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         E = self.configs['algorithm']['learning']['env_steps']
-        G_npg = self.configs['algorithm']['learning']['grad_NPG_steps']
+        G_ppo = self.configs['algorithm']['learning']['grad_PPO_steps']
 
         model_train_frequency = self.configs['world_model']['model_train_freq']
         batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
@@ -160,8 +160,7 @@ class MBNPG(MBRL, NPG):
 
         global_step = 0
         start_time = time.time()
-        # o, Z, el, t = self.learn_env.reset(), 0, 0, 0
-        o, d, Z, el, t = self.learn_env.reset(), 0, 0, 0, 0
+        o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         oldJs = [0, 0]
         JVList, JPiList = [0]*Ni, [0]*Ni
         logs = dict()
@@ -174,32 +173,35 @@ class MBNPG(MBRL, NPG):
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
                     oldJs = [0, 0]
-                    JVList, JPiList = [0], [0]
+                    JVList, JPiList, KLList = [0], [0], [0]
                     JValList = [0]
                 elif n > Ni:
                     print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
-                    JVList, JPiList = [], []
+                    JVList, JPiList, KLList = [], [], []
                     JValList = []
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
                     oldJs = [0, 0]
-                    JVList, JPiList = [0], [0]
+                    JVList, JPiList, KLList = [0], [0], [0]
                     JValList = [0]
 
-            print(f'[ Replay Buffer ] Size: {self.buffer.total_size()}')
-            # print(f'[ Replay Buffer ] ter_idx: {self.buffer.ter_idx[:47]}')
+            # print(f'[ Replay Buffer ] Size: {self.buffer.total_size()}')
             nt = 0
+            # self.buffer.clean_buffer()
+            o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
+
             learn_start_real = time.time()
             while nt < NT: # full epoch
                 # Interaction steps
-                # print(f'[ Replay Buffer ] ptr: {self.buffer.ptr}')
                 for e in range(1, E+1):
-                    # print(f'EpLength : {el}')
                     # o, Z, el, t = self.internact(n, o, Z, el, t)
-                    o, d, Z, el, t = self.internact_op(n, o, d, Z, el, t)
+                    o, Z, el, t = self.internact_opB(n, o, Z, el, t)
                     print(f'[ Epoch {n}   Interaction ] Env Steps: {e} | Return: {round(Z, 2)}'+(" "*10), end='\r')
-                    # print(f'[ Epoch {n}   Interaction ] Env Steps: {el} | Return: {round(Z, 2)}'+(" "*10))
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+                # self.buffer.traj_tail(d, v, el)
+                self.buffer.finish_path(el, v)
 
+                # print(f'Buffer size = {self.buffer.total_size()}')
                 # Taking gradient steps after exploration
                 if n > Ni:
                     # if nt % model_train_frequency == 0:
@@ -209,28 +211,55 @@ class MBNPG(MBRL, NPG):
                     ho_mean = 0. #self.fake_world.train_fake_world(self.buffer)
                     JValList.append(ho_mean) # ho: holdout
 
-                    k_list = []
-                    for g in range(1, G_npg+1):
+                    # model_fit_bs = self.configs['data']['buffer_size']
+                    # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
+                    # s, a, sp, _, _, _, _ = model_fit_batch.values()
+                    # if n == Ni+1:
+                    #     samples_to_collect = 4000
+                    # else:
+                    #     samples_to_collect = 1000
+
+                    # for i, model in enumerate(self.models):
+                    #     print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
+                    #     loss_general = model.compute_loss(s[-samples_to_collect:],
+                    #                                       a[-samples_to_collect:],
+                    #                                       sp[-samples_to_collect:]) # generalization error
+                    #     dynamics_loss = model.fit_dynamics(s, a, sp, **job_data)
+                    #     logger.log_kv('dyn_loss_' + str(i), dynamics_loss[-1])
+                    #     logger.log_kv('dyn_loss_gen_' + str(i), loss_general)
+                    #     if job_data['learn_reward']:
+                    #         reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), **job_data)
+                    #         logger.log_kv('rew_loss_' + str(i), reward_loss[-1])
+
+                    KstepsList = []
+                    self.initialize_model_buffer()
+                    # PPO-P >>>>
+                    for g in range(1, G_ppo+1):
+                        print('\n')
                         # print(f'Actor-Critic Grads...{g}', end='\r')
                         # print(f'[ Epoch {n}   Training Actor-Critic ] AC Grads: {g}'+(" "*50), end='\r')
                         # # Reallocate model buffer
-                        self.initialize_model_buffer()
+                        # self.initialize_model_buffer()
+                        self.model_buffer.reset()
                         # # Generate M k-steps imaginary rollouts for SAC traingin
                         # self.rollout_world_model_op(rollout_trajectories, K, n)
                         # k_avg = self.rollout_world_model_trajectories(rollout_trajectories, K, n)
                         k_avg = self.rollout_real_world_trajectories(rollout_trajectories, K, g, n)
-                        k_list.append(k_avg)
-                        # NPG-P >>>>
-                        # batch_size = int(self.model_buffer.ptr // mini_batch_size) # Stubid!!
-                        batch_size = int(self.model_buffer.ptr)
-                        for b in range(0, batch_size, mini_batch_size):
-                            # print('ptr: ', self.buffer.ptr)
-                            mini_batch = self.model_buffer.sample_batch(mini_batch_size, self._device_)
-                            Jv, Jpi, stop_pi = self.trainAC(g, mini_batch, oldJs)
+                        KstepsList.append(k_avg)
+                        batch_size = int(self.model_buffer.total_size())
+                        print('\n')
+                        stop_pi = False
+                        kl = 0
+                        for gg in range(1, 81): # 101
+                            print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
+                            batch = self.model_buffer.sample_batch(batch_size, self._device_)
+                            Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs)
+                            # print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || PG={stop_pi} | KL={kl}'+(' '*80), end='\r')
                             oldJs = [Jv, Jpi]
                             JVList.append(Jv.item())
                             JPiList.append(Jpi.item())
-                        # NPG-P <<<<
+                            KLList.append(kl)
+                    # PPO-P <<<<
 
                 nt += E
 
@@ -242,16 +271,18 @@ class MBNPG(MBRL, NPG):
             logs['training/wm/Jval               '] = np.mean(JValList)
             # logs['training/wm/test_mse           '] = np.mean(LossTestList)
 
-            logs['training/npg/Jv                '] = np.mean(JVList)
-            logs['training/npg/Jpi               '] = np.mean(JPiList)
+            logs['training/ppo/Jv                '] = np.mean(JVList)
+            logs['training/ppo/Jpi               '] = np.mean(JPiList)
+            logs['training/ppo/KL                '] = np.mean(KLList)
 
             logs['data/env_buffer                '] = self.buffer.total_size()
+            logs['data/env_rollout_steps         '] = self.buffer.average_horizon()
             if hasattr(self, 'model_buffer'):
-                logs['data/model_buffer              '] = self.model_buffer.ptr
-                logs['data/rollout_horizon_mean      '] = np.mean(k_list)
+                logs['data/model_buffer              '] = self.model_buffer.total_size()
+                logs['data/model_rollout_steps       '] = np.mean(KstepsList)
             else:
                 logs['data/model_buffer              '] = 0.
-                logs['data/rollout_horizon_mean      '] = 0.
+                logs['data/model_rollout_steps       '] = 0.
             # else:
             #     logs['data/model_buffer              '] = 0
             # logs['data/rollout_length            '] = K
@@ -293,7 +324,7 @@ class MBNPG(MBRL, NPG):
             # Printing logs
             if self.configs['experiment']['print_logs']:
                 for k, v in logs.items():
-                    print(f'{k}  {round(v, 2)}'+(' '*10))
+                    print(f'{k}  {round(v, 4)}'+(' '*10))
 
             # WandB
             if self.WandB:
@@ -301,6 +332,59 @@ class MBNPG(MBRL, NPG):
 
         self.learn_env.close()
         self.eval_env.close()
+
+
+    def rollout_real_world_trajectories(self, rollout_trajectories, K, g, n):
+    	# 07. Sample st uniformly from Denv
+    	device = self._device_
+    	# Nτ = 400 * 2 # number of trajectories x number of models
+    	Nτ = 40 # number of trajectories x number of models
+    	# Nτ = self.configs['data']['rollout_trajectories']
+    	# o, d, el = self.traj_env.reset(), 0, 0
+
+        # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
+    	k_end_total = 0
+    	for nτ in range(1, Nτ+1): # Generate trajectories
+            # o, d, el = self.traj_env.reset(), 0, 0
+            o, Z, el = self.traj_env.reset(), 0, 0
+            # print(f'nτ = {nτ}'+(' '*70), end='\r')
+            for k in range(1, K+1): # Generate rollouts
+                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ} | k = {k} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
+                # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
+                with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+                # o_next, r, d_next, _ = self.traj_env.step(a)
+                o_next, r, d, _ = self.traj_env.step(a)
+                Z += r
+                el += 1
+
+                # self.model_buffer.store_transition(o, a, r, d, v, log_pi)
+                self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
+                o = o_next
+                # if d_next or (el == K):
+                #     o_next, d_next, el = self.traj_env.reset(), 0, 0
+                #     print(f'[ Model Rollout ] Breaking early: {k}'+(' '*50), end='\r')
+                #     # k_end_total += k
+                #     break
+                if d or (el == K):
+                    # print(f'[ Model Rollout ] Breaking early: {k}'+(' '*50), end='\r')
+                    # if el == K:
+                    #     with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+                    # else:
+                    #     v = T.Tensor([0.0])
+                    # self.model_buffer.finish_path(el, v)
+                    break
+                    # o, el = self.traj_env.reset(), 0
+                # else:
+                # o, d = o_next, d_next
+            if el == K:
+                # print(f'[ Model Rollout ] Average Breaking : {k_end_total//Nτ}'+(' '*50))
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+            else:
+                v = T.Tensor([0.0])
+            # self.model_buffer.traj_tail(d, v)
+            self.model_buffer.finish_path(el, v)
+            k_end_total += k
+    	return k_end_total//Nτ
 
 
     def rollout_world_model_trajectories(self, rollout_trajectories, K, n):
@@ -373,7 +457,7 @@ class MBNPG(MBRL, NPG):
     	self.model_buffer.traj_tail(D, V)
 
 
-    def npg_mini_batch(self, mini_batch_size):
+    def ppo_mini_batch(self, mini_batch_size):
     	B = self.model_buffer.sample_batch(mini_batch_size, self._device_)
     	return B
 
@@ -383,7 +467,7 @@ class MBNPG(MBRL, NPG):
 
 def main(exp_prefix, config, seed, device, wb):
 
-    print('Start an MBNPG experiment...')
+    print('Start an MBPPO experiment...')
     print('\n')
 
     configs = config.configurations
@@ -398,7 +482,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{alg_mode}-A"
+    group_name = f"{env_name}-{alg_name}-{alg_mode}-D"
     exp_prefix = f"seed:{seed}"
 
     if wb:
@@ -410,12 +494,12 @@ def main(exp_prefix, config, seed, device, wb):
             config=configs
         )
 
-    agent = MBNPG(exp_prefix, configs, seed, device, wb)
+    agent = MBPPO(exp_prefix, configs, seed, device, wb)
 
     agent.learn()
 
     print('\n')
-    print('... End the MBNPG experiment')
+    print('... End the MBPPO experiment')
 
 
 if __name__ == "__main__":

@@ -63,10 +63,11 @@ class ActorCritic: # Done
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        return PPOPolicy(
-            self.obs_dim, self.act_dim,
-            self.act_up_lim, self.act_low_lim,
-            net_configs, self._device_, self.seed)
+        return ReinforcePolicy(
+            # self.obs_dim, self.act_dim,
+            # self.act_up_lim, self.act_low_lim,
+            # net_configs, self._device_, self.seed
+            )
 
 
     def _set_critic(self):
