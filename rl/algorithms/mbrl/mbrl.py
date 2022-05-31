@@ -9,7 +9,7 @@ from rl.data.buffer import TrajBuffer, ReplayBuffer
 from rl.data.dataset import RLDataModule
 # from rl.world_models.world_model import WorldModel
 from rl.world_models.model import EnsembleDynamicsModel
-from rl.dynamics.world_model import WorldModel
+# from rl.dynamics.world_model import WorldModel
 
 
 
