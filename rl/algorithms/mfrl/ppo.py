@@ -334,7 +334,7 @@ class PPO(MFRL):
         """
         max_grad_norm = kl_targ = self.configs['critic']['network']['max_grad_norm']
 
-        observations, _, _, returns, _, _, _ = batch.values()
+        observations, _, _, _, returns, _, _, _ = batch.values()
         v = self.actor_critic.get_v(observations)
 
         Jv = 0.5 * ( (v - returns) ** 2 ).mean(axis=0)
@@ -356,7 +356,7 @@ class PPO(MFRL):
         entropy_coef = self.configs['actor']['entropy_coef']
         max_grad_norm = self.configs['actor']['network']['max_grad_norm']
 
-        observations, actions, _, _, _, advantages, log_pis_old = batch.values()
+        observations, actions, _, _, _, _, advantages, log_pis_old = batch.values()
 
         _, log_pi, entropy = self.actor_critic.get_pi(observations, actions)
         logratio = log_pi - log_pis_old

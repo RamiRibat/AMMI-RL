@@ -9,7 +9,7 @@ from rl.data.buffer import TrajBuffer, ReplayBuffer
 from rl.data.dataset import RLDataModule
 # from rl.world_models.world_model import WorldModel
 from rl.world_models.model import EnsembleDynamicsModel
-# from rl.dynamics.world_model import WorldModel
+from rl.dynamics.world_model import WorldModel
 
 
 
@@ -95,13 +95,13 @@ class MBRL:
         num_elites = self.configs['world_model']['num_elites']
         net_arch = self.configs['world_model']['network']['arch']
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
-        self.world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
-                                                 self.obs_dim, self.act_dim, 1,
-                                                 net_arch[0], use_decay=True, device=device)
+        # self.world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
+        #                                          self.obs_dim, self.act_dim, 1,
+        #                                          net_arch[0], use_decay=True, device=device)
 
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
-        # self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m) for m in range(num_ensembles) ]
+        self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m) for m in range(num_ensembles) ]
 
 
     def init_model_traj_buffer(self):
