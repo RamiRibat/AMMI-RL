@@ -373,7 +373,8 @@ class MBPPO(MBRL, PPO):
                 # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
                 with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
                 # o_next, r, d, _ = self.traj_env.step(a)
-                o_next, r, d, _ = self.fake_world.step(o, a, deterministic=True) # ip: Tensor, op: Tensor
+                # o_next, r, d, _ = self.fake_world.step(o, a, deterministic=True) # ip: Tensor, op: Tensor
+                o_next, r, d, _ = self.fake_world.step(o, a) # ip: Tensor, op: Tensor
                 Z += float(r)
                 el += 1
                 self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
