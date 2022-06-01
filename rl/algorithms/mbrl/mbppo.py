@@ -362,13 +362,18 @@ class MBPPO(MBRL, PPO):
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	k_end_total = 0
-    	slope = 22.5
-    	Ksurr = 50 + slope*(n-5)
+
+    	# slope = 22.5
+    	# Ksurr = 50 + slope*(n-5)
+
+    	slope = 24
+    	Ksurr = 20 + slope*(n-5)
+
     	K = min(K, int(Ksurr))
     	for nτ, o in enumerate(O_init): # Generate trajectories
             Z, el = 0, 0
             for k in range(1, K+1): # Generate rollouts
-                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{O_Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}'+(' ')*10, end='\r')
+                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{O_Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}'+(' ')*20, end='\r')
                 # print('\no: ', o)
                 # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
                 with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
