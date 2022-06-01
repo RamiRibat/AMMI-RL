@@ -49,15 +49,18 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 4, # 7
-        'num_elites': 4, # 5
+        'num_ensembles': 7,
+        'num_elites': 5,
+        # 'num_ensembles': 4,
+        # 'num_elites': 4,
         'sample_type': 'Random',
         'learn_reward': True,
         'model_train_freq': 250,
         'model_retain_epochs': 1,
         'rollout_schedule': [20, 100, 1, 15],
         'network': {
-            'arch': [512, 512],
+            # 'arch': [512, 512],
+            'arch': [200, 200, 200, 200],
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
