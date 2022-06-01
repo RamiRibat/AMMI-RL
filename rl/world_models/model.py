@@ -198,8 +198,8 @@ class EnsembleModel(nn.Module):
                  action_size,
                  reward_size,
                  ensemble_size,
-                 # hidden_size=200,
-                 hidden_size=512,
+                 hidden_size=200,
+                 # hidden_size=512,
                  learning_rate=1e-3,
                  use_decay=False,
                  device='cpu'
@@ -212,17 +212,17 @@ class EnsembleModel(nn.Module):
         self.use_decay = use_decay
         self.output_dim = state_size + reward_size
 
-        # self.nn1 = LinearEnsemble(ensemble_size, state_size + action_size, hidden_size,       weight_decay=0.000025).to(device)
-        # self.nn2 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000050).to(device)
-        # self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
-        # self.nn4 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
-        # self.nn5 = LinearEnsemble(ensemble_size, hidden_size,              self.output_dim*2, weight_decay=0.000100).to(device)
-
         self.nn1 = LinearEnsemble(ensemble_size, state_size + action_size, hidden_size,       weight_decay=0.000025).to(device)
         self.nn2 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000050).to(device)
-        # self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
-        # self.nn4 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
-        self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              self.output_dim*2, weight_decay=0.000075).to(device)
+        self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        self.nn4 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        self.nn5 = LinearEnsemble(ensemble_size, hidden_size,              self.output_dim*2, weight_decay=0.000100).to(device)
+
+        # self.nn1 = LinearEnsemble(ensemble_size, state_size + action_size, hidden_size,       weight_decay=0.000025).to(device)
+        # self.nn2 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000050).to(device)
+        # # self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        # # self.nn4 = LinearEnsemble(ensemble_size, hidden_size,              hidden_size,       weight_decay=0.000075).to(device)
+        # self.nn3 = LinearEnsemble(ensemble_size, hidden_size,              self.output_dim*2, weight_decay=0.000075).to(device)
 
 
         # net_arch = [200, 200, 200, 200] #net_configs['arch']
@@ -274,19 +274,19 @@ class EnsembleModel(nn.Module):
 
     def forward(self, x, ret_log_var=False):
         # print('x: ', x.shape)
-        # nn1_output = self.activation(self.nn1(x))
-        # nn2_output = self.activation(self.nn2(nn1_output))
-        # nn3_output = self.activation(self.nn3(nn2_output))
-        # nn4_output = self.activation(self.nn4(nn3_output))
-        # nn5_output = self.nn5(nn4_output)
-        # nn_output = nn5_output
-
         nn1_output = self.activation(self.nn1(x))
         nn2_output = self.activation(self.nn2(nn1_output))
-        # nn3_output = self.activation(self.nn3(nn2_output))
-        # nn4_output = self.activation(self.nn4(nn3_output))
-        nn3_output = self.nn3(nn2_output)
-        nn_output = nn3_output
+        nn3_output = self.activation(self.nn3(nn2_output))
+        nn4_output = self.activation(self.nn4(nn3_output))
+        nn5_output = self.nn5(nn4_output)
+        nn_output = nn5_output
+
+        # nn1_output = self.activation(self.nn1(x))
+        # nn2_output = self.activation(self.nn2(nn1_output))
+        # # nn3_output = self.activation(self.nn3(nn2_output))
+        # # nn4_output = self.activation(self.nn4(nn3_output))
+        # nn3_output = self.nn3(nn2_output)
+        # nn_output = nn3_output
 
         # nn_output = self.nn_model(x)
 
@@ -351,7 +351,7 @@ class EnsembleDynamicsModel():
         self.network_size = network_size
         self.elite_model_idxes = []
         self.ensemble_model = EnsembleModel(state_size, action_size, reward_size, network_size, hidden_size, use_decay=use_decay, device=device)
-        # print('ensemble_model: ', self.ensemble_model)
+        print('ensemble_model: ', self.ensemble_model)
 
         self.scaler = StandardScaler()
 
