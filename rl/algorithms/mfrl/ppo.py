@@ -25,6 +25,7 @@ nn = T.nn
 
 from rl.algorithms.mfrl.mfrl import MFRL
 from rl.control.policy import PPOPolicy, StochasticPolicy
+from rl.control.policy import NPGPolicy
 from rl.value_functions.v_function import VFunction
 
 
@@ -122,6 +123,98 @@ class ActorCritic: # Done
 
 
 
+
+
+class ActorCriticII: # Done
+    """
+    Actor-Critic
+        An entity contains both the actor (policy) that acts on the environment,
+        and a critic (V-function) that evaluate that state given a policy.
+    """
+    def __init__(self,
+                 obs_dim, act_dim,
+                 act_up_lim, act_low_lim,
+                 configs, seed, device
+                 ) -> None:
+        super(ActorCriticII, self).__init__()
+        self.obs_dim, self.act_dim = obs_dim, act_dim
+        self.act_up_lim, self.act_low_lim = act_up_lim, act_low_lim
+        self.configs, self.seed = configs, seed
+        self._device_ = device
+
+        self.actor, self.critic = None, None
+        self._build()
+
+
+    def _build(self):
+        self.actor = self._set_actor()
+        self.critic = self._set_critic()
+
+
+    def _set_actor(self):
+        net_configs = self.configs['actor']['network']
+        return NPGPolicy(
+            self.obs_dim, self.act_dim,
+            self.act_up_lim, self.act_low_lim,
+            net_configs, self._device_, self.seed)
+
+
+    def _set_critic(self):
+        net_configs = self.configs['critic']['network']
+        return VFunction(
+            self.obs_dim, self.act_dim,
+            net_configs, self._device_, self.seed)
+
+
+    def get_v(self, o):
+        return self.critic(o)
+
+
+    def get_pi(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
+        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return action, log_pi, entropy
+
+
+    # def get_action(self, o, a=None):
+    #     o = T.Tensor(o)
+    #     if a: a = T.Tensor(a)
+    #     with T.no_grad(): action, _, _ = self.actor(T.Tensor(o), a)
+    #     return action.cpu().numpy()
+
+
+    def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False): # Evaluation
+        # o = T.Tensor(o)
+        # if a: a = T.Tensor(a)
+        a = self.actor.get_action(o)
+        return a
+
+
+    def get_action_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
+        return self.get_action(o, a, reparameterize, deterministic, return_log_pi).numpy()
+
+
+    def get_pi_and_v(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
+        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return action, log_pi, entropy, self.critic(o)
+
+
+    def get_a_and_v(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
+        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return action.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
+
+
+    def get_a_and_v_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
+        o = T.Tensor(o)
+        if a: a = T.Tensor(a)
+        with T.no_grad(): a, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
+
+
+
+
+
+
+
 class PPO(MFRL):
     """
     Algorithm: Proximal Policy Optimization (On-Policy, Model-Free)
@@ -165,6 +258,10 @@ class PPO(MFRL):
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             self.configs, self.seed, self._device_)
+        # self.actor_critic = ActorCriticII(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     self.configs, self.seed, self._device_)
 
 
     def learn(self):

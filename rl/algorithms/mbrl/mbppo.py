@@ -110,7 +110,7 @@ class MBPPO(MBRL, PPO):
     def _build(self):
         super(MBPPO, self)._build()
         self._set_ppo()
-        # self._set_fake_world()
+        self._set_fake_world()
 
 
     ## PPO
@@ -185,6 +185,7 @@ class MBPPO(MBRL, PPO):
                 for e in range(1, E+1):
                     # o, Z, el, t = self.internact(n, o, Z, el, t)
                     o, Z, el, t = self.internact_opB(n, o, Z, el, t)
+                    # o, Z, el, t = self.internactII(n, o, Z, el, t)
                     print(f'[ Epoch {n}   Interaction ] Env Steps: {e} | Return: {round(Z, 2)}'+(" "*10), end='\r')
                 with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
                 # self.buffer.traj_tail(d, v, el)
@@ -195,26 +196,26 @@ class MBPPO(MBRL, PPO):
                 if n > Ni:
                     # 03. Train model pθ on Denv via maximum likelihood
                     print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
-                    ho_mean = 0. #self.fake_world.train_fake_world(self.buffer)
+                    ho_mean = self.fake_world.train_fake_world(self.buffer)
 
-                    model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
-                    model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
-                    s, a, sp, r, _, _, _, _ = model_fit_batch.values()
-                    if n == Ni+1:
-                        samples_to_collect = min(4000, self.buffer.total_size())
-                    else:
-                        samples_to_collect = 1000
-
-                    LossGen = []
-                    for i, model in enumerate(self.models):
-                        # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
-                        loss_general = model.compute_loss(s[-samples_to_collect:],
-                                                          a[-samples_to_collect:],
-                                                          sp[-samples_to_collect:]) # generalization error
-                        dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
-                        reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
-                    LossGen.append(loss_general)
-                    ho_mean = np.mean(LossGen)
+                    # model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
+                    # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
+                    # s, a, sp, r, _, _, _, _ = model_fit_batch.values()
+                    # if n == Ni+1:
+                    #     samples_to_collect = min(4000, self.buffer.total_size())
+                    # else:
+                    #     samples_to_collect = 1000
+                    #
+                    # LossGen = []
+                    # for i, model in enumerate(self.models):
+                    #     # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
+                    #     loss_general = model.compute_loss(s[-samples_to_collect:],
+                    #                                       a[-samples_to_collect:],
+                    #                                       sp[-samples_to_collect:]) # generalization error
+                    #     dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
+                    #     reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
+                    # LossGen.append(loss_general)
+                    # ho_mean = np.mean(LossGen)
 
                     self.init_model_traj_buffer()
                     # PPO-P >>>>
@@ -223,9 +224,9 @@ class MBPPO(MBRL, PPO):
                         self.model_buffer.reset()
                         # # Generate M k-steps imaginary rollouts for PPO training
                         # k_avg = self.rollout_real_world_trajectories(g, n)
-                        # k_avg = self.rollout_world_model_trajectories(g, n)
+                        k_avg = self.rollout_world_model_trajectories(g, n)
                         # self.rollout_world_model_trajectories_batch(g, n)
-                        k_avg = self.rollout_world_model_trajectoriesII(g, n)
+                        # k_avg = self.rollout_world_model_trajectoriesII(g, n)
                         batch_size = int(self.model_buffer.total_size())
                         stop_pi = False
                         kl = 0
@@ -271,6 +272,7 @@ class MBPPO(MBRL, PPO):
 
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate()
+            # EZ, ES, EL = self.evaluateII()
             # EZ, ES, EL = self.evaluate_op()
 
             # logs['time/evaluation                '] = time.time() - eval_start_real
@@ -459,14 +461,14 @@ class MBPPO(MBRL, PPO):
                     print(f'[ Epoch {n} ] Model Rollout: M = {m+1}/{len(self.models)} | nτ = {nτ+1}/{O_Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
                     # print('\no: ', o)
                     # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
-                    with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
+                    with T.no_grad():
+                        v = self.actor_critic.get_v(o)
+                        a = self.actor_critic.actor.forward(o)
+                        a = a + T.randn(a.shape).to(device) * T.exp(self.actor_critic.actor.log_std)
+                    log_pi = self.actor_critic.actor.log_likelihood(o, a)
 
                     o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
                     r = model.reward(o, a).detach()
-                    # print('o: ', o.shape)
-                    # print('a: ', a.shape)
-                    # print('o_next: ', o_next.shape)
-                    # print('r: ', r)
                     d = self._termination_fn("Hopper-v2", o, a, o_next)
                     d = T.tensor(d, dtype=T.bool)
 
@@ -594,7 +596,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{alg_mode}-H"
+    group_name = f"{env_name}-{alg_name}-{alg_mode}-I"
     exp_prefix = f"seed:{seed}"
 
     if wb:
