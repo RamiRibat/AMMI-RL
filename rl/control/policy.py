@@ -239,7 +239,7 @@ import torch
 
 
 LOG_STD_MAX = 1.0
-LOG_STD_MIN = -3.0
+LOG_STD_MIN = -2.5
 
 epsilon = 1e-8
 
@@ -270,17 +270,23 @@ class NPGPolicy(T.nn.Module): # Source: github.com/aravindr93/mjrl
 			 	 act_up_lim, act_low_lim,
 			 	 net_configs,
 				 device, seed,
+                 # hidden_sizes=(256,256),
                  hidden_sizes=(64,64),
                  init_log_std=0.0,
                  # *args, **kwargs,
                  ):
         super(NPGPolicy, self).__init__()
+        print('init NPG Policy')
+        print('hidden_sizes: ', hidden_sizes)
         # check input specification
         # if env_spec is None:
         #     assert observation_dim is not None
         #     assert action_dim is not None
+        # T.manual_seed(1)
+        # np.random.seed(1)
 
         self.device = device
+        self.obs_dim, self.act_dim = obs_dim, act_dim
 
         self.min_log_std_val = LOG_STD_MIN if type(LOG_STD_MIN)==np.ndarray else LOG_STD_MIN * np.ones(self.act_dim)
         self.max_log_std_val = LOG_STD_MAX if type(LOG_STD_MAX)==np.ndarray else LOG_STD_MAX * np.ones(self.act_dim)
@@ -390,7 +396,7 @@ class NPGPolicy(T.nn.Module): # Source: github.com/aravindr93/mjrl
 
     # Main functions
     # ============================================
-    def get_action(self, obs):
+    def get_action(self, obs): # Real Interaction/Evaluation
         assert type(obs) == np.ndarray
         if self.device != 'cpu':
             print("Warning: get_action function should be used only for simulation.")
@@ -413,13 +419,16 @@ class NPGPolicy(T.nn.Module): # Source: github.com/aravindr93/mjrl
         log_std = self.log_std if log_std is None else log_std
         mean = self.forward(obs)
         zs = (act - mean) / T.exp(self.log_std)
-        LL = - 0.5 * T.sum(zs ** 2, dim=1) + \
-             - T.sum(log_std) + \
-             - 0.5 * self.act_dim * np.log(2 * np.pi)
+        # print('zs: ', zs)
+        # print('log_std: ', log_std)
+        # print('self.act_dim: ', self.act_dim)
+        LL = - 0.5 * T.sum(zs ** 2) - T.sum(log_std) - 0.5 * self.act_dim * np.log(2 * np.pi)
         return mean, LL
 
 
-    def log_likelihood(self, obs, act, *args, **kwargs):
+    def log_likelihood(self, obs, act,
+					   # *args, **kwargs,
+					   ):
         mean, LL = self.mean_LL(obs, act)
         return LL.to('cpu').data.numpy()
 
@@ -447,6 +456,8 @@ class NPGPolicy(T.nn.Module): # Source: github.com/aravindr93/mjrl
         Dr = 2 * new_std ** 2 + 1e-8
         sample_kl = T.sum(Nr / Dr + new_log_std - old_log_std, dim=1)
         return T.mean(sample_kl)
+
+
 
 
 
