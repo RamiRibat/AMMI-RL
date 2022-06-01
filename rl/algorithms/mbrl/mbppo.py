@@ -368,7 +368,7 @@ class MBPPO(MBRL, PPO):
     	for nτ, o in enumerate(O_init): # Generate trajectories
             Z, el = 0, 0
             for k in range(1, K+1): # Generate rollouts
-                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{O_Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
+                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{O_Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}'+(' ')*10, end='\r')
                 # print('\no: ', o)
                 # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
                 with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
