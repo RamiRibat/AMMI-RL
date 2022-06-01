@@ -308,12 +308,14 @@ class TrajBuffer:
         batch = dict(observations=self.obs_batch[idxs],
         			 actions=self.act_batch[idxs],
                      observations_next=self.obs_next_batch[idxs],
+        			 rewards=self.rew_batch[idxs],
         			 returns=self.ret_batch[idxs],
                      values=self.val_batch[idxs],
         			 advantages=self.adv_batch[idxs],
-        			 log_pis=self.log_pi_batch[idxs])
+        			 log_pis=self.log_pi_batch[idxs]
+                     )
         if device:
-            return {k: v.to(device) for k,v in batch.items()}
+            return {k: v.to(device) for k,v in batch.items()} # 7
         else:
             return {k: v            for k,v in batch.items()}
 
