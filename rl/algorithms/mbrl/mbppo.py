@@ -594,7 +594,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{alg_mode}-G"
+    group_name = f"{env_name}-{alg_name}-{alg_mode}-H"
     exp_prefix = f"seed:{seed}"
 
     if wb:
