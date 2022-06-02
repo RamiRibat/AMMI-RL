@@ -10,21 +10,26 @@ import torch.nn as nn
 from tqdm import tqdm
 
 
+
 class WorldModel:
-    def __init__(self, state_dim, act_dim,
-                 learn_reward=False,
-                 hidden_size=(512,512),
+    def __init__(self,
+                 state_dim, act_dim,
+                 learn_reward=True,
+                 hidden_size=(64,64),
                  seed=123,
                  fit_lr=1e-3,
                  fit_wd=0.0,
                  device='cpu',
                  activation='relu',
                  residual=True,
-                 # *args, **kwargs,
+                 # *args,
+                 # **kwargs
                  ):
 
+        hidden_size=(512,512)
+
         self.state_dim, self.act_dim = state_dim, act_dim
-        self.device, self.learn_reward = device, True #learn_reward
+        self.device, self.learn_reward = device, learn_reward
         if self.device == 'gpu' : self.device = 'cuda'
         # construct the dynamics model
         self.dynamics_net = DynamicsNet(state_dim, act_dim, hidden_size, residual=residual, seed=seed).to(self.device)
@@ -91,9 +96,7 @@ class WorldModel:
         return loss.to('cpu').data.numpy()
 
     def fit_dynamics(self, s, a, sp, fit_mb_size, fit_epochs, max_steps=1e4,
-                     set_transformations=True,
-                     # *args, **kwargs
-                     ):
+                     set_transformations=True, *args, **kwargs):
         # move data to correct devices
         assert type(s) == type(a) == type(sp)
         assert s.shape[0] == a.shape[0] == sp.shape[0]
@@ -116,7 +119,6 @@ class WorldModel:
             X = (s, a) ; Y = (sp - s - out_shift) / (out_scale + 1e-8)
         else:
             X = (s, a) ; Y = (sp - out_shift) / (out_scale + 1e-8)
-
         # disable output transformations to learn in the transformed space
         self.dynamics_net._apply_out_transforms = False
         return_vals =  fit_model(self.dynamics_net, X, Y, self.dynamics_opt, self.dynamics_loss,
@@ -125,9 +127,7 @@ class WorldModel:
         return return_vals
 
     def fit_reward(self, s, a, r, fit_mb_size, fit_epochs, max_steps=1e4,
-                   set_transformations=True,
-                   # *args, **kwargs
-                   ):
+                   set_transformations=True, *args, **kwargs):
         if not self.learn_reward:
             print("Reward model was not initialized to be learnable. Use the reward function from env.")
             return None
@@ -176,9 +176,7 @@ class WorldModel:
 
 
 class DynamicsNet(nn.Module):
-    def __init__(self,
-                 state_dim, act_dim,
-                 hidden_size=(512,512),
+    def __init__(self, state_dim, act_dim, hidden_size=(64,64),
                  s_shift = None,
                  s_scale = None,
                  a_shift = None,
@@ -274,9 +272,8 @@ class DynamicsNet(nn.Module):
 
 
 class RewardNet(nn.Module):
-    def __init__(self,
-                 state_dim, act_dim,
-                 hidden_size=(512,512),
+    def __init__(self, state_dim, act_dim,
+                 hidden_size=(64,64),
                  s_shift = None,
                  s_scale = None,
                  a_shift = None,
@@ -354,8 +351,6 @@ class RewardNet(nn.Module):
         for idx, p in enumerate(self.parameters()):
             p.data = new_weights[idx]
         self.set_transformations(s_shift, s_scale, a_shift, a_scale)
-
-
 
 
 def fit_model(nn_model, X, Y, optimizer, loss_func,
