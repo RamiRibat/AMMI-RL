@@ -8,6 +8,7 @@ configurations = {
             'state_space': 'continuous',
             'action_space': 'continuous',
             'horizon': 1e3,
+            'action_repeat': 1, # New (leave this)
         },
 
     'algorithm': {
@@ -49,10 +50,10 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 7,
-        'num_elites': 5,
-        # 'num_ensembles': 4,
-        # 'num_elites': 4,
+        # 'num_ensembles': 7,
+        # 'num_elites': 5,
+        'num_ensembles': 4,
+        'num_elites': 4,
         'sample_type': 'Random',
         'learn_reward': True,
         'model_train_freq': 250,
@@ -100,7 +101,8 @@ configurations = {
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 1e-3,
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
     },
