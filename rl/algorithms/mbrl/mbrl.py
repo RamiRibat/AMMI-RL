@@ -95,13 +95,13 @@ class MBRL:
         num_elites = self.configs['world_model']['num_elites']
         net_arch = self.configs['world_model']['network']['arch']
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
-        self.world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
-                                                 self.obs_dim, self.act_dim, 1,
-                                                 net_arch[0], use_decay=True, device=device)
+        # self.world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
+        #                                          self.obs_dim, self.act_dim, 1,
+        #                                          net_arch[0], use_decay=True, device=device)
 
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
-        # self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m) for m in range(num_ensembles) ]
+        self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m) for m in range(num_ensembles) ]
 
 
     def init_model_traj_buffer(self):
@@ -212,7 +212,6 @@ class MBRL:
     def internact_opB(self, n, o, Z, el, t):
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
-        # a = self.actor_critic.get_action_np(o)
         with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
         o_next, r, d, _ = self.learn_env.step(a)
         Z += r
@@ -224,7 +223,6 @@ class MBRL:
             if el == max_el:
                 with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
             else:
-                # print('v=0')
                 v = T.Tensor([0.0])
             self.buffer.finish_path(el, v)
             o, Z, el = self.learn_env.reset(), 0, 0

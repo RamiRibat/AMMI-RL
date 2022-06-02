@@ -110,7 +110,7 @@ class MBPPO(MBRL, PPO):
     def _build(self):
         super(MBPPO, self)._build()
         self._set_ppo()
-        self._set_fake_world()
+        # self._set_fake_world()
 
 
     ## PPO
@@ -602,7 +602,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{alg_mode}-I"
+    group_name = f"{env_name}-{alg_name}-{alg_mode}-J"
     exp_prefix = f"seed:{seed}"
 
     if wb:
