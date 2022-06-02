@@ -110,8 +110,9 @@ class MBRL:
         device = self._device_
 
         if self.configs['algorithm']['on-policy']:
-            num_traj = int(200*1.25)
-            horizon = 500
+            num_traj = int(100*1.5)
+            # horizon = 500
+            horizon = 1000
             max_size = self.configs['data']['model_buffer_size']
             self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
 
