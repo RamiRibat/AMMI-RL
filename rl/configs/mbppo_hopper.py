@@ -50,10 +50,10 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        # 'num_ensembles': 7,
-        # 'num_elites': 5,
-        'num_ensembles': 4,
-        'num_elites': 4,
+        'num_ensembles': 7,
+        'num_elites': 5,
+        # 'num_ensembles': 4,
+        # 'num_elites': 4,
         'sample_type': 'Random',
         'learn_reward': True,
         'model_train_freq': 250,
