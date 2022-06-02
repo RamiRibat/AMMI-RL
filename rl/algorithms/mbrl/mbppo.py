@@ -110,7 +110,7 @@ class MBPPO(MBRL, PPO):
     def _build(self):
         super(MBPPO, self)._build()
         self._set_ppo()
-        # self._set_fake_world()
+        self._set_fake_world()
 
 
     ## PPO
@@ -227,7 +227,8 @@ class MBPPO(MBRL, PPO):
                         k_avg = self.rollout_world_model_trajectories(g, n)
                         # self.rollout_world_model_trajectories_batch(g, n)
                         # k_avg = self.rollout_world_model_trajectoriesII(g, n)
-                        batch_size = int(self.model_buffer.total_size())
+                        # batch_size = int(self.model_buffer.total_size())
+                        batch_size = min(int(self.model_buffer.total_size()), 4000)
                         stop_pi = False
                         kl = 0
                         print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')

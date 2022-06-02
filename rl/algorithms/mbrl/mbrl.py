@@ -95,9 +95,9 @@ class MBRL:
         num_elites = self.configs['world_model']['num_elites']
         net_arch = self.configs['world_model']['network']['arch']
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
-        # self.world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
-        #                                          self.obs_dim, self.act_dim, 1,
-        #                                          net_arch[0], use_decay=True, device=device)
+        self.world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
+                                                 self.obs_dim, self.act_dim, 1,
+                                                 net_arch[0], use_decay=True, device=device)
 
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
