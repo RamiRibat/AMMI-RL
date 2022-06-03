@@ -97,13 +97,13 @@ configurations = {
         'gamma': 0.99, # Discount factor - γ
         'lam': 0.97, # GAE - λ
         'network': {
-            'arch': [128, 128],
-            # 'arch': [256, 256],
+            # 'arch': [128, 128],
+            'arch': [256, 256],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 1e-3,
-            # 'lr': 3e-4,
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
     },
