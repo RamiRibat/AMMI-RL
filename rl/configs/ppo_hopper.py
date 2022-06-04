@@ -14,14 +14,16 @@ configurations = {
         'model-based': False,
         'on-policy': True,
         'learning': {
-            'epochs': 250, # N epochs
+            'epochs': 500, # N epochs
             # 'epoch_steps': 2048, # NT steps/epoch
-            'epoch_steps': 4000, # NT steps/epoch
+            # 'epoch_steps': 4000, # NT steps/epoch
+            'epoch_steps': 50000, # NT steps/epoch
             'init_epochs': 0, # Ni epochs
             'expl_epochs': 0, # Nx epochs
 
             # 'env_steps' : 2048, # E: interact E times then train
-            'env_steps' : 4000, # E: interact E times then train
+            # 'env_steps' : 4000, # E: interact E times then train
+            'env_steps' : 50000, # E: interact E times then train
             'train_AC_freq': 1, # F: frequency of AC training
             'grad_AC_steps': 80, # ACG: ac grad
 
@@ -44,7 +46,8 @@ configurations = {
         'kl_targ': 0.01,
         'entropy_coef': 0.0,
         'network': {
-            'arch': [64, 64],
+            # 'arch': [64, 64],
+            'arch': [256, 256],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
@@ -59,7 +62,8 @@ configurations = {
         'gamma': 0.99,
         'lam': 0.97,
         'network': {
-            'arch': [64, 64],
+            # 'arch': [64, 64],
+            'arch': [256, 256],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
@@ -74,10 +78,10 @@ configurations = {
         # 'batch_size': 2048,
         # 'n_mini_batches': 32,
         # 'mini_batch_size': 64,
-        'buffer_size': int(4000),
-        'batch_size': 4000,
-        'n_mini_batches': 62,
-        'mini_batch_size': 64,
+        # 'buffer_size': int(4000),
+        # 'batch_size': 4000,
+        'buffer_size': int(50000),
+        'batch_size': 50000,
     },
 
     'experiment': {
