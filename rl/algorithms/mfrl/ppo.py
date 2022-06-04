@@ -285,6 +285,7 @@ class PPO(MFRL):
         oldJs = [0, 0]
         logs = dict()
         lastEZ, lastES = 0, -2
+        # KLrange = np.linspace(0.05, 0.01, 95)
         # num_traj = 1000
         # stop_pi = False
         pg = 0
@@ -344,9 +345,14 @@ class PPO(MFRL):
                     # Optimizing policy and value networks
                     # b_inds = np.arange(batch_size)
                     stop_pi = False
+                    # if n <= 100:
+                    #     kl = KLrange[n-5]
+                    # else:
+                    #     kl = KLrange[-1]
+                    kl = 0
                     for g in range(1, G+1):
                         # PPO-P >>>>
-                        print(f'[ PPO ] grads={g} | PG={stop_pi}', end='\r')
+                        print(f'[ PPO ] grads={g} | PG={stop_pi} | KL={round(kl, 4)}', end='\r')
                         # for b in range(0, batch_size, mini_batch_size):
                         #     # print('ptr: ', self.buffer.ptr)
                         # mini_batch = self.buffer.sample_batch(mini_batch_size, device=self._device_)
@@ -412,16 +418,16 @@ class PPO(MFRL):
 
             # WandB
             if self.WandB:
-                for i in range(4):
-                    wandb.log(logs)
+                # for i in range(int(E/1000)):
+                wandb.log(logs)
 
         self.learn_env.close()
         self.eval_env.close()
 
 
-    def trainAC(self, g, batch, oldJs):
+    def trainAC(self, g, batch, oldJs, kl_targ=0.02):
         Jv = self.updateV(batch, oldJs[0])
-        Jpi, kl, stop_pi = self.updatePi(batch, oldJs[1])
+        Jpi, kl, stop_pi = self.updatePi(batch, oldJs[1], kl_targ)
         return Jv, Jpi, kl.item(), stop_pi
 
 
@@ -444,12 +450,12 @@ class PPO(MFRL):
         return Jv
 
 
-    def updatePi(self, batch, Jpi_old, stop_pi=False):
+    def updatePi(self, batch, Jpi_old, kl_targ):
         """
         Jπ(φ) =
         """
         clip_eps = self.configs['actor']['clip_eps']
-        kl_targ = self.configs['actor']['kl_targ']
+        # kl_targ = self.configs['actor']['kl_targ']
         entropy_coef = self.configs['actor']['entropy_coef']
         max_grad_norm = self.configs['actor']['network']['max_grad_norm']
 
@@ -470,11 +476,13 @@ class PPO(MFRL):
         Jentropy = entropy_coef * 0. #entropy.mean()
         Jpi = Jpg + Jentropy
 
-        if approx_kl_old <= 1.5*kl_targ:
+        # if approx_kl_old <= 1.5*kl_targ:
+        if approx_kl_old <= kl_targ:
             self.actor_critic.actor.optimizer.zero_grad()
             Jpi.backward()
             nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm) # PPO-D
             self.actor_critic.actor.optimizer.step()
+            stop_pi = False
         else:
             # print('stop PG!')
             stop_pi = True
@@ -499,7 +507,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-K"
+    group_name = f"{env_name}-{alg_name}-P"
     exp_prefix = f"seed:{seed}"
 
     if wb:

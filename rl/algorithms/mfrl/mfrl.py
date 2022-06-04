@@ -84,9 +84,9 @@ class MFRL:
         max_size = self.configs['data']['buffer_size']
         device = self._device_
         if self.configs['algorithm']['on-policy']:
-            num_traj = 1000
+            max_size = self.configs['data']['batch_size']
+            num_traj = max_size//20
             horizon = 1000
-            max_size = 4000
             self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
         else:
             self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
@@ -100,7 +100,7 @@ class MFRL:
         if self.configs['algorithm']['on-policy']:
             # num_traj = 40
             horizon = 1000
-            max_size = 4000
+            max_size = self.configs['data']['batch_size']
             self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
 
 
