@@ -386,7 +386,7 @@ class MBPPO(MBRL, PPO):
             self.model_buffer.finish_path(el, v)
             k_end_total += k
             if self.model_buffer.total_size() >= 10000:
-                print(f'Breaking img rollouts at nτ={nτ}'+(' ')*50)
+                print(f'Breaking img rollouts at nτ={nτ}'+(' ')*80)
                 break
 
     	return k_end_total//Nτ
