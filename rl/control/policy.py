@@ -210,7 +210,8 @@ class PPOPolicy(nn.Module):
 			obs = obs
 
 		mean = self.mean(obs)
-		std = T.exp(self.log_std)
+		log_std = T.clamp(self.log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
+		std = T.exp(log_std)
 		probs = Normal(mean, std)
 
 		log_probs = None
@@ -220,7 +221,9 @@ class PPOPolicy(nn.Module):
 		if return_log_pi: log_probs = probs.log_prob(act).sum(axis=-1, keepdims=True)
 		if return_entropy: entropy = probs.entropy().sum(-1, keepdims=True)
 
-		# if deterministic: act = mean
+		if deterministic:
+			# print('det act')
+			act = mean
 
 		return act, log_probs, entropy
 
