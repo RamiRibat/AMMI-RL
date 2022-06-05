@@ -251,7 +251,7 @@ class MBPPO(MBRL, PPO):
                     # # PPO-P <<<<
 
                     # PPO V2 >>>>
-                    G = 50
+                    G = 10
                     for g in range(1, G+1):
                         # Reset model buffer
                         self.model_buffer.reset()
@@ -643,7 +643,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{alg_mode}-P"
+    group_name = f"{env_name}-{alg_name}-{alg_mode}-Q"
     exp_prefix = f"seed:{seed}"
 
     if wb:
