@@ -196,7 +196,7 @@ class MBPPO(MBRL, PPO):
                 if n > Ni:
                     # 03. Train model pθ on Denv via maximum likelihood
                     print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
-                    ho_mean = 0. #self.fake_world.train_fake_world(self.buffer)
+                    ho_mean = self.fake_world.train_fake_world(self.buffer)
 
                     # model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
                     # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
@@ -256,8 +256,9 @@ class MBPPO(MBRL, PPO):
                         # Reset model buffer
                         self.model_buffer.reset()
                         # # Generate M k-steps imaginary rollouts for PPO training
-                        k_avg = self.rollout_real_world_trajectories(g, n)
-                        # k_avg = self.rollout_world_model_trajectories(g, n)
+                        # k_avg = self.rollout_real_world_trajectories(g, n)
+                        k_avg = self.rollout_world_model_trajectories(g, n)
+
                         # self.rollout_world_model_trajectories_batch(g, n)
                         # k_avg = self.rollout_world_model_trajectoriesII(g, n)
                         # batch_size = int(self.model_buffer.total_size())
@@ -395,7 +396,7 @@ class MBPPO(MBRL, PPO):
     def rollout_world_model_trajectories(self, g, n):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
-    	Nτ = 100
+    	Nτ = 500
     	K = 1000
 
     	O = O_init = self.buffer.sample_init_obs_batch(Nτ)
@@ -403,23 +404,15 @@ class MBPPO(MBRL, PPO):
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	k_end_total = 0
-
-    	# slope = 22.5
-    	# Ksurr = 50 + slope*(n-5)
-
-    	# slope = 24
-    	# Ksurr = 20 + slope*(n-5)
-        #
-    	# K = min(K, int(Ksurr))
-    	for nτ, o in enumerate(O_init): # Generate trajectories
+    	# for nτ, o in enumerate(O_init): # Generate trajectories
+    	for nτ in range(1, Nτ+1): # Generate trajectories
             Z, el = 0, 0
+            o = self.buffer.sample_init_obs_batch(1)
             for k in range(1, K+1): # Generate rollouts
-                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{O_Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}'+(' ')*20, end='\r')
+                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}'+(' ')*20, end='\r')
                 # print('\no: ', o)
                 # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
                 with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
-                # o_next, r, d, _ = self.traj_env.step(a)
-                # o_next, r, d, _ = self.fake_world.step(o, a, deterministic=True) # ip: Tensor, op: Tensor
                 o_next, r, d, _ = self.fake_world.step(o, a) # ip: Tensor, op: Tensor
                 Z += float(r)
                 el += 1
@@ -433,6 +426,9 @@ class MBPPO(MBRL, PPO):
                 v = T.Tensor([0.0])
             self.model_buffer.finish_path(el, v)
             k_end_total += k
+            if self.model_buffer.total_size() >= 10000:
+                print(f'Breaking img rollouts at nτ={nτ}'+(' ')*80)
+                break
 
     	return k_end_total//Nτ
 
