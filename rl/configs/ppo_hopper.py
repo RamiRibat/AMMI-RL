@@ -17,13 +17,13 @@ configurations = {
             'epochs': 500, # N epochs
             # 'epoch_steps': 2048, # NT steps/epoch
             # 'epoch_steps': 4000, # NT steps/epoch
-            'epoch_steps': 50000, # NT steps/epoch
+            'epoch_steps': 10000, # NT steps/epoch
             'init_epochs': 0, # Ni epochs
             'expl_epochs': 0, # Nx epochs
 
             # 'env_steps' : 2048, # E: interact E times then train
             # 'env_steps' : 4000, # E: interact E times then train
-            'env_steps' : 50000, # E: interact E times then train
+            'env_steps' : 10000, # E: interact E times then train
             'train_AC_freq': 1, # F: frequency of AC training
             'grad_AC_steps': 80, # ACG: ac grad
 
@@ -80,8 +80,8 @@ configurations = {
         # 'mini_batch_size': 64,
         # 'buffer_size': int(4000),
         # 'batch_size': 4000,
-        'buffer_size': int(50000),
-        'batch_size': 50000,
+        'buffer_size': int(10000),
+        'batch_size': 10000,
     },
 
     'experiment': {
