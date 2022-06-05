@@ -218,8 +218,41 @@ class MBPPO(MBRL, PPO):
                     # ho_mean = np.mean(LossGen)
 
                     self.init_model_traj_buffer()
-                    # PPO-P >>>>
-                    for g in range(1, G_ppo+1):
+
+                    # # PPO-P >>>>
+                    # # GG = [40, 60, 80, 100, 120]
+                    # GG = [ int((1.045-0.009*n)*g) for g in [40, 60, 80, 100, 120] ]
+                    # # print('GG: ', GG)
+                    # # KLtargs = [0.045, 0.04, 0.035, 0.03, 0.025]
+                    # KLtargs = [ int((kl-0.01*(kl-0.02)*(n-5))) for kl in [0.06, 0.055, 0.05, 0.045, 0.04] ]
+                    # for g in range(1, G_ppo+1):
+                    #     # Reset model buffer
+                    #     self.model_buffer.reset()
+                    #     # # Generate M k-steps imaginary rollouts for PPO training
+                    #     k_avg = self.rollout_real_world_trajectories(g, n)
+                    #     # k_avg = self.rollout_world_model_trajectories(g, n)
+                    #     # self.rollout_world_model_trajectories_batch(g, n)
+                    #     # k_avg = self.rollout_world_model_trajectoriesII(g, n)
+                    #
+                    #     # batch_size = int(self.model_buffer.total_size())
+                    #     batch_size = min(int(self.model_buffer.total_size()), 4000)
+                    #     stop_pi = False
+                    #     kl = 0
+                    #     print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
+                    #     for gg in range(1, 60+1): # 101
+                    #         print(f'[ Epoch {n} ] AC: {g} | ac: {gg}/{GG[g-1]} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
+                    #         batch = self.model_buffer.sample_batch(batch_size, self._device_)
+                    #         Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs, 0.04)
+                    #         # print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || PG={stop_pi} | KL={kl}'+(' '*80), end='\r')
+                    #         oldJs = [Jv, Jpi]
+                    #         JVList.append(Jv.item())
+                    #         JPiList.append(Jpi.item())
+                    #         KLList.append(kl)
+                    # # PPO-P <<<<
+
+                    # PPO V2 >>>>
+                    G = 50
+                    for g in range(1, G+1):
                         # Reset model buffer
                         self.model_buffer.reset()
                         # # Generate M k-steps imaginary rollouts for PPO training
@@ -227,47 +260,24 @@ class MBPPO(MBRL, PPO):
                         # k_avg = self.rollout_world_model_trajectories(g, n)
                         # self.rollout_world_model_trajectories_batch(g, n)
                         # k_avg = self.rollout_world_model_trajectoriesII(g, n)
-
                         # batch_size = int(self.model_buffer.total_size())
-                        batch_size = min(int(self.model_buffer.total_size()), 4000)
+                        batch_size = min(int(self.model_buffer.total_size()), 10000)
                         stop_pi = False
                         kl = 0
-                        print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
-                        for gg in range(1, 81): # 101
-                            print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
+                        GG = 80 #int( 8 + 1.09125**(G-n) )
+                        print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}/{G}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
+                        for gg in range(1, GG+1): # 101
+                            print(f'[ Epoch {n} ] AC: {g} | ac: {gg}/{GG} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
                             batch = self.model_buffer.sample_batch(batch_size, self._device_)
-                            Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs)
+                            Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs, 0.03)
                             # print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || PG={stop_pi} | KL={kl}'+(' '*80), end='\r')
                             oldJs = [Jv, Jpi]
-                            JVList.append(Jv.item())
-                            JPiList.append(Jpi.item())
+                            # JVList.append(Jv.item())
+                            # JPiList.append(Jpi.item())
+                            JVList.append(Jv)
+                            JPiList.append(Jpi)
                             KLList.append(kl)
                     # PPO-P <<<<
-
-                    # # PPO V2 >>>>
-                    # for g in range(1, 10+1):
-                    #     # Reset model buffer
-                    #     self.model_buffer.reset()
-                    #     # # Generate M k-steps imaginary rollouts for PPO training
-                    #     # k_avg = self.rollout_real_world_trajectories(g, n)
-                    #     k_avg = self.rollout_world_model_trajectories(g, n)
-                    #     # self.rollout_world_model_trajectories_batch(g, n)
-                    #     # k_avg = self.rollout_world_model_trajectoriesII(g, n)
-                    #     # batch_size = int(self.model_buffer.total_size())
-                    #     batch_size = min(int(self.model_buffer.total_size()), 100000)
-                    #     stop_pi = False
-                    #     kl = 0
-                    #     print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
-                    #     for gg in range(1, 81): # 101
-                    #         print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
-                    #         batch = self.model_buffer.sample_batch(batch_size, self._device_)
-                    #         Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs)
-                    #         # print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || PG={stop_pi} | KL={kl}'+(' '*80), end='\r')
-                    #         oldJs = [Jv, Jpi]
-                    #         JVList.append(Jv.item())
-                    #         JPiList.append(Jpi.item())
-                    #         KLList.append(kl)
-                    # # PPO-P <<<<
 
                 nt += E
 
@@ -348,7 +358,8 @@ class MBPPO(MBRL, PPO):
     def rollout_real_world_trajectories(self, g, n):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
-    	Nτ = 200 # number of trajectories x number of models
+    	Nτ = 500 # number of trajectories x number of models
+    	# Nτ = 100 # number of trajectories x number of models
     	K = 1000
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
@@ -374,6 +385,9 @@ class MBPPO(MBRL, PPO):
                 v = T.Tensor([0.0])
             self.model_buffer.finish_path(el, v)
             k_end_total += k
+            if self.model_buffer.total_size() >= 10000:
+                print(f'Breaking img rollouts at nτ={nτ}'+(' ')*50)
+                break
 
     	return k_end_total//Nτ
 
@@ -629,7 +643,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{alg_mode}-H"
+    group_name = f"{env_name}-{alg_name}-{alg_mode}-Env-E"
     exp_prefix = f"seed:{seed}"
 
     if wb:

@@ -285,7 +285,7 @@ class PPO(MFRL):
         oldJs = [0, 0]
         logs = dict()
         lastEZ, lastES = 0, -2
-        # KLrange = np.linspace(0.05, 0.01, 95)
+        KLrange = np.linspace(0.025, 0.0025, 200)
         # num_traj = 1000
         # stop_pi = False
         pg = 0
@@ -306,9 +306,9 @@ class PPO(MFRL):
             o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
 
             if n > Ni:
-                JVList, JPiList, KLList = [], [], []
+                JVList, JPiList, LogPiList, KLList = [], [], [], []
             else:
-                JVList, JPiList, KLList = [0], [0], [0]
+                JVList, JPiList, LogPiList, KLList = [0], [0], [0], [0]
 
             learn_start_real = time.time()
             while nt < NT:
@@ -341,31 +341,33 @@ class PPO(MFRL):
 
                 # Taking gradient steps after exploration
                 if n > Ni:
-                    # print('updateAC')
                     # Optimizing policy and value networks
                     # b_inds = np.arange(batch_size)
                     stop_pi = False
-                    # if n <= 100:
-                    #     kl = KLrange[n-5]
+                    # if n <= 200:
+                    #     KL = KLrange[n-1]
                     # else:
-                    #     kl = KLrange[-1]
-                    kl = 0
+                    #     KL = KLrange[-1]
+                    kl = 0 #KL
+                    # G = int( 8 + 1.02175**(200-n) )
+                    # G = int( 8 + 1.0095**(500-n) )
                     for g in range(1, G+1):
+                        # print('KL: ', KL)
                         # PPO-P >>>>
-                        print(f'[ PPO ] grads={g} | PG={stop_pi} | KL={round(kl, 4)}', end='\r')
+                        print(f'[ PPO ] grads={g}/{G} | stopPG={stop_pi} | KL={round(kl, 4)}', end='\r')
                         # for b in range(0, batch_size, mini_batch_size):
                         #     # print('ptr: ', self.buffer.ptr)
                         # mini_batch = self.buffer.sample_batch(mini_batch_size, device=self._device_)
                         batch = self.buffer.sample_batch(batch_size, device=self._device_)
                         # Jv, Jpi, stop_pi = self.trainAC(g, mini_batch, oldJs)
-                        Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs)
+                        Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs, kl_targ=0.03)
                         oldJs = [Jv, Jpi]
-                        JVList.append(Jv.item())
-                        JPiList.append(Jpi.item())
+                        # JVList.append(Jv.item())
+                        # JPiList.append(Jpi.item())
+                        JVList.append(Jv)
+                        JPiList.append(Jpi)
+                        # LogPiList.append(log_pi.item())
                         KLList.append(kl)
-                        # if stop_pi:
-                            # pg = g
-                            # break
                         # PPO-P <<<<
                     # self.buffer.reset()
                 nt += E
@@ -373,6 +375,7 @@ class PPO(MFRL):
             # logs['time/training                  '] = time.time() - learn_start_real
             logs['training/ppo/Jv                '] = np.mean(JVList)
             logs['training/ppo/Jpi               '] = np.mean(JPiList)
+            # logs['training/ppo/logPi             '] = np.mean(LogPiList)
             logs['training/ppo/KL                '] = np.mean(KLList)
 
             # logs['time                           '] = t
@@ -426,8 +429,14 @@ class PPO(MFRL):
 
 
     def trainAC(self, g, batch, oldJs, kl_targ=0.02):
+        stop_pi = False
         Jv = self.updateV(batch, oldJs[0])
-        Jpi, kl, stop_pi = self.updatePi(batch, oldJs[1], kl_targ)
+        Jv = Jv.item()
+        if not stop_pi:
+            Jpi, kl, stop_pi = self.updatePi(batch, oldJs[1], kl_targ)
+            Jpi = Jpi.item()
+        else:
+            Jpi = oldJs[1]
         return Jv, Jpi, kl.item(), stop_pi
 
 
