@@ -81,7 +81,8 @@ def init_weights_(m): # source: https://github.com/Xingyu-Lin/mbpo_pytorch/model
             t = T.where(cond, nn.init.normal_(T.ones(t.shape).to(t.device), mean=mean, std=std), t)
         return t
 
-    if type(m) == nn.Linear or isinstance(m, LinearEnsemble):
+    # if type(m) == nn.Linear or isinstance(m, LinearEnsemble):
+    if isinstance(m, LinearEnsemble):
         input_dim = m.in_features
         # truncated_normal_init(m.weight, std=1 / (2 * np.sqrt(input_dim)))
         truncated_normal_init( m.weight, std=1 / ( 2 * T.sqrt( T.tensor(input_dim) ) ) )
@@ -385,8 +386,8 @@ class EnsembleDynamicsModel():
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
-        # for epoch in range(2):
-        for epoch in itertools.count():
+        for epoch in range(2):
+        # for epoch in itertools.count():
             # losses = []
             # train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)]) # Numpy
             train_idx = T.vstack( [ T.randperm(train_inputs.shape[0]) for _ in range(self.network_size) ] ) # Torch [2]
