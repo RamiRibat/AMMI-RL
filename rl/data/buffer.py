@@ -52,7 +52,7 @@ class TrajBuffer:
     A simple buffer for storing trajectories
     """
 
-    def __init__(self, obs_dim, act_dim, horizon, num_traj, max_size, seed, device='cpu', gamma=0.99, gae_lambda=0.97):
+    def __init__(self, obs_dim, act_dim, horizon, num_traj, max_size, seed, device='cpu', gamma=0.995, gae_lambda=0.99):
         # print('Initialize Trajectory Buffer..')
         self.obs_buf = T.zeros((num_traj, horizon, obs_dim), dtype=T.float32)
         self.act_buf = T.zeros((num_traj, horizon, act_dim), dtype=T.float32)
@@ -65,6 +65,7 @@ class TrajBuffer:
         self.log_pi_buf = T.zeros((num_traj, horizon, 1), dtype=T.float32)
 
         self.ter_idx = T.zeros((num_traj, 1), dtype=T.float32)
+        self.ter_ret = T.zeros((num_traj, 1), dtype=T.float32)
 
         self.obs_dim, self.act_dim = obs_dim, act_dim
         self.horizon, self.num_traj, self.max_size = horizon, num_traj, max_size
@@ -83,6 +84,17 @@ class TrajBuffer:
         last_idx = min(self.last_traj+1, self.num_traj)
         total_size = self.ter_idx[:last_idx].sum()
         live_traj = T.count_nonzero(self.ter_idx[:last_idx])
+        # print('live_traj: ', )
+        if live_traj > 0:
+            return int(total_size//live_traj)
+        else:
+            return 0
+
+
+    def average_return(self):
+        last_idx = min(self.last_traj+1, self.num_traj)
+        total_size = self.ter_ret[:last_idx].sum()
+        live_traj = T.count_nonzero(self.ter_ret[:last_idx])
         # print('live_traj: ', )
         if live_traj > 0:
             return int(total_size//live_traj)
@@ -202,6 +214,7 @@ class TrajBuffer:
         # the next line computes rewards-to-go, to be targets for the value function
         self.ret_buf[ self.ptr, :e, : ] = discount_cumsum(self.rew_buf[ self.ptr, :e+1, : ], self.gamma)[:e, :]
         self.ter_idx[self.ptr] = e
+        # self.ter_ret[self.ptr] = self.ret_buf[ self.ptr, e, : ]
         # print(f'\n[ finish_path ] e={e} | ptr={self.ptr} | size={self.total_size()}')
         if self.last_traj < self.num_traj-1:
             self.ptr +=1
