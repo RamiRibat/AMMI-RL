@@ -20,6 +20,22 @@ import rl.environments.mbpo.static as mbpo_static
 # from rl.data.dataset import RLDataModule
 
 
+class color:
+    """
+    Source: https://stackoverflow.com/questions/8924173/how-to-print-bold-text-in-python
+    """
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
+
 
 
 
@@ -217,26 +233,26 @@ class MBPPO(MBRL, PPO):
                 if n > Ni:
                     # 03. Train model pθ on Denv via maximum likelihood
                     print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
-                    ho_mean = self.fake_world.train_fake_world(self.buffer)
+                    ho_mean = 0. #self.fake_world.train_fake_world(self.buffer)
 
-                    # model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
-                    # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
-                    # s, a, sp, r, _, _, _, _ = model_fit_batch.values()
-                    # if n == Ni+1:
-                    #     samples_to_collect = min(4000, self.buffer.total_size())
-                    # else:
-                    #     samples_to_collect = 1000
-                    #
-                    # LossGen = []
-                    # for i, model in enumerate(self.models):
-                    #     # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
-                    #     loss_general = model.compute_loss(s[-samples_to_collect:],
-                    #                                       a[-samples_to_collect:],
-                    #                                       sp[-samples_to_collect:]) # generalization error
-                    #     dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
-                    #     reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
-                    # LossGen.append(loss_general)
-                    # ho_mean = np.mean(LossGen)
+                    model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
+                    model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
+                    s, a, sp, r, _, _, _, _ = model_fit_batch.values()
+                    if n == Ni+1:
+                        samples_to_collect = min(4000, self.buffer.total_size())
+                    else:
+                        samples_to_collect = 1000
+
+                    LossGen = []
+                    for i, model in enumerate(self.models):
+                        # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
+                        loss_general = model.compute_loss(s[-samples_to_collect:],
+                                                          a[-samples_to_collect:],
+                                                          sp[-samples_to_collect:]) # generalization error
+                        dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
+                        reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
+                    LossGen.append(loss_general)
+                    ho_mean = np.mean(LossGen)
 
                     # self.init_model_traj_buffer()
 
@@ -277,9 +293,10 @@ class MBPPO(MBRL, PPO):
                         # Reset model buffer
                         self.model_buffer.reset()
                         # # Generate M k-steps imaginary rollouts for PPO training
-                        # k_avg, ZList, elList = self.rollout_real_world(g, n)
+                        # k_avg, ZListImag, elListImag = self.rollout_real_world(g, n)
                         # k_avg = self.rollout_real_world_trajectories(g, n)
-                        k_avg, ZListImag, elListImag = self.rollout_world_model_trajectories(g, n)
+                        # k_avg, ZListImag, elListImag = self.rollout_world_model_trajectories(g, n)
+                        k_avg, ZListImag, elListImag = self.rollout_world_model_trajectoriesII(g, n)
                         # batch_size = int(self.model_buffer.total_size())
                         batch_size = 10000 #min(int(self.model_buffer.total_size()), 10000)
                         stop_pi = False
@@ -288,7 +305,7 @@ class MBPPO(MBRL, PPO):
                         # ppo_grads = 0
                         # print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}/{G}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
                         for gg in range(1, G_PPO+1): # 101
-                            print(f'[ Epoch {n} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
+                            print(f'[ Epoch {n} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*50), end='\r')
                             batch = self.model_buffer.sample_batch(batch_size, self._device_)
                             # batch = self.buffer.sample_batch(batch_size, self._device_)
                             Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs, oldKL=kl)
@@ -389,8 +406,14 @@ class MBPPO(MBRL, PPO):
 
             # Printing logs
             if self.configs['experiment']['print_logs']:
+                return_means = ['learning/real/rollout_return_mean   ',
+                                'learning/imag/rollout_return_mean   ',
+                                'evaluation/episodic_return_mean     ']
                 for k, v in logs.items():
-                    print(f'{k}  {round(v, 4)}'+(' '*10))
+                    if k in return_means:
+                        print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
+                    else:
+                        print(f'{k}  {round(v, 4)}'+(' '*10))
 
             # WandB
             if self.WandB:
@@ -605,28 +628,29 @@ class MBPPO(MBRL, PPO):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
     	Nτ = 50
-    	K = 500
+    	K = 1000
 
     	O = O_init = self.buffer.sample_init_obs_batch(Nτ)
     	O_Nτ = len(O_init)
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	k_end_total = 0
-    	# slope = 22.5
-    	# Ksurr = 50 + slope*(n-5)
-    	# K = min(K, int(Ksurr))
-    	for m, model in enumerate(self.models):
-            for nτ, o in enumerate(O_init): # Generate trajectories
-                Z, el = 0, 0
+    	ZList, elList = [0], [0]
+    	AvgZ, AvgEL = 0, 0
+
+    	for nτ, oi in enumerate(O_init): # Generate trajectories
+            for m, model in enumerate(self.models):
+                o, Z, el = oi, 0, 0
                 for k in range(1, K+1): # Generate rollouts
-                    print(f'[ Epoch {n} ] Model Rollout: M = {m+1}/{len(self.models)} | nτ = {nτ+1}/{O_Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
+                    print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ+1}/{O_Nτ} | M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}', end='\r')
                     # print('\no: ', o)
                     # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
-                    with T.no_grad():
-                        v = self.actor_critic.get_v(o)
-                        a = self.actor_critic.actor.forward(o)
-                        a = a + T.randn(a.shape).to(device) * T.exp(self.actor_critic.actor.log_std)
-                    log_pi = self.actor_critic.actor.log_likelihood(o, a)
+                    with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
+                    # with T.no_grad():
+                    #     v = self.actor_critic.get_v(o)
+                    #     a = self.actor_critic.actor.forward(o)
+                    #     a = a + T.randn(a.shape).to(device) * T.exp(self.actor_critic.actor.log_std)
+                    # log_pi = self.actor_critic.actor.log_likelihood(o, a)
 
                     o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
                     r = model.reward(o, a).detach()
@@ -637,16 +661,35 @@ class MBPPO(MBRL, PPO):
                     el += 1
                     self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
                     o = o_next
+
+                    currZ = Z
+                    AvgZ = (sum(ZList)+currZ)/(len(ZList))
+                    currEL = el
+                    AvgEL = (sum(elList)+currEL)/(len(elList))
+
                     if d or (el == K):
                         break
+
                 if el == K:
                     with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
                 else:
                     v = T.Tensor([0.0])
                 self.model_buffer.finish_path(el, v)
+
                 k_end_total += k
 
-    	return k_end_total//(4*Nτ)
+                lastZ = currZ
+                ZList.append(lastZ)
+                AvgZ = sum(ZList)/(len(ZList)-1)
+                lastEL = currEL
+                elList.append(lastEL)
+                AvgEL = sum(elList)/(len(elList)-1)
+
+            if self.model_buffer.total_size() >= self.configs['data']['model_buffer_size']:
+                print(f'Breaking img rollouts at nτ={nτ}/m={m}'+(' ')*80)
+                break
+
+    	return k_end_total//(4*Nτ), ZList, elList
 
 
     def _reward_fn(self, env_name, obs, act):
@@ -757,8 +800,8 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    # group_name = f"{env_name}-{alg_name}-DG" # Local
-    group_name = f"{env_name}-{alg_name}-GCP-A" # GCP
+    # group_name = f"{env_name}-{alg_name}-Mac-F" # Local
+    group_name = f"{env_name}-{alg_name}-GCP-B" # GCP
     exp_prefix = f"seed:{seed}"
 
     if wb:
