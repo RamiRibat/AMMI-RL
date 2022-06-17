@@ -137,6 +137,10 @@ class StochasticPolicy(nn.Module):
 
 
 
+LOG_STD_MAX = 2
+LOG_STD_MIN = -20
+
+
 
 class PPOPolicy(nn.Module):
 
@@ -158,8 +162,7 @@ class PPOPolicy(nn.Module):
 		# My suggestions:
 		# self.mean = MLPNet(obs_dim, act_dim, net_configs)
 		# self.log_std = nn.Parameter(T.zeros(1, act_dim))
-		# self.log_std = nn.Parameter(T.as_tensor(-0.5 * np.ones(act_dim, dtype=np.float32)))
-
+		# self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32))
 		# self.apply(init_weights_)
 
 		# self.mean = nn.Sequential(
@@ -179,7 +182,17 @@ class PPOPolicy(nn.Module):
 		    layer_init(nn.Linear(hid, act_dim), std=0.01), # PPO-E: Major improvemet!
 			nn.Identity()
 		)
-		self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32))
+		# self.log_std = nn.Parameter(T.ones(act_dim, dtype=T.float32))
+		self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
+		# self.log_std = nn.Parameter(T.zeros(act_dim, dtype=T.float32), requires_grad=True)
+
+
+
+		# self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
+		# self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
+		# self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
+		#
+		# self.apply(init_weights_)
 
 		# for param in list(self.parameters())[-2:]: param.data = 1e-2 * param.data
 		# init_log_std = 0.
@@ -190,6 +203,8 @@ class PPOPolicy(nn.Module):
 		# self.log_std.data = T.min(self.log_std.data, self.max_log_std)
 
 		# print('PPOPolicy: ', self)
+
+		self.act_dim = act_dim
 
 		self.to(device)
 
@@ -210,22 +225,91 @@ class PPOPolicy(nn.Module):
 			obs = obs
 
 		mean = self.mean(obs)
-		log_std = T.clamp(self.log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
+		log_std = self.log_std
+		# log_std = T.clamp(self.log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
 		std = T.exp(log_std)
+
 		probs = Normal(mean, std)
 
 		log_probs = None
 		entropy = None
 
-		if act is None: act = probs.sample()
-		if return_log_pi: log_probs = probs.log_prob(act).sum(axis=-1, keepdims=True)
-		if return_entropy: entropy = probs.entropy().sum(-1, keepdims=True)
+		if act is None:
+			act = probs.sample()
+		if return_log_pi:
+			log_probs = probs.log_prob(act).sum(axis=-1, keepdims=True)
+		if return_entropy:
+			entropy = probs.entropy().sum(-1, keepdims=True)
 
 		if deterministic:
-			# print('det act')
 			act = mean
 
 		return act, log_probs, entropy
+
+
+
+	def forward_new(self, obs, act=None,
+				reparameterize=False, # Default: True
+				deterministic=False, # Default: False
+				return_log_pi=True, # Default: False
+				return_entropy=True, # Default: False
+				):
+
+		if isinstance(obs, T.Tensor):
+			obs = obs.to(self.device)
+		else:
+			obs = obs
+
+		mean = self.mean(obs)
+		log_std = self.log_std
+		# log_std = T.clamp(self.log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
+		std = T.exp(log_std)
+
+		log_probs = None
+		entropy = None
+
+		if deterministic:
+			# print('deter')
+			act = mean
+			# log_probs = self.get_log_probs(act, mean, log_std, std)
+		else:
+			act = mean + std * T.randn(self.act_dim)
+			# print(f'Pi: mean={mean} | std={std}, | a={act}')
+			log_probs = self.get_log_probs(act, mean, log_std, std)
+			probs = Normal(mean, std)
+			entropy = probs.entropy().sum(-1, keepdims=True)
+
+		return act, log_probs, entropy
+
+
+	def get_log_probs(self, act, mean, log_std, std):
+		zs = (act - mean) / std
+		log_probs = - 0.5 * (zs ** 2).sum(axis=-1, keepdims=True) - log_std.sum(axis=-1, keepdims=True) - 0.5 * self.act_dim * np.log(2 * np.pi)
+		return log_probs
+
+
+
+	def kl_old_new(self, obs, old_mean, old_log_std):
+		new_mean = self.mean(obs)
+		new_log_std = self.log_std
+		kl_divergence = self.kl_divergence(new_mean, old_mean, new_log_std, old_log_std)
+		return kl_divergence
+
+
+	def mean_kl(self, obs):
+		new_log_std = self.log_std
+		old_log_std = self.log_std.detach().clone()
+		new_mean = self.mean(obs)
+		old_mean = new_mean.detach()
+		return self.kl_divergence(new_mean, old_mean, new_log_std, old_log_std)
+
+
+	def kl_divergence(self, new_mean, old_mean, new_log_std, old_log_std):
+		new_std, old_std = T.exp(new_log_std), T.exp(old_log_std)
+		Nr = (old_mean - new_mean) ** 2 + old_std ** 2 - new_std ** 2
+		Dr = 2 * new_std ** 2 + 1e-8
+		sample_kl = (Nr / Dr + new_log_std - old_log_std).sum(axis=-1, keepdims=True)
+		return T.mean(sample_kl)
 
 
 	# def to(self, device):
