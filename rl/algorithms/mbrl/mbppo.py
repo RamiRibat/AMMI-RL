@@ -111,6 +111,7 @@ class MBPPO(MBRL, PPO):
         super(MBPPO, self)._build()
         self._set_ppo()
         self._set_fake_world()
+        self.init_model_traj_buffer()
 
 
     ## PPO
@@ -137,20 +138,23 @@ class MBPPO(MBRL, PPO):
         Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         E = self.configs['algorithm']['learning']['env_steps']
-        G_ppo = self.configs['algorithm']['learning']['grad_PPO_steps']
+        G_AC = self.configs['algorithm']['learning']['grad_AC_steps']
+        G_PPO = self.configs['algorithm']['learning']['grad_PPO_steps']
+        max_dev = self.configs['actor']['max_dev']
 
-        model_train_frequency = self.configs['world_model']['model_train_freq']
-        batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
-        wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
-        real_ratio = self.configs['data']['real_ratio'] # rr
+        # model_train_frequency = self.configs['world_model']['model_train_freq']
+        # batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
+        # wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
+        # real_ratio = self.configs['data']['real_ratio'] # rr
 
         global_step = 0
         start_time = time.time()
-        o, Z, el, t = self.learn_env.reset(), 0, 0, 0
+        # o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         oldJs = [0, 0]
         JVList, JPiList = [0]*Ni, [0]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
+        t = 0
 
         start_time_real = time.time()
         for n in range(1, N+1):
@@ -159,25 +163,28 @@ class MBPPO(MBRL, PPO):
                 if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
                     oldJs = [0, 0]
-                    JVList, JPiList, KLList = [0], [0], [0]
-                    # JHOList = [0]
+                    JVList, JPiList, KLList = [], [], []
+                    HList, DevList = [], []
                     ho_mean = 0
-                    # init_obs_size = 0
                 elif n > Ni:
                     print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
                     JVList, JPiList, KLList = [], [], []
-                    # init_obs_size = len(self.buffer.init_obs)
-                    # JHOList = []
+                    HList, DevList = [], []
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
                     oldJs = [0, 0]
                     JVList, JPiList, KLList = [0], [0], [0]
-                    # JHOList = [0]
+                    HList, DevList = [0], [0]
                     ho_mean = 0
-                    # init_obs_size = 0
 
             nt = 0
+            # self.buffer.reset()
             o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
+            # o, d, Z, el = self.traj_env.reset(), 0, 0, 0
+            ZList, elList = [0], [0]
+            ZListImag, elListImag = [0, 0], [0, 0]
+            AvgZ, AvgEL = 0, 0
+            ppo_grads = 0
 
             learn_start_real = time.time()
             while nt < NT: # full epoch
@@ -186,7 +193,21 @@ class MBPPO(MBRL, PPO):
                     # o, Z, el, t = self.internact(n, o, Z, el, t)
                     o, Z, el, t = self.internact_opB(n, o, Z, el, t)
                     # o, Z, el, t = self.internactII(n, o, Z, el, t)
-                    print(f'[ Epoch {n}   Interaction ] Env Steps: {e} | Return: {round(Z, 2)}'+(" "*10), end='\r')
+
+                    if el > 0:
+                        currZ = Z
+                        AvgZ = (sum(ZList)+currZ)/(len(ZList))
+                        currEL = el
+                        AvgEL = (sum(elList)+currEL)/(len(elList))
+                    else:
+                        lastZ = currZ
+                        ZList.append(lastZ)
+                        AvgZ = sum(ZList)/(len(ZList)-1)
+                        lastEL = currEL
+                        elList.append(lastEL)
+                        AvgEL = sum(elList)/(len(elList)-1)
+
+                    print(f'[ Epoch {n}   Interaction ] Env Steps: {e} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(" "*10), end='\r')
                 with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
                 # self.buffer.traj_tail(d, v, el)
                 self.buffer.finish_path(el, v)
@@ -217,7 +238,7 @@ class MBPPO(MBRL, PPO):
                     # LossGen.append(loss_general)
                     # ho_mean = np.mean(LossGen)
 
-                    self.init_model_traj_buffer()
+                    # self.init_model_traj_buffer()
 
                     # # PPO-P >>>>
                     # # GG = [40, 60, 80, 100, 120]
@@ -251,62 +272,85 @@ class MBPPO(MBRL, PPO):
                     # # PPO-P <<<<
 
                     # PPO V2 >>>>
-                    G = 10
-                    for g in range(1, G+1):
+                    # G_AC = 1
+                    for g in range(1, G_AC+1):
                         # Reset model buffer
                         self.model_buffer.reset()
                         # # Generate M k-steps imaginary rollouts for PPO training
+                        # k_avg, ZList, elList = self.rollout_real_world(g, n)
                         # k_avg = self.rollout_real_world_trajectories(g, n)
-                        k_avg = self.rollout_world_model_trajectories(g, n)
-
-                        # self.rollout_world_model_trajectories_batch(g, n)
-                        # k_avg = self.rollout_world_model_trajectoriesII(g, n)
+                        k_avg, ZListImag, elListImag = self.rollout_world_model_trajectories(g, n)
                         # batch_size = int(self.model_buffer.total_size())
-                        batch_size = min(int(self.model_buffer.total_size()), 10000)
+                        batch_size = 10000 #min(int(self.model_buffer.total_size()), 10000)
                         stop_pi = False
                         kl = 0
-                        GG = 80 #int( 8 + 1.09125**(G-n) )
-                        print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}/{G}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
-                        for gg in range(1, GG+1): # 101
-                            print(f'[ Epoch {n} ] AC: {g} | ac: {gg}/{GG} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
+                        # GG = 100 #int( 8 + 1.09125**(G-n) )
+                        # ppo_grads = 0
+                        # print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}/{G}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
+                        for gg in range(1, G_PPO+1): # 101
+                            print(f'[ Epoch {n} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
                             batch = self.model_buffer.sample_batch(batch_size, self._device_)
-                            Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs, 0.03)
-                            # print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || PG={stop_pi} | KL={kl}'+(' '*80), end='\r')
+                            # batch = self.buffer.sample_batch(batch_size, self._device_)
+                            Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs, oldKL=kl)
                             oldJs = [Jv, Jpi]
-                            # JVList.append(Jv.item())
-                            # JPiList.append(Jpi.item())
                             JVList.append(Jv)
                             JPiList.append(Jpi)
                             KLList.append(kl)
+                            HList.append(PiInfo['entropy'])
+                            DevList.append(PiInfo['deviation'])
+                            if not self.stop_pi:
+                                ppo_grads += 1
+                            stop_pi = PiInfo['stop_pi']
+                        # self.actor_critic.actor.log_std -= 0.05*T.ones(self.act_dim)
+                        # self.buffer.gae_lambda += 2e-4
                     # PPO-P <<<<
 
                 nt += E
 
             print('\n')
-            # logs['time/training                  '] = time.time() - learn_start_real
 
-            # logs['training/wm/Jtrain_mean        '] = np.mean(JMeanTrainList)
-            # logs['training/wm/Jtrain             '] = np.mean(JTrainList)
-            logs['training/wm/Jval               '] = ho_mean
-            # logs['training/wm/test_mse           '] = np.mean(LossTestList)
+            # logs['time/training                       '] = time.time() - learn_start_real
 
-            logs['training/ppo/Jv                '] = np.mean(JVList)
-            logs['training/ppo/Jpi               '] = np.mean(JPiList)
-            logs['training/ppo/KL                '] = np.mean(KLList)
+            # logs['training/wm/Jtrain_mean             '] = np.mean(JMeanTrainList)
+            # logs['training/wm/Jtrain                  '] = np.mean(JTrainList)
+            logs['training/wm/Jval                    '] = ho_mean
+            # logs['training/wm/test_mse                '] = np.mean(LossTestList)
 
-            logs['data/env_buffer                '] = self.buffer.total_size()
-            logs['data/env_rollout_steps         '] = self.buffer.average_horizon()
+            logs['training/ppo/critic/Jv              '] = np.mean(JVList)
+            logs['training/ppo/critic/V(s)            '] = T.mean(self.model_buffer.val_buf).item()
+            # logs['training/ppo/critic/V_pi            '] = T.mean(self.model_buffer.val_buf).item()
+            # logs['training/ppo/critic/R_pi            '] = T.mean(self.model_buffer.ret_buf).item()
+            logs['training/ppo/critic/V-R             '] = T.mean(self.model_buffer.val_buf).item()-T.mean(self.model_buffer.ret_buf).item()
+
+            logs['training/ppo/actor/Jpi              '] = np.mean(JPiList)
+            logs['training/ppo/actor/grads            '] = ppo_grads
+            logs['training/ppo/actor/H                '] = np.mean(HList)
+            logs['training/ppo/actor/KL               '] = np.mean(KLList)
+            logs['training/ppo/actor/deviation        '] = np.mean(DevList)
+            # logs['training/ppo/actor/log_pi            '] = PiInfo['log_pi']
+
+            logs['data/env_buffer                     '] = self.buffer.total_size()
+            logs['data/env_rollout_steps              '] = self.buffer.average_horizon()
             if hasattr(self, 'model_buffer'):
-                # logs['data/init_obs                  '] = len(self.buffer.init_obs)
-                logs['data/model_buffer              '] = self.model_buffer.total_size()
-                logs['data/model_rollout_steps       '] = self.model_buffer.average_horizon()
+                logs['data/init_obs                       '] = 0. #len(self.buffer.init_obs)
+                logs['data/model_buffer                   '] = self.model_buffer.total_size()
+                logs['data/model_rollout_steps            '] = self.model_buffer.average_horizon()
             else:
-                logs['data/init_obs                  '] = 0.
-                logs['data/model_buffer              '] = 0.
-                logs['data/model_rollout_steps       '] = 0.
+                # logs['data/gae_lambda                '] = self.buffer.gae_lambda
+                logs['data/init_obs                       '] = 0.
+                logs['data/model_buffer                   '] = 0.
+                logs['data/model_rollout_steps            '] = 0.
             # else:
             #     logs['data/model_buffer              '] = 0
             # logs['data/rollout_length            '] = K
+
+            logs['learning/real/rollout_return_mean   '] = np.mean(ZList[1:])
+            logs['learning/real/rollout_return_std    '] = np.std(ZList[1:])
+            logs['learning/real/rollout_length        '] = np.mean(elList[1:])
+
+            logs['learning/imag/rollout_return_mean   '] = np.mean(ZListImag[1:])
+            logs['learning/imag/rollout_return_std    '] = np.std(ZListImag[1:])
+            logs['learning/imag/rollout_length        '] = np.mean(elListImag[1:])
 
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate()
@@ -316,14 +360,14 @@ class MBPPO(MBRL, PPO):
             # logs['time/evaluation                '] = time.time() - eval_start_real
 
             if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
-                logs['evaluation/episodic_score_mean '] = np.mean(ES)
-                logs['evaluation/episodic_score_std  '] = np.std(ES)
+                logs['evaluation/episodic_score_mean      '] = np.mean(ES)
+                logs['evaluation/episodic_score_std       '] = np.std(ES)
             else:
-                logs['evaluation/episodic_return_mean'] = np.mean(EZ)
-                logs['evaluation/episodic_return_std '] = np.std(EZ)
-            logs['evaluation/episodic_length_mean'] = np.mean(EL)
+                logs['evaluation/episodic_return_mean     '] = np.mean(EZ)
+                logs['evaluation/episodic_return_std      '] = np.std(EZ)
+            logs['evaluation/episodic_length_mean     '] = np.mean(EL)
 
-            logs['time/total                     '] = time.time() - start_time_real
+            logs['time/total                          '] = time.time() - start_time_real
 
             # if n > (N - 50):
             #     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
@@ -354,6 +398,60 @@ class MBPPO(MBRL, PPO):
 
         self.learn_env.close()
         self.eval_env.close()
+
+
+
+
+    def rollout_real_world(self, g, n):
+    	# 07. Sample st uniformly from Denv
+        device = self._device_
+        EM = 10000
+        max_el = 1000
+
+        o, Z, el = self.traj_env.reset(), 0, 0
+        ZList, elList = [0], [0]
+        AvgZ, AvgEL = 0, 0
+
+        # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
+        k_end_total = 0
+        for em in range(1, EM+1): # Generate trajectories
+            print(f'[ Epoch {n} ] Model Rollout: em = {em} | Buffer = {self.model_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(' ')*20, end='\r')
+            # a = self.actor_critic.get_action_np(o)
+            with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+            # print('log_pi: ', log_pi)
+            o_next, r, d, _ = self.traj_env.step(a)
+            Z += r
+            el += 1
+            # t += 1
+            self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
+            o = o_next
+            if d or (el == max_el):
+                if el == max_el:
+                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+                else:
+                    # print('v=0')
+                    v = T.Tensor([0.0])
+                self.model_buffer.finish_path(el, v)
+                # print(f'termination: t={t} | el={el} | total_size={self.buffer.total_size()}')
+                o, Z, el = self.traj_env.reset(), 0, 0
+
+            if el > 0:
+                currZ = Z
+                AvgZ = (sum(ZList)+currZ)/(len(ZList))
+                currEL = el
+                AvgEL = (sum(elList)+currEL)/(len(elList))
+            else:
+                lastZ = currZ
+                ZList.append(lastZ)
+                AvgZ = sum(ZList)/(len(ZList)-1)
+                lastEL = currEL
+                elList.append(lastEL)
+                AvgEL = sum(elList)/(len(elList)-1)
+
+        with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+        self.model_buffer.finish_path(el, v)
+
+        return 0., ZList, elList #k_end_total//Nτ
 
 
     def rollout_real_world_trajectories(self, g, n):
@@ -404,33 +502,53 @@ class MBPPO(MBRL, PPO):
 
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
     	k_end_total = 0
+    	ZList, elList = [0], [0]
+    	AvgZ, AvgEL = 0, 0
     	# for nτ, o in enumerate(O_init): # Generate trajectories
     	for nτ in range(1, Nτ+1): # Generate trajectories
             Z, el = 0, 0
             o = self.buffer.sample_init_obs_batch(1)
             for k in range(1, K+1): # Generate rollouts
-                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ}/{Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}'+(' ')*20, end='\r')
+                print(f'[ Epoch {n} ] Model Rollout: k = {k} | Buffer = {self.model_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(' ')*20, end='\r')
                 # print('\no: ', o)
                 # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
                 with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
                 o_next, r, d, _ = self.fake_world.step(o, a) # ip: Tensor, op: Tensor
                 Z += float(r)
                 el += 1
+                # t += 1
                 self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
                 o = o_next
+
+                currZ = Z
+                AvgZ = (sum(ZList)+currZ)/(len(ZList))
+                currEL = el
+                AvgEL = (sum(elList)+currEL)/(len(elList))
+
                 if d or (el == K):
                     break
+
             if el == K:
                 with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
             else:
                 v = T.Tensor([0.0])
+
             self.model_buffer.finish_path(el, v)
+
             k_end_total += k
+
+            lastZ = currZ
+            ZList.append(lastZ)
+            AvgZ = sum(ZList)/(len(ZList)-1)
+            lastEL = currEL
+            elList.append(lastEL)
+            AvgEL = sum(elList)/(len(elList)-1)
+
             if self.model_buffer.total_size() >= 10000:
                 print(f'Breaking img rollouts at nτ={nτ}'+(' ')*80)
                 break
 
-    	return k_end_total//Nτ
+    	return k_end_total//Nτ, ZList, elList
 
 
     def rollout_world_model_trajectories_batch(self, g, n):
@@ -639,7 +757,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-{alg_mode}-I"
+    group_name = f"{env_name}-{alg_name}-DG"
     exp_prefix = f"seed:{seed}"
 
     if wb:

@@ -31,7 +31,6 @@ class MBRL:
     def _build(self):
         self._set_env()
         self._set_env_buffer()
-        # self._set_data_module()
         self._set_world_model()
 
 
@@ -71,22 +70,16 @@ class MBRL:
 
 
     def _set_env_buffer(self):
-        # max_size = self.configs['data']['buffer_size']
         # device = self._device_
         # self.env_buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
-        num_traj = 1000
-        horizon = 1000
         max_size = self.configs['data']['buffer_size']
+        num_traj = max_size//20
+        horizon = 1000
         device = self._device_
         if self.configs['algorithm']['on-policy']:
             self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
         else:
             self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
-
-
-    # def _set_data_module(self):
-    #     self.data_module = RLDataModule(self.buffer, self.configs['data'])
-    #     pass
 
 
     def _set_world_model(self):
@@ -101,7 +94,7 @@ class MBRL:
 
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
-        self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m) for m in range(num_ensembles) ]
+        # self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m) for m in range(num_ensembles) ]
 
 
     def init_model_traj_buffer(self):
@@ -110,11 +103,11 @@ class MBRL:
         device = self._device_
 
         if self.configs['algorithm']['on-policy']:
-            num_traj = 1000 #int(100*1.5)
-            # horizon = 500
-            horizon = 1000
             max_size = self.configs['data']['model_buffer_size']
-            self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
+            num_traj = max_size//20
+            # num_traj = max_size//15
+            horizon = 1000
+            self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, seed, device)
 
 
     def reallocate_model_buffer(self, batch_size_ro=None, K=None, NT=None, model_train_frequency=None):
@@ -213,8 +206,10 @@ class MBRL:
     def internact_opB(self, n, o, Z, el, t):
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
+
         with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
         o_next, r, d, _ = self.learn_env.step(a)
+        # o_next, r, d, _ = self.traj_env.step(a)
         Z += r
         el += 1
         t += 1
@@ -227,6 +222,8 @@ class MBRL:
                 v = T.Tensor([0.0])
             self.buffer.finish_path(el, v)
             o, Z, el = self.learn_env.reset(), 0, 0
+            # o, Z, el = self.traj_env.reset(), 0, 0
+
         return o, Z, el, t
 
 
@@ -257,7 +254,7 @@ class MBRL:
     def evaluate_op(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
-            print('[ Evaluation ]')
+            print('\n[ Evaluation ]')
             EE = self.configs['algorithm']['evaluation']['eval_episodes']
             max_el = self.configs['environment']['horizon']
             EZ = [] # Evaluation episodic return
@@ -291,7 +288,7 @@ class MBRL:
     def evaluate(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
-            print('[ Evaluation ]')
+            print('\n[ Evaluation ]')
             EE = self.configs['algorithm']['evaluation']['eval_episodes']
             max_el = self.configs['environment']['horizon']
             EZ = [] # Evaluation episodic return
@@ -301,7 +298,6 @@ class MBRL:
             for ee in range(1, EE+1):
                 print(f' [ Agent Evaluation ] Episode: {ee}   ', end='\r')
                 o, d, Z, S, el = self.eval_env.reset(), False, 0, 0, 0
-
                 while not(d or (el == max_el)):
                     # Take deterministic actions at evaluation time
                     a = self.actor_critic.get_action_np(o, deterministic=True) # Deterministic action | No reparameterization
@@ -347,7 +343,7 @@ class MBRL:
     def evaluateII(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
-            print('[ Evaluation ]')
+            print('\n[ Evaluation ]')
             EE = self.configs['algorithm']['evaluation']['eval_episodes']
             max_el = self.configs['environment']['horizon']
             EZ = [] # Evaluation episodic return

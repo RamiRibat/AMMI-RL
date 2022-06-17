@@ -217,7 +217,7 @@ class MFRL:
     def evaluate_op(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
-            print('[ Evaluation ]')
+            print('\n[ Evaluation ]')
             EE = self.configs['algorithm']['evaluation']['eval_episodes']
             max_el = self.configs['environment']['horizon']
             EZ = [] # Evaluation episodic return
@@ -250,7 +250,7 @@ class MFRL:
     def evaluate(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
-            print('[ Evaluation ]')
+            print('\n[ Evaluation ]')
             EE = self.configs['algorithm']['evaluation']['eval_episodes']
             max_el = self.configs['environment']['horizon']
             EZ = [] # Evaluation episodic return
@@ -262,7 +262,6 @@ class MFRL:
                 o, d, Z, S, el = self.eval_env.reset(), False, 0, 0, 0
 
                 while not(d or (el == max_el)):
-                    # Take deterministic actions at evaluation time
                     a = self.actor_critic.get_action_np(o, deterministic=True) # Deterministic action | No reparameterization
                     o, r, d, info = self.eval_env.step(a)
                     Z += r
