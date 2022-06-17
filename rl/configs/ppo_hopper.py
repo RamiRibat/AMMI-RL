@@ -14,7 +14,7 @@ configurations = {
         'model-based': False,
         'on-policy': True,
         'learning': {
-            'epochs': 500, # N epochs
+            'epochs': 200, # N epochs
             # 'epoch_steps': 2048, # NT steps/epoch
             # 'epoch_steps': 4000, # NT steps/epoch
             'epoch_steps': 10000, # NT steps/epoch
@@ -25,7 +25,7 @@ configurations = {
             # 'env_steps' : 4000, # E: interact E times then train
             'env_steps' : 10000, # E: interact E times then train
             'train_AC_freq': 1, # F: frequency of AC training
-            'grad_AC_steps': 80, # ACG: ac grad
+            'grad_AC_steps': 100, # ACG: ac grad
 
             'policy_update_interval': 1,
                     },
@@ -43,8 +43,9 @@ configurations = {
         'type': 'ppopolicy',
         'action_noise': None,
         'clip_eps': 0.2,
-        'kl_targ': 0.01,
-        'entropy_coef': 0.0,
+        'kl_targ': 0.02, # 0.03
+        'max_dev': 0.1,
+        'entropy_coef': 0.015,
         'network': {
             # 'arch': [64, 64],
             'arch': [256, 256],
@@ -60,7 +61,7 @@ configurations = {
         'type': 'V',
         'number': 1,
         'gamma': 0.99,
-        'lam': 0.97,
+        'lam': 0.95,
         'network': {
             # 'arch': [64, 64],
             'arch': [256, 256],
@@ -68,6 +69,7 @@ configurations = {
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 1e-3,
+            # 'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
     },

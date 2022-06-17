@@ -25,7 +25,8 @@ configurations = {
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
-            'grad_PPO_steps': 5, # ACG: ac grad, 40
+            'grad_AC_steps': 1, # ACG: ac grad, 40
+            'grad_PPO_steps': 100, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -79,17 +80,15 @@ configurations = {
         'type': 'ppopolicy',
         'action_noise': None,
         'clip_eps': 0.2,
-        # 'kl_targ': 0.015,
-        'kl_targ': 0.02,
-        'entropy_coef': 0.0,
-        'normz_step_size': 0.01,
+        'kl_targ': 0.02, # 0.03
+        'max_dev': 0.15,
+        'entropy_coef': 0.,
+        # 'normz_step_size': 0.01,
         'network': {
             'arch': [256,256],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            # 'lr': 0.01,
-            # 'lr': 1e-3,
             'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
@@ -98,15 +97,13 @@ configurations = {
     'critic': {
         'type': 'V',
         'number': 1,
-        'gamma': 0.99, # Discount factor - γ
-        'lam': 0.97, # GAE - λ
+        # 'gamma': 0.999, # Discount factor - γ
+        # 'lam': 0.95, # GAE - λ
         'network': {
-            # 'arch': [128, 128],
             'arch': [256, 256],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            # 'lr': 0.01,
             'lr': 1e-3,
             # 'lr': 3e-4,
             'max_grad_norm': 0.5,
@@ -118,14 +115,15 @@ configurations = {
         'buffer_type': 'simple',
         'optimize_memory_usage': False,
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
-        'model_buffer_size': int(4e5),
-        'real_ratio': 0.05,
-        'model_val_ratio': 0.2,
-        'rollout_trajectories': 200, # 4 Models x 200 Traj's
-        'rollout_horizon': 500,
-        'model_batch_size': 256,
-        'batch_size': 256,
-        'mini_batch_size': 64,
+        # 'model_buffer_size': int(4e5),
+        'model_buffer_size': int(1e4),
+        # 'real_ratio': 0.05,
+        # 'model_val_ratio': 0.2,
+        # 'rollout_trajectories': 200, # 4 Models x 200 Traj's
+        # 'rollout_horizon': 1000,
+        # 'model_batch_size': 256,
+        # 'batch_size': 256,
+        # 'mini_batch_size': 64,
         'device': "auto",
     },
 
