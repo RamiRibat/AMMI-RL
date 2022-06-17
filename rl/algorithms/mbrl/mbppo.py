@@ -330,11 +330,11 @@ class MBPPO(MBRL, PPO):
             # logs['training/ppo/actor/log_pi            '] = PiInfo['log_pi']
 
             logs['data/env_buffer                     '] = self.buffer.total_size()
-            logs['data/env_rollout_steps              '] = self.buffer.average_horizon()
+            # logs['data/env_rollout_steps              '] = self.buffer.average_horizon()
             if hasattr(self, 'model_buffer'):
                 logs['data/init_obs                       '] = 0. #len(self.buffer.init_obs)
                 logs['data/model_buffer                   '] = self.model_buffer.total_size()
-                logs['data/model_rollout_steps            '] = self.model_buffer.average_horizon()
+                # logs['data/model_rollout_steps            '] = self.model_buffer.average_horizon()
             else:
                 # logs['data/gae_lambda                '] = self.buffer.gae_lambda
                 logs['data/init_obs                       '] = 0.
