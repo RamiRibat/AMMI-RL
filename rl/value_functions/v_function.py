@@ -12,8 +12,8 @@ def init_weights_(l):
 
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-    T.nn.init.orthogonal_(layer.weight, std)
-    T.nn.init.constant_(layer.bias, bias_const)
+    nn.init.orthogonal_(layer.weight, std)
+    nn.init.constant_(layer.bias, bias_const)
     return layer
 
 
@@ -36,9 +36,13 @@ class VFunction(nn.Module):
 	    # self.v = MLPNet(obs_dim, 1, net_configs)
 	    # self.apply(init_weights_)
 
-	    self.v = nn.Sequential(layer_init(nn.Linear(obs_dim, hid)), nn.Tanh(),
-							   layer_init(nn.Linear(hid, hid)), nn.Tanh(),
-							   layer_init(nn.Linear(hid, 1), std=1.0))
+	    self.v = nn.Sequential(
+			layer_init(nn.Linear(obs_dim, hid)),
+			nn.Tanh(),
+			layer_init(nn.Linear(hid, hid)),
+			nn.Tanh(),
+			layer_init(nn.Linear(hid, 1), std=1.0)
+						)
 
 	    self.to(device)
 
