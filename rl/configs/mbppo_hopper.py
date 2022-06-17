@@ -25,7 +25,7 @@ configurations = {
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
-            'grad_AC_steps': 1, # ACG: ac grad, 40
+            'grad_AC_steps': 5, # ACG: ac grad, 40
             'grad_PPO_steps': 100, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
@@ -115,8 +115,8 @@ configurations = {
         'buffer_type': 'simple',
         'optimize_memory_usage': False,
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
-        # 'model_buffer_size': int(4e5),
-        'model_buffer_size': int(1e4),
+        'model_buffer_size': int(2e5),
+        # 'model_buffer_size': int(1e4),
         # 'real_ratio': 0.05,
         # 'model_val_ratio': 0.2,
         # 'rollout_trajectories': 200, # 4 Models x 200 Traj's
