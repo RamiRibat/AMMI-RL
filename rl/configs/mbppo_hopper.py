@@ -18,7 +18,7 @@ configurations = {
         'model-based': True,
         'on-policy': True,
         'learning': {
-            'epochs': 500, # N epochs
+            'epochs': 100, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 4, # Ni-- PAL: 5 | MAL: 10
             'expl_epochs': 4, # Nx-- PAL: 5 | MAL: 10
