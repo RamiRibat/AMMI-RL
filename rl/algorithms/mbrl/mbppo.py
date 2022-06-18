@@ -532,7 +532,7 @@ class MBPPO(MBRL, PPO):
             o, Z, el = oi, 0, 0
             # o = self.buffer.sample_init_obs_batch(1)
             for k in range(1, K+1): # Generate rollouts
-                print(f'[ Epoch {n} ] Model Rollout: k = {k} | Buffer = {self.model_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(' ')*20, end='\r')
+                print(f'[ Epoch {n} | AC {g} ] Model Rollout: k = {k} | Buffer = {self.model_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(' ')*20, end='\r')
                 # print('\no: ', o)
                 # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
                 with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
@@ -567,7 +567,7 @@ class MBPPO(MBRL, PPO):
             elList.append(lastEL)
             AvgEL = sum(elList)/(len(elList)-1)
 
-            if self.model_buffer.total_size() >= 10000:
+            if self.model_buffer.total_size() >= self.configs['data']['model_buffer_size']:
                 print(f'Breaking img rollouts at nτ={nτ}'+(' ')*80)
                 break
 
@@ -795,8 +795,8 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    # group_name = f"{env_name}-{alg_name}-Mac-J" # Local
-    group_name = f"{env_name}-{alg_name}-GCP-C" # GCP
+    # group_name = f"{env_name}-{alg_name}-Mac-K" # Local
+    group_name = f"{env_name}-{alg_name}-GCP-D" # GCP
     exp_prefix = f"seed:{seed}"
 
     if wb:
