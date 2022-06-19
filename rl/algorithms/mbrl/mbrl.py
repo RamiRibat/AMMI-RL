@@ -110,10 +110,16 @@ class MBRL:
             self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, seed, device)
 
 
-    def reallocate_model_buffer(self, batch_size_ro=None, K=None, NT=None, model_train_frequency=None):
-        print('Rellocate Model Buffer..')
+    def reallocate_model_buffer(self, n):
+        # print(f'[ Epoch {n} | Model Buffer ] Rellocate Model Buffer'+(' '*80))
         seed = self.seed
         device = self._device_
+
+        NT = self.configs['algorithm']['learning']['epoch_steps']
+        model_train_frequency = self.configs['world_model']['model_train_freq']
+        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
+        batch_size = min(batch_size_ro, self.buffer.size)
+        K = self.set_rollout_length(n)
 
         if self.configs['algorithm']['on-policy']:
             max_size = self.configs['data']['model_buffer_size']
@@ -144,7 +150,7 @@ class MBRL:
             	assert self.model_buffer.size == new_model_buffer.size
             	self.model_buffer = new_model_buffer
 
-        print(f'[ Model Buffer ] Size: {self.model_buffer.max_size}'+(' '*80))
+        print(f'[ Epoch {n} | Model Buffer ] Rellocate Model Buffer: maxSize={self.model_buffer.max_size}'+(' '*80))
 
 
     def initialize_learning(self, NT, Ni):

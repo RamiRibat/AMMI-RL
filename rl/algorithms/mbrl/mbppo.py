@@ -166,8 +166,8 @@ class MBPPO(MBRL, PPO):
         global_step = 0
         start_time = time.time()
         # o, Z, el, t = self.learn_env.reset(), 0, 0, 0
-        oldJs = [0, 0]
-        JVList, JPiList = [0]*Ni, [0]*Ni
+        # oldJs = [0, 0]
+        # JVList, JPiList = [0]*Ni, [0]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
         t = 0
@@ -233,7 +233,7 @@ class MBPPO(MBRL, PPO):
                 # Taking gradient steps after exploration
                 if n > Ni:
                     # 03. Train model pθ on Denv via maximum likelihood
-                    print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
+                    print(f'\n[ Epoch {n} | Training World Model ]'+(' '*50))
 
                     ho_mean = self.fake_world.train_fake_world(self.buffer)
 
@@ -307,7 +307,7 @@ class MBPPO(MBRL, PPO):
                         # print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}/{G}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
                         for gg in range(1, G_PPO+1): # 101
                             # print(f'[ Epoch {n} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*50), end='\r')
-                            print(f"[ Epoch {n} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*50), end='\r')
+                            print(f"[ Epoch {n} | Training AC ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*50), end='\r')
                             batch = self.model_buffer.sample_batch(batch_size, self._device_)
                             Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs, oldKL=kl)
                             oldJs = [Jv, Jpi]

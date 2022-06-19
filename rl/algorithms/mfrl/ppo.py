@@ -282,7 +282,7 @@ class PPO(MFRL):
         oldJs = [0, 0]
         logs = dict()
         lastEZ, lastES = 0, -2
-        KLrange = np.linspace(0.025, 0.0025, 200)
+        # KLrange = np.linspace(0.025, 0.0025, 200)
         # num_traj = 1000
         # stop_pi = False
         pg = 0
@@ -332,24 +332,12 @@ class PPO(MFRL):
                     # Optimizing policy and value networks
                     self.stop_pi = False
                     kl = 0 #KL
-                    # self.kl_targ = 0.03 - 0.0002*n
-                    # G = int( 80 + 0.1*n )
-                    # if n > 250:
-                    #     G = int(100 + (4/25)*n)
-                    # else:
-                    #     G = 100
                     ppo_grads = 0
                     for g in range(1, G+1):
                         # print('KL: ', KL)
                         # PPO-P >>>>
                         print(f'[ PPO ] grads={g}/{G} | stopPG={self.stop_pi} | KL={round(kl, 4)}', end='\r')
-                        # print(f'[ PPO ] grads={g}/{G}'+(' ')*80, end='\r')
-                        # for b in range(0, batch_size, mini_batch_size):
-                        #     # print('ptr: ', self.buffer.ptr)
-                        # mini_batch = self.buffer.sample_batch(mini_batch_size, device=self._device_)
                         batch = self.buffer.sample_batch(batch_size, device=self._device_)
-                        # Jv, Jpi, stop_pi = self.trainAC(g, mini_batch, oldJs)
-                        # Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs, oldKL=kl, stop_pi=stop_pi)
                         Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs, oldKL=kl)
                         oldJs = [Jv, Jpi]
                         JVList.append(Jv)
@@ -509,11 +497,7 @@ class PPO(MFRL):
             Jpi.backward()
             nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm) # PPO-D
             self.actor_critic.actor.optimizer.step()
-            # self.actor_critic.actor.log_std =- 
-
-        # with T.no_grad():
-        #     approx_kl_old = self.actor_critic.actor.kl_old_new(observations, old_mean, old_log_std)
-            # print('kl: ', approx_kl_old)
+            # self.actor_critic.actor.log_std =-
 
         PiInfo['KL'] = approx_kl_old
         # PiInfo['KL-new'] = approx_kl

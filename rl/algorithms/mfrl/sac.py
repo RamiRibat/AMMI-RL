@@ -81,7 +81,7 @@ class ActorCritic: # Done
 
     def get_pi(self, o, a=None, reparameterize=True, deterministic=False, return_log_pi=False):
         pi, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        return pi, log_pi
+        return pi, log_pi, entropy
 
 
     def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
@@ -197,11 +197,19 @@ class SAC(MFRL):
             if self.configs['experiment']['print_logs']:
                 print('=' * 80)
                 if n > Nx:
-                    print(f'\n[ Epoch {n}   Learning ]')
+                    print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
+                    oldJs = [0, 0, 0]
+                    JQList, JAlphaList, JPiList = [], [], []
+                    HList, LogPiList = [], []
                 elif n > Ni:
-                    print(f'\n[ Epoch {n}   Exploration + Learning ]')
+                    print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
+                    JQList, JAlphaList, JPiList = [], [], []
+                    HList, LogPiList = [], []
                 else:
-                    print(f'\n[ Epoch {n}   Inintial Exploration ]')
+                    print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
+                    oldJs = [0, 0, 0]
+                    JQList, JAlphaList, JPiList = [0], [self.alpha], [0]
+                    HList, LogPiList = [0], [0]
 
             # print(f'[ Replay Buffer ] Size: {self.buffer.size}, pointer: {self.buffer.ptr}')
             nt = 0
@@ -283,16 +291,19 @@ class SAC(MFRL):
         PUI = self.configs['algorithm']['learning']['policy_update_interval']
         TUI = self.configs['algorithm']['learning']['target_update_interval']
 
-        Jq = self.updateQ(batch)
-        Jalpha = self.updateAlpha(batch)# if (g % AUI == 0) else oldJs[1]
-        Jpi = self.updatePi(batch)# if (g % PUI == 0) else oldJs[2]
+        Jq = self.updateQ(batch, oldJs[0])
+        Jq = Jq.item()
+        Jalpha = self.updateAlpha(batch, oldJs[1])# if (g % AUI == 0) else oldJs[1]
+        Jpi, PiInfo = self.updatePi(batch, oldJs[2])# if (g % PUI == 0) else oldJs[2]
+        Jpi = Jpi.item()
+
         if g % TUI == 0:
             self.updateTarget()
 
-        return Jq, Jalpha, Jpi
+        return Jq, Jalpha, Jpi, PiInfo
 
 
-    def updateQ(self, batch):
+    def updateQ(self, batch, Jq_old):
         """"
         JQ(θ) = E(st,at)∼D[ 0.5 ( Qθ(st, at)
                             − r(st, at)
@@ -313,7 +324,7 @@ class SAC(MFRL):
         # # Bellman backup for Qs
         with T.no_grad():
             # pi_next, log_pi_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
-            pi_next, log_pi_next = self.actor_critic.get_pi(O_next, reparameterize=True, return_log_pi=True)
+            pi_next, log_pi_next, entropy_next = self.actor_critic.get_pi(O_next, reparameterize=True, return_log_pi=True)
             A_next = pi_next
             # Qs_targ = T.cat(self.actor_critic.critic_target(O_next, A_next), dim=1)
             Qs_targ = T.cat(self.actor_critic.get_q_target(O_next, A_next), dim=1)
@@ -331,7 +342,7 @@ class SAC(MFRL):
         return Jq
 
 
-    def updateAlpha(self, batch):
+    def updateAlpha(self, batch, Jalpha_old):
         """
 
         αt* = arg min_αt Eat∼πt∗[ −αt log( πt*(at|st; αt) ) − αt H¯
@@ -343,7 +354,7 @@ class SAC(MFRL):
 
             with T.no_grad():
                 # _, log_pi = self.actor_critic.actor(O, return_log_pi=True)
-                _, log_pi = self.actor_critic.get_pi(O, return_log_pi=True)
+                _, log_pi, _ = self.actor_critic.get_pi(O, return_log_pi=True)
             Jalpha = - ( self.log_alpha * (log_pi + self.target_entropy) ).mean()
 
             # Gradient Descent
@@ -359,18 +370,20 @@ class SAC(MFRL):
             return 0.0
 
 
-    def updatePi(self, batch):
+    def updatePi(self, batch, Jpi_old):
         """
         Jπ(φ) = Est∼D[ Eat∼πφ[α log (πφ(at|st)) − Qθ(st, at)] ]
         """
+        PiInfo = dict()
 
         O = batch['observations']
         # Policy Evaluation
         # pi, log_pi = self.actor_critic.actor(O, return_log_pi=True)
         # Qs_pi = T.cat(self.actor_critic.critic(O, pi), dim=1)
-        pi, log_pi = self.actor_critic.get_pi(O, reparameterize=True, return_log_pi=True)
+        pi, log_pi, entropy = self.actor_critic.get_pi(O, reparameterize=True, return_log_pi=True)
         Qs_pi = T.cat(self.actor_critic.get_q(O, pi), dim=1)
         min_Q_pi, _ = T.min(Qs_pi, dim=1, keepdim=True)
+
 
         # Policy Improvement
         Jpi = (self.alpha * log_pi - min_Q_pi).mean()
@@ -380,7 +393,10 @@ class SAC(MFRL):
         Jpi.backward()
         self.actor_critic.actor.optimizer.step()
 
-        return Jpi
+        PiInfo['entropy'] = entropy.mean().item()
+        PiInfo['log_pi'] = log_pi.mean().item()
+
+        return Jpi, PiInfo
 
 
     def updateTarget(self):
