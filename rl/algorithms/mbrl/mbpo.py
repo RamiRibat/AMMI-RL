@@ -191,13 +191,34 @@ class MBPO(MBRL, SAC):
                         # JValList.append(JValLog)
                         # LossTestList.append(LossTest)
 
-                        ho_mean = self.fake_world.train_fake_world(self.buffer)
+                        # ho_mean = self.fake_world.train_fake_world(self.buffer)
+
+                        model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.size)
+                        model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
+                        s, a, r, sp, _ = model_fit_batch.values()
+                        if n == Ni+1:
+                            samples_to_collect = min(Ni*1000, self.buffer.size)
+                        else:
+                            samples_to_collect = 250
+
+                        LossGen = []
+                        for i, model in enumerate(self.models):
+                            # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
+                            loss_general = model.compute_loss(s[-samples_to_collect:],
+                                                              a[-samples_to_collect:],
+                                                              sp[-samples_to_collect:]) # generalization error
+                            dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
+                            reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
+                        LossGen.append(loss_general)
+                        ho_mean = np.mean(LossGen)
+
                         JValList.append(ho_mean) # ho: holdout
 
                         self.reallocate_model_buffer(n)
 
                         # Generate M k-steps imaginary rollouts for SAC traingin
-                        ZListImag, elListImag = self.rollout_world_model(n)
+                        # ZListImag, elListImag = self.rollout_world_model(n)
+                        ZListImag, elListImag = self.rollout_world_modelII(n)
 
                     # JQList, JPiList = [], []
                     # AlphaList = [self.alpha]*G_sac
@@ -306,7 +327,7 @@ class MBPO(MBRL, SAC):
         self.eval_env.close()
 
 
-    def rollout_world_model(self, n):
+    def rollout_world_modelII(self, n):
         ZListImag, elListImag = [0], [0]
 
         K = self.set_rollout_length(n)
@@ -316,35 +337,41 @@ class MBPO(MBRL, SAC):
         batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
         batch_size = min(batch_size_ro, self.buffer.size)
         print(f'[ Epoch {n} | Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-        B_ro = self.buffer.sample_batch(batch_size) # Torch
-        O = B_ro['observations']
+        # B_ro = self.buffer.sample_batch(batch_size) # Torch
+        # O = B_ro['observations']
 
     	# 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
-        for k in range(1, K+1):
-            A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
+        for m, model in enumerate(self.models):
+            B_ro = self.buffer.sample_batch(int(batch_size/4)) # Torch
+            O = B_ro['observations']
+            for k in range(1, K+1):
+                A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
 
-            O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
-            # O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
+                # O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
+                O_next = model.forward(O, A).detach() # ip: Tensor, op: Tensor
+                R = model.reward(O, A).detach()
+                D = self._termination_fn("Hopper-v2", O, A, O_next)
+                D = T.tensor(D, dtype=T.bool)
 
-            # self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
-            self.model_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
+                # self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
+                self.model_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
 
-            O_next = T.Tensor(O_next)
-            D = T.tensor(D, dtype=T.bool)
-            # nonD = ~D
-            nonD = ~D.squeeze(-1)
+                O_next = T.Tensor(O_next)
+                nonD = ~D.squeeze(-1)
 
-            if nonD.sum() == 0:
-                print(f'[ Epoch {n} | Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
-                break
+                if nonD.sum() == 0:
+                    print(f'[ Epoch {n} | Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
+                    break
 
-            O = O_next[nonD]
+                O = O_next[nonD]
 
         return ZListImag, elListImag
 
 
-    def rollout_world_modelII(self, n):
+    def rollout_world_model(self, n):
         ZListImag, elListImag = [0], [0]
+
+        K = self.set_rollout_length(n)
 
         # 07. Sample st uniformly from Denv
         device = self._device_
@@ -354,14 +381,16 @@ class MBPO(MBRL, SAC):
         B_ro = self.buffer.sample_batch(batch_size) # Torch
         O = B_ro['observations']
 
-        K = self.set_rollout_length(n)
-
     	# 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
         for k in range(1, K+1):
             A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
 
             O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
             # O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
+            O_next = model.forward(O, A).detach() # ip: Tensor, op: Tensor
+            r = model.reward(O, A).detach()
+            D = self._termination_fn("Hopper-v2", O, A, O_next)
+            D = T.tensor(D, dtype=T.bool)
 
             # self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
             self.model_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
@@ -413,6 +442,91 @@ class MBPO(MBRL, SAC):
         else:
             B = B_real
         return B
+
+    def _reward_fn(self, env_name, obs, act):
+        if len(obs.shape) == 1 and len(act.shape) == 1:
+            obs = obs[None]
+            act = act[None]
+            return_single = True
+        elif len(obs.shape) == 1:
+            obs = obs[None]
+            return_single = True
+        else:
+            return_single = False
+
+        next_obs = next_obs.numpy()
+        if env_name == "Hopper-v2":
+            assert len(obs.shape) == len(act.shape) == 2
+            vel_x = obs[:, -6] / 0.02
+            power = np.square(act).sum(axis=-1)
+            height = obs[:, 0]
+            ang = obs[:, 1]
+            alive_bonus = 1.0 * (height > 0.7) * (np.abs(ang) <= 0.2)
+            rewards = vel_x + alive_bonus - 1e-3*power
+
+            return rewards
+        elif env_name == "Walker2d-v2":
+            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
+            pass
+        elif 'walker_' in env_name:
+            pass
+
+
+    def _termination_fn(self, env_name, obs, act, next_obs):
+        if len(obs.shape) == 1 and len(act.shape) == 1:
+            obs = obs[None]
+            act = act[None]
+            next_obs = next_obs[None]
+            return_single = True
+        elif len(obs.shape) == 1:
+            obs = obs[None]
+            next_obs = next_obs[None]
+            return_single = True
+        else:
+            return_single = False
+
+        next_obs = next_obs.numpy()
+        if env_name == "Hopper-v2":
+            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
+
+            height = next_obs[:, 0]
+            angle = next_obs[:, 1]
+            not_done = np.isfinite(next_obs).all(axis=-1) \
+                       * np.abs(next_obs[:, 1:] < 100).all(axis=-1) \
+                       * (height > .7) \
+                       * (np.abs(angle) < .2)
+
+            done = ~not_done
+            done = done[:, None]
+            return done
+        elif env_name == "Walker2d-v2":
+            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
+
+            height = next_obs[:, 0]
+            angle = next_obs[:, 1]
+            not_done = (height > 0.8) \
+                       * (height < 2.0) \
+                       * (angle > -1.0) \
+                       * (angle < 1.0)
+            done = ~not_done
+            done = done[:, None]
+            return done
+        elif 'walker_' in env_name:
+            torso_height =  next_obs[:, -2]
+            torso_ang = next_obs[:, -1]
+            if 'walker_7' in env_name or 'walker_5' in env_name:
+                offset = 0.
+            else:
+                offset = 0.26
+            not_done = (torso_height > 0.8 - offset) \
+                       * (torso_height < 2.0 - offset) \
+                       * (torso_ang > -1.0) \
+                       * (torso_ang < 1.0)
+            done = ~not_done
+            done = done[:, None]
+            return done
+
+
 
 
 
