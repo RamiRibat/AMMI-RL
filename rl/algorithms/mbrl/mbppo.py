@@ -810,7 +810,7 @@ def main(exp_prefix, config, seed, device, wb):
     DE = configs['world_model']['num_ensembles']
 
     # group_name = f"{env_name}-{alg_name}-Mac-X" # Local
-    group_name = f"{env_name}-{alg_name}-GCP-X" # GCP
+    group_name = f"{env_name}-{alg_name}-GCP-Y" # GCP
     exp_prefix = f"seed:{seed}"
 
     if wb:
