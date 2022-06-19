@@ -15,7 +15,7 @@ configurations = {
         'model-based': True,
         'on-policy': False,
         'learning': {
-            'epochs': 500, # N epochs
+            'epochs': 100, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 5, # Ni epochs = 5000 exploration steps
             'expl_epochs': 0, # Nx epochs
@@ -56,7 +56,7 @@ configurations = {
         'learn_log_sigma_limits': False,
         'model_train_freq': 250,#250, # Mf
         'model_retain_epochs': 1,
-        'rollout_schedule': [20, 150, 1, 15],
+        'rollout_schedule': [20, 150, 1, 15], # original
         # 'rollout_schedule': [10, 150, 1, 50],
         'network': {
             'arch': [200, 200, 200, 200], #@#
@@ -124,7 +124,7 @@ configurations = {
         'real_ratio': 0.05,
         # 'real_ratio': 0.0,
         'model_val_ratio': 0.2,
-        'rollout_batch_size': 100000,
+        'rollout_batch_size': 1e5,
         'model_batch_size': 256,
         'batch_size': 256,
         # 'device': "auto",
