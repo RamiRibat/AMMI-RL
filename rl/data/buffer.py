@@ -53,7 +53,7 @@ class TrajBuffer:
     """
 
     def __init__(self, obs_dim, act_dim, horizon, num_traj, max_size, seed, device='cpu', gamma=0.995, gae_lambda=0.99):
-        # print('Initialize Trajectory Buffer..')
+        print('Initialize Trajectory Buffer')
         self.obs_buf = T.zeros((num_traj, horizon, obs_dim), dtype=T.float32)
         self.act_buf = T.zeros((num_traj, horizon, act_dim), dtype=T.float32)
         self.rew_buf = T.zeros((num_traj, horizon+1, 1), dtype=T.float32)
@@ -645,6 +645,7 @@ class ReplayBuffer:
     """
 
     def __init__(self, obs_dim, act_dim, size, seed, device):
+        print('Initialize ReplayBuffer')
         self.obs_buf = T.zeros((size, obs_dim), dtype=T.float32)
         self.act_buf = T.zeros((size, act_dim), dtype=T.float32)
         self.rew_buf = T.zeros((size, 1), dtype=T.float32)
