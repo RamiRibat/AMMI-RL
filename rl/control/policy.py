@@ -37,7 +37,7 @@ class StochasticPolicy(nn.Module):
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
-		# print('init Policy!')
+		print('init StochasticPolicy!')
 		super(StochasticPolicy, self).__init__() # To automatically use 'def forward'
 
 		self.device = device
@@ -88,8 +88,8 @@ class StochasticPolicy(nn.Module):
 			log_prob = normal_ditribution.log_prob(sample)
 			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(-1, keepdim=True)
-			# print('log_prob: ', log_prob.shape)
-		if return_entropy: entropy = normal_ditribution.entropy().sum(-1, keepdims=True)
+		# if return_entropy:
+		# 	entropy = normal_ditribution.entropy().sum(-1, keepdims=True)
 
 		return prob, log_prob, entropy
 
@@ -101,25 +101,20 @@ class StochasticPolicy(nn.Module):
 				return_log_pi=False, # Default: False
 				return_entropy=True
 				):
-		# print('forward.reparameterize: ', reparameterize)
 
 		if isinstance(obs, T.Tensor):
 			obs = (obs.to(self.device) - self.obs_bias) / (self.obs_scale + epsilon)
 		else:
 			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
 
-		mean, std = self.pi_mean_std(
-		T.as_tensor(obs, dtype=T.float32).to(self.device)
-		)
+		mean, std = self.pi_mean_std(T.as_tensor(obs, dtype=T.float32).to(self.device))
 
 		log_pi = None
 		entropy = None
 
 		if deterministic: # Evaluation
 			with T.no_grad(): pi = T.tanh(mean)
-
-		else: # Stochastic | Interaction
-			# print('reparameterize: ', reparameterize)
+		else: # Stochastic | Interaction | Policy Evaluation/Improvement
 			pi, log_pi, entropy = self.pi_prob(mean, std, reparameterize, return_log_pi, return_entropy=True)
 
 		pi = (pi * self.act_scale) + self.act_bias
@@ -133,6 +128,8 @@ class StochasticPolicy(nn.Module):
 		self.act_bias = self.act_bias.to(device)
 		self.act_scale = self.act_scale.to(device)
 		return super(StochasticPolicy, self).to(device)
+
+
 
 
 
