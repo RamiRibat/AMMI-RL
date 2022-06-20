@@ -81,15 +81,16 @@ class MFRL:
 
 
     def _set_buffer(self):
+        obs_dim, act_dim = self.obs_dim, self.act_dim
         max_size = self.configs['data']['buffer_size']
         device = self._device_
+        seed = self.seed
         if self.configs['algorithm']['on-policy']:
-            max_size = self.configs['data']['batch_size']
             num_traj = max_size//20
             horizon = 1000
-            self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
+            self.buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device)
         else:
-            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+            self.buffer = ReplayBuffer(obs_dim, act_dim, max_size, seed, device)
 
 
     def initialize_buffer(self, num_traj=400):
@@ -195,6 +196,8 @@ class MFRL:
         max_el = self.configs['environment']['horizon']
 
         if n > Nx:
+            # a, _, _ = self.actor_critic.actor(o)
+            # a = a.cpu().numpy()
             a = self.actor_critic.get_action_np(o) # Stochastic action | No reparameterization # Deterministic action | No reparameterization
         else:
             a = self.learn_env.action_space.sample()
@@ -262,6 +265,7 @@ class MFRL:
                 o, d, Z, S, el = self.eval_env.reset(), False, 0, 0, 0
 
                 while not(d or (el == max_el)):
+                    # a, _, _ = self.actor_critic.actor(o, deterministic=True)
                     a = self.actor_critic.get_action_np(o, deterministic=True) # Deterministic action | No reparameterization
                     o, r, d, info = self.eval_env.step(a)
                     Z += r

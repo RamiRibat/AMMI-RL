@@ -191,26 +191,26 @@ class MBPO(MBRL, SAC):
                         # JValList.append(JValLog)
                         # LossTestList.append(LossTest)
 
-                        # ho_mean = self.fake_world.train_fake_world(self.buffer)
+                        ho_mean = self.fake_world.train_fake_world(self.buffer)
 
-                        model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.size)
-                        model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
-                        s, a, r, sp, _ = model_fit_batch.values()
-                        if n == Ni+1:
-                            samples_to_collect = min(Ni*1000, self.buffer.size)
-                        else:
-                            samples_to_collect = 250
-
-                        LossGen = []
-                        for i, model in enumerate(self.models):
-                            # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
-                            loss_general = model.compute_loss(s[-samples_to_collect:],
-                                                              a[-samples_to_collect:],
-                                                              sp[-samples_to_collect:]) # generalization error
-                            dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
-                            reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
-                        LossGen.append(loss_general)
-                        ho_mean = np.mean(LossGen)
+                        # model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.size)
+                        # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
+                        # s, a, r, sp, _ = model_fit_batch.values()
+                        # if n == Ni+1:
+                        #     samples_to_collect = min(Ni*1000, self.buffer.size)
+                        # else:
+                        #     samples_to_collect = 250
+                        #
+                        # LossGen = []
+                        # for i, model in enumerate(self.models):
+                        #     # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
+                        #     loss_general = model.compute_loss(s[-samples_to_collect:],
+                        #                                       a[-samples_to_collect:],
+                        #                                       sp[-samples_to_collect:]) # generalization error
+                        #     dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
+                        #     reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
+                        # LossGen.append(loss_general)
+                        # ho_mean = np.mean(LossGen)
 
                         JValList.append(ho_mean) # ho: holdout
 
@@ -544,8 +544,8 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    # group_name = f"{env_name}-{alg_name}-Mac-B"
-    group_name = f"{env_name}-{alg_name}-GCP-B"
+    group_name = f"{env_name}-{alg_name}-Mac-C"
+    # group_name = f"{env_name}-{alg_name}-GCP-B"
     exp_prefix = f"seed:{seed}"
 
     if wb:

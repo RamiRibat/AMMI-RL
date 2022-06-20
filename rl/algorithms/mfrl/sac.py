@@ -26,6 +26,25 @@ from rl.control.policy import StochasticPolicy
 from rl.value_functions.q_function import SoftQFunction
 
 
+class color:
+    """
+    Source: https://stackoverflow.com/questions/8924173/how-to-print-bold-text-in-python
+    """
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
+
+
+
+
 
 class ActorCritic: # Done
     """
@@ -72,14 +91,17 @@ class ActorCritic: # Done
 
 
     def get_q(self, o, a):
+        # Update Q
         return self.critic(o, a)
 
 
     def get_q_target(self, o, a):
+        # Update Q
         return self.critic_target(o, a)
 
 
     def get_pi(self, o, a=None, reparameterize=True, deterministic=False, return_log_pi=False):
+        # Update AC
         pi, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
         return pi, log_pi, entropy
 
@@ -92,12 +114,13 @@ class ActorCritic: # Done
 
 
     def get_action_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
+        # Interaction/Evaluation
         return self.get_action(o, a, reparameterize, deterministic, return_log_pi).numpy()
 
 
     def get_pi_and_q(self, o, a=None):
         pi, log_pi, entropy = self.actor(o, a)
-        return pi, log_pi, self.critic(o)
+        return pi, log_pi, entropy, self.critic(o)
 
 
 
@@ -186,9 +209,6 @@ class SAC(MFRL):
 
         o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
-        oldJs = [0, 0, 0]
-        JQList, JAlphaList, JPiList = [0]*Ni, [0]*Ni, [0]*Ni
-        AlphaList = [self.alpha]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
 
@@ -211,49 +231,73 @@ class SAC(MFRL):
                     JQList, JAlphaList, JPiList = [0], [self.alpha], [0]
                     HList, LogPiList = [0], [0]
 
-            # print(f'[ Replay Buffer ] Size: {self.buffer.size}, pointer: {self.buffer.ptr}')
             nt = 0
+            ZList, elList = [0], [0]
+            ZListImag, elListImag = [0, 0], [0, 0]
+            AvgZ, AvgEL = 0, 0
+
             learn_start_real = time.time()
             while nt < NT:
                 # Interaction steps
                 for e in range(1, E+1):
                     o, Z, el, t = self.internact(n, o, Z, el, t)
 
+                    if el > 0:
+                        currZ = Z
+                        AvgZ = (sum(ZList)+currZ)/(len(ZList))
+                        currEL = el
+                        AvgEL = (sum(elList)+currEL)/(len(elList))
+                    else:
+                        lastZ = currZ
+                        ZList.append(lastZ)
+                        AvgZ = sum(ZList)/(len(ZList)-1)
+                        lastEL = currEL
+                        elList.append(lastEL)
+                        AvgEL = sum(elList)/(len(elList)-1)
+
+
                 # Taking gradient steps after exploration
                 if n > Ni:
                     for g in range(1, G+1):
                         batch = self.buffer.sample_batch(batch_size, device=self._device_)
-                        Jq, Jalpha, Jpi = self.trainAC(g, batch, oldJs)
+                        Jq, Jalpha, Jpi, PiInfo = self.trainAC(g, batch, oldJs)
                         oldJs = [Jq, Jalpha, Jpi]
-                        JQList.append(Jq.item())
-                        JPiList.append(Jpi.item())
+                        JQList.append(Jq)
+                        JPiList.append(Jpi)
                         if self.configs['actor']['automatic_entropy']:
-                            JAlphaList.append(Jalpha.item())
+                            JAlphaList.append(Jalpha)
                             AlphaList.append(self.alpha)
 
                 nt += E
 
-            logs['time/training                  '] = time.time() - learn_start_real
-            logs['training/sac/Jq                '] = np.mean(JQList)
-            logs['training/sac/Jpi               '] = np.mean(JPiList)
+            # logs['time/training                     '] = time.time() - learn_start_real
+            logs['training/sac/critic/Jq              '] = np.mean(JQList)
+            logs['training/sac/actor/Jpi              '] = np.mean(JPiList)
             if self.configs['actor']['automatic_entropy']:
-                logs['training/sac/Jalpha            '] = np.mean(JAlphaList)
-                logs['training/sac/alpha             '] = np.mean(AlphaList)
+                logs['training/sac/actor/Jalpha           '] = np.mean(JAlphaList)
+                logs['training/sac/actor/alpha            '] = np.mean(AlphaList)
+
+            logs['data/env_buffer_size                '] = self.buffer.size
+
+            logs['learning/real/rollout_return_mean   '] = np.mean(ZList[1:])
+            logs['learning/real/rollout_return_std    '] = np.std(ZList[1:])
+            logs['learning/real/rollout_length        '] = np.mean(elList[1:])
 
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate()
 
-            logs['time/evaluation                '] = time.time() - eval_start_real
+            # logs['time/evaluation                     '] = time.time() - eval_start_real
 
             if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
-                logs['evaluation/episodic_score_mean '] = np.mean(ES)
-                logs['evaluation/episodic_score_std  '] = np.std(ES)
+                logs['evaluation/episodic_score_mean      '] = np.mean(ES)
+                logs['evaluation/episodic_score_std       '] = np.std(ES)
             else:
-                logs['evaluation/episodic_return_mean'] = np.mean(EZ)
-                logs['evaluation/episodic_return_std '] = np.std(EZ)
-            logs['evaluation/episodic_length_mean'] = np.mean(EL)
+                logs['evaluation/episodic_return_mean     '] = np.mean(EZ)
+                logs['evaluation/episodic_return_std      '] = np.std(EZ)
+            logs['evaluation/episodic_length_mean     '] = np.mean(EL)
+            logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
 
-            logs['time/total                     '] = time.time() - start_time_real
+            logs['time/total                          '] = time.time() - start_time_real
 
             if n > (N - 50):
                 if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
@@ -275,8 +319,14 @@ class SAC(MFRL):
 
             # Printing logs
             if self.configs['experiment']['print_logs']:
+                return_means = ['learning/real/rollout_return_mean   ',
+                                'evaluation/episodic_return_mean     ',
+                                'evaluation/return_to_length         ']
                 for k, v in logs.items():
-                    print(f'{k}  {round(v, 2)}'+(' '*10))
+                    if k in return_means:
+                        print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
+                    else:
+                        print(f'{k}  {round(v, 4)}'+(' '*10))
 
             # WandB
             if self.WandB:
@@ -321,17 +371,18 @@ class SAC(MFRL):
         # Calculate two Q-functions
         # Qs = self.actor_critic.critic(O, A)
         Qs = self.actor_critic.get_q(O, A)
-        # # Bellman backup for Qs
+
+        # Bellman backup for Qs
         with T.no_grad():
-            # pi_next, log_pi_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
+            # pi_next, log_pi_next, entropy_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
             pi_next, log_pi_next, entropy_next = self.actor_critic.get_pi(O_next, reparameterize=True, return_log_pi=True)
             A_next = pi_next
-            # Qs_targ = T.cat(self.actor_critic.critic_target(O_next, A_next), dim=1)
-            Qs_targ = T.cat(self.actor_critic.get_q_target(O_next, A_next), dim=1)
+            # Qs_targ = T.cat( self.actor_critic.critic_target(O_next, A_next), dim=1 )
+            Qs_targ = T.cat( self.actor_critic.get_q_target(O_next, A_next), dim=1 )
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
 
-        # # MSE loss
+        # MSE loss
         Jq = 0.5 * sum([F.mse_loss(Q, Qs_backup) for Q in Qs])
 
         # Gradient Descent
@@ -377,8 +428,9 @@ class SAC(MFRL):
         PiInfo = dict()
 
         O = batch['observations']
+
         # Policy Evaluation
-        # pi, log_pi = self.actor_critic.actor(O, return_log_pi=True)
+        # pi, log_pi, entropy = self.actor_critic.actor(O, return_log_pi=True)
         # Qs_pi = T.cat(self.actor_critic.critic(O, pi), dim=1)
         pi, log_pi, entropy = self.actor_critic.get_pi(O, reparameterize=True, return_log_pi=True)
         Qs_pi = T.cat(self.actor_critic.get_q(O, pi), dim=1)
@@ -393,8 +445,8 @@ class SAC(MFRL):
         Jpi.backward()
         self.actor_critic.actor.optimizer.step()
 
-        PiInfo['entropy'] = entropy.mean().item()
-        PiInfo['log_pi'] = log_pi.mean().item()
+        # PiInfo['entropy'] = entropy.mean().item()
+        # PiInfo['log_pi'] = log_pi.mean().item()
 
         return Jpi, PiInfo
 
@@ -426,7 +478,8 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}"
+    # group_name = f"{env_name}-{alg_name}-Mac-A"
+    group_name = f"{env_name}-{alg_name}-GCP-A"
     exp_prefix = f"seed:{seed}"
 
     if wb:
