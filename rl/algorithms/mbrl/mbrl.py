@@ -145,7 +145,7 @@ class MBRL:
             								seed=seed,
             								device=device)
             	# old_data = self.model_buffer.return_all_np()
-                old_data = self.model_buffer.data_for_WM_np()
+            	old_data = self.model_buffer.data_for_WM_np()
             	O, A, R, O_next, D = old_data.values()
             	new_model_buffer.store_batch(O, A, R, O_next, D)
             	assert self.model_buffer.size == new_model_buffer.size
