@@ -14,7 +14,7 @@ configurations = {
         'model-based': False,
         'on-policy': True,
         'learning': {
-            'epochs': 200, # N epochs
+            'epochs': 100, # N epochs
             # 'epoch_steps': 2048, # NT steps/epoch
             # 'epoch_steps': 4000, # NT steps/epoch
             'epoch_steps': 10000, # NT steps/epoch
@@ -44,12 +44,12 @@ configurations = {
         'action_noise': None,
         'clip_eps': 0.2,
         'kl_targ': 0.02, # 0.03
-        'max_dev': 0.1,
-        'entropy_coef': 0.015,
+        'max_dev': 0.15,
+        'entropy_coef': 0.0,
         'network': {
-            # 'arch': [64, 64],
             'arch': [256, 256],
             'activation': 'Tanh',
+            # 'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 3e-4,
@@ -60,12 +60,12 @@ configurations = {
     'critic': {
         'type': 'V',
         'number': 1,
-        'gamma': 0.99,
-        'lam': 0.95,
+        'gamma': 0.995,
+        'lam': 0.99,
         'network': {
-            # 'arch': [64, 64],
             'arch': [256, 256],
             'activation': 'Tanh',
+            # 'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 1e-3,

@@ -84,7 +84,8 @@ configurations = {
             'arch': [256, 256], #@#
             'init_weights': 3e-3,
             'init_biases': 0,
-            'activation': 'ReLU',
+            'activation': 'Tanh',
+            # 'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam", #@#
             'lr': 3e-4, #@#

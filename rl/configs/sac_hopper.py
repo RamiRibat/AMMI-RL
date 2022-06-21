@@ -44,7 +44,8 @@ configurations = {
         'target_entropy': 'auto',
         'network': {
             'arch': [256, 256],
-            'activation': 'ReLU',
+            'activation': 'Tanh',
+            # 'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 3e-4
