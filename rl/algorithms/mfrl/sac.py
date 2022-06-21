@@ -445,8 +445,8 @@ class SAC(MFRL):
         Jpi.backward()
         self.actor_critic.actor.optimizer.step()
 
-        # PiInfo['entropy'] = entropy.mean().item()
-        # PiInfo['log_pi'] = log_pi.mean().item()
+        PiInfo['entropy'] = entropy.mean().item()
+        PiInfo['log_pi'] = log_pi.mean().item()
 
         return Jpi, PiInfo
 
