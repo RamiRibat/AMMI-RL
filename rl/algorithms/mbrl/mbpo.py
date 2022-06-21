@@ -217,8 +217,8 @@ class MBPO(MBRL, SAC):
                         self.reallocate_model_buffer(n)
 
                         # Generate M k-steps imaginary rollouts for SAC traingin
-                        # ZListImag, elListImag = self.rollout_world_model(n) # GCP-A
-                        ZListImag, elListImag = self.rollout_world_modelII(n) # Mac/GCP-B
+                        ZListImag, elListImag = self.rollout_world_model(n) # GCP-A
+                        # ZListImag, elListImag = self.rollout_world_modelII(n) # Mac/GCP-B
 
                     # JQList, JPiList = [], []
                     # AlphaList = [self.alpha]*G_sac
@@ -327,6 +327,43 @@ class MBPO(MBRL, SAC):
         self.eval_env.close()
 
 
+    def rollout_world_model(self, n):
+        ZListImag, elListImag = [0], [0]
+
+        K = self.set_rollout_length(n)
+
+        # 07. Sample st uniformly from Denv
+        device = self._device_
+        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
+        batch_size = min(batch_size_ro, self.buffer.size)
+        print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
+        B_ro = self.buffer.sample_batch(batch_size) # Torch
+        O = B_ro['observations']
+
+    	# 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
+        for k in range(1, K+1):
+            A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
+
+            O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
+            # O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
+
+            # self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
+            self.model_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
+
+            O_next = T.Tensor(O_next)
+            D = T.tensor(D, dtype=T.bool)
+            # nonD = ~D
+            nonD = ~D.squeeze(-1)
+
+            if nonD.sum() == 0:
+                print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
+                break
+
+            O = O_next[nonD]
+
+        return ZListImag, elListImag
+
+
     def rollout_world_modelII(self, n):
         ZListImag, elListImag = [0], [0]
 
@@ -364,43 +401,6 @@ class MBPO(MBRL, SAC):
                     break
 
                 O = O_next[nonD]
-
-        return ZListImag, elListImag
-
-
-    def rollout_world_model(self, n):
-        ZListImag, elListImag = [0], [0]
-
-        K = self.set_rollout_length(n)
-
-        # 07. Sample st uniformly from Denv
-        device = self._device_
-        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
-        batch_size = min(batch_size_ro, self.buffer.size)
-        print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-        B_ro = self.buffer.sample_batch(batch_size) # Torch
-        O = B_ro['observations']
-
-    	# 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
-        for k in range(1, K+1):
-            A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
-
-            O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
-            # O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
-
-            # self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
-            self.model_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
-
-            O_next = T.Tensor(O_next)
-            D = T.tensor(D, dtype=T.bool)
-            # nonD = ~D
-            nonD = ~D.squeeze(-1)
-
-            if nonD.sum() == 0:
-                print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
-                break
-
-            O = O_next[nonD]
 
         return ZListImag, elListImag
 
@@ -544,8 +544,8 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Mac-C"
-    # group_name = f"{env_name}-{alg_name}-GCP-B"
+    # group_name = f"{env_name}-{alg_name}-Mac-C"
+    group_name = f"{env_name}-{alg_name}-GCP-C"
     exp_prefix = f"seed:{seed}"
 
     if wb:
