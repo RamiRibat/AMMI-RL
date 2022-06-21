@@ -123,8 +123,7 @@ class TrajBuffer:
         # print(f'Reduce buffer size: a={a}-->z={z} | ptr={self.ptr} | last_traj={self.last_traj} | size={self.total_size()}')
 
 
-    def batch_data(self):
-        # print('self.total_size: ', self.total_size())
+    def batch_data(self, recent=False):
         full_size = self.total_size()
 
         self.obs_batch = T.zeros((full_size, self.obs_dim), dtype=T.float32)
@@ -138,7 +137,6 @@ class TrajBuffer:
         self.log_pi_batch = T.zeros((full_size, 1), dtype=T.float32)
 
         i = 0
-        # for pt in range(self.ptr):
         for traj in range(self.last_traj+1):
             j = int(self.ter_idx[traj])
             self.obs_batch[i:i+j] = self.obs_buf[traj, :j, :]
@@ -152,6 +150,17 @@ class TrajBuffer:
             self.log_pi_batch[i:i+j] = self.log_pi_buf[traj, :j, :]
 
             i = i+j
+
+        if recent:
+            self.obs_batch = self.obs_batch[-recent:]
+            self.act_batch = self.act_batch[-recent:]
+            self.rew_batch = self.rew_batch[-recent:]
+            self.obs_next_batch = self.obs_next_batch[-recent:]
+            self.ter_batch = self.ter_batch[-recent:]
+            self.ret_batch = self.ret_batch[-recent:]
+            self.val_batch = self.val_batch[-recent:]
+            self.adv_batch = self.adv_batch[-recent:]
+            self.log_pi_batch = self.log_pi_batch[-recent:]
 
 
     def store_transition(self, o, a, r, o_next, d, v, log_pi, e):
@@ -306,13 +315,13 @@ class TrajBuffer:
             self.ptr +=batch_size
 
 
-    def sample_batch(self, batch_size=64, device=False):
+    def sample_batch(self, batch_size=64, recent=False, device=False):
         # assert self.ptr == self.max_size
         # device = self.device
         batch_size = min(batch_size, self.total_size())
         idxs = np.random.randint(0, self.total_size(), size=batch_size)
 
-        self.batch_data()
+        self.batch_data(recent)
 
         # Adv normalization
         if self.normz_adv:
@@ -436,14 +445,14 @@ class TrajBuffer:
         return {k: v.numpy() for k, v in buffer.items()}
 
 
-    def data_for_WM(self, device=False):
+    def data_for_WM(self, recent=False, device=False):
         idxs = np.random.randint(0, self.total_size(), size=self.total_size())
-        self.batch_data()
+        self.batch_data(recent)
         buffer = dict(observations=self.obs_batch[idxs],
-        			 actions=self.act_batch[idxs],
-                     rewards=self.rew_batch[idxs],
-                     observations_next=self.obs_next_batch[idxs],
-                     terminals=self.ter_batch[idxs])
+        			  actions=self.act_batch[idxs],
+                      rewards=self.rew_batch[idxs],
+                      observations_next=self.obs_next_batch[idxs],
+                      terminals=self.ter_batch[idxs])
         if device:
             return {k: v.to(device) for k,v in buffer.items()}
         else:
@@ -451,7 +460,7 @@ class TrajBuffer:
 
 
     def data_for_WM_stack(self):
-        data = self.data_for_WM()
+        data = self.data_for_WM(recent=False)
         return {k: T.stack([v])[0] for k, v in data.items()}
 
 
@@ -716,10 +725,10 @@ class ReplayBuffer:
         idxs = np.random.randint(0, self.size, size=batch_size)
         # print('Index:	', idxs[0: 5])
         batch = dict(observations=self.obs_buf[idxs],
-        			actions=self.act_buf[idxs],
-        			rewards=self.rew_buf[idxs],
-        			observations_next=self.obs_next_buf[idxs],
-        			terminals=self.ter_buf[idxs])
+        			 actions=self.act_buf[idxs],
+        			 rewards=self.rew_buf[idxs],
+        			 observations_next=self.obs_next_buf[idxs],
+        			 terminals=self.ter_buf[idxs])
         if device:
             return {k: v.to(device) for k,v in batch.items()}
         else:
