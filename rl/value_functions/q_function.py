@@ -15,6 +15,12 @@ def init_weights_(l):
 		nn.init.uniform_(l.bias, 0.0)
 
 
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    nn.init.orthogonal_(layer.weight, std)
+    nn.init.constant_(layer.bias, bias_const)
+    return layer
+
+
 
 
 
@@ -32,7 +38,6 @@ class QFunction(nn.Module):
         super(QFunction, self).__init__() # To automatically use forward
 
         self.q1 = MLPNet(obs_dim + act_dim, 1, net_configs)
-
         self.apply(init_weights_)
 
         self.to(device)
@@ -56,14 +61,35 @@ class SoftQFunction(nn.Module):
 
         optimizer = 'T.optim.' + net_configs['optimizer']
         lr = net_configs['lr']
+        hid = 256
 
         super(SoftQFunction, self).__init__() # To automatically use forward
 
         self.q1 = MLPNet(obs_dim + act_dim, 1, net_configs)
         self.q2 = MLPNet(obs_dim + act_dim, 1, net_configs)
-        self.Qs = [self.q1, self.q2]
-
         self.apply(init_weights_)
+
+        # self.q1 = nn.Sequential(
+		# 	layer_init(nn.Linear(obs_dim + act_dim, hid)),
+		# 	nn.Tanh(),
+		# 	# nn.ReLU(),
+		# 	layer_init(nn.Linear(hid, hid)),
+		# 	nn.Tanh(),
+		# 	# nn.ReLU(),
+		# 	layer_init(nn.Linear(hid, 1), std=1.0)
+		# 				)
+		#
+        # self.q2 = nn.Sequential(
+		# 	layer_init(nn.Linear(obs_dim + act_dim, hid)),
+		# 	nn.Tanh(),
+		# 	# nn.ReLU(),
+		# 	layer_init(nn.Linear(hid, hid)),
+		# 	nn.Tanh(),
+		# 	# nn.ReLU(),
+		# 	layer_init(nn.Linear(hid, 1), std=1.0)
+		# 				)
+
+        self.Qs = [self.q1, self.q2]
 
         self.to(device)
 
