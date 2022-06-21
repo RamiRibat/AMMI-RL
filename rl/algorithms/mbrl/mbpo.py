@@ -183,42 +183,35 @@ class MBPO(MBRL, SAC):
                         #03. Train model pθ on Denv via maximum likelihood
                         # PyTorch Lightning Model Training
                         print(f'\n[ Epoch {n} | Training World Model ]'+(' '*50))
-                        # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}
-                        # self.data_module = RLDataModule(self.buffer, self.configs['data'])
 
-                        # JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
-                        # JTrainList.append(JTrainLog)
-                        # JValList.append(JValLog)
-                        # LossTestList.append(LossTest)
+                        ho_mean = self.fake_world.train_fake_world(self.buffer)
 
-                        # ho_mean = self.fake_world.train_fake_world(self.buffer)
-
-                        model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.size)
-                        model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
-                        s, a, r, sp, _ = model_fit_batch.values()
-                        if n == Ni+1:
-                            samples_to_collect = min(Ni*1000, self.buffer.size)
-                        else:
-                            samples_to_collect = 250
-
-                        LossGen = []
-                        for i, model in enumerate(self.models):
-                            # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
-                            loss_general = model.compute_loss(s[-samples_to_collect:],
-                                                              a[-samples_to_collect:],
-                                                              sp[-samples_to_collect:]) # generalization error
-                            dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
-                            reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
-                        LossGen.append(loss_general)
-                        ho_mean = np.mean(LossGen)
+                        # model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.size)
+                        # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
+                        # s, a, r, sp, _ = model_fit_batch.values()
+                        # if n == Ni+1:
+                        #     samples_to_collect = min(Ni*1000, self.buffer.size)
+                        # else:
+                        #     samples_to_collect = 250
+                        #
+                        # LossGen = []
+                        # for i, model in enumerate(self.models):
+                        #     # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
+                        #     loss_general = model.compute_loss(s[-samples_to_collect:],
+                        #                                       a[-samples_to_collect:],
+                        #                                       sp[-samples_to_collect:]) # generalization error
+                        #     dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
+                        #     reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
+                        # LossGen.append(loss_general)
+                        # ho_mean = np.mean(LossGen)
 
                         JValList.append(ho_mean) # ho: holdout
 
                         self.reallocate_model_buffer(n)
 
                         # Generate M k-steps imaginary rollouts for SAC traingin
-                        # ZListImag, elListImag = self.rollout_world_model(n) # GCP-A
-                        ZListImag, elListImag = self.rollout_world_modelII(n) # Mac/GCP-B
+                        ZListImag, elListImag = self.rollout_world_model(n) # GCP-E
+                        # ZListImag, elListImag = self.rollout_world_modelII(n) # Mac/GCP-B
 
                     # JQList, JPiList = [], []
                     # AlphaList = [self.alpha]*G_sac
@@ -439,6 +432,7 @@ class MBPO(MBRL, SAC):
             B = B_real
         return B
 
+
     def _reward_fn(self, env_name, obs, act):
         if len(obs.shape) == 1 and len(act.shape) == 1:
             obs = obs[None]
@@ -545,7 +539,7 @@ def main(exp_prefix, config, seed, device, wb):
     DE = configs['world_model']['num_ensembles']
 
     # group_name = f"{env_name}-{alg_name}-Mac-C"
-    group_name = f"{env_name}-{alg_name}-GCP-D"
+    group_name = f"{env_name}-{alg_name}-GCP-E"
     exp_prefix = f"seed:{seed}"
 
     if wb:

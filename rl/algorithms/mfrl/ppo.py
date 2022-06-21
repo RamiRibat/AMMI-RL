@@ -24,10 +24,25 @@ from torch.distributions.normal import Normal
 nn = T.nn
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import PPOPolicy, StochasticPolicy
-from rl.control.policy import NPGPolicy
+from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy
+# from rl.control.policy import NPGPolicy
 from rl.value_functions.v_function import VFunction
 
+
+class color:
+    """
+    Source: https://stackoverflow.com/questions/8924173/how-to-print-bold-text-in-python
+    """
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
 
 
 
@@ -44,7 +59,7 @@ class ActorCritic: # Done
                  configs, seed, device
                  ) -> None:
         print('Initialize AC!')
-        super(ActorCritic, self).__init__()
+        # super(ActorCritic, self).__init__()
         self.obs_dim, self.act_dim = obs_dim, act_dim
         self.act_up_lim, self.act_low_lim = act_up_lim, act_low_lim
         self.configs, self.seed = configs, seed
@@ -65,10 +80,10 @@ class ActorCritic: # Done
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
-        # return StochasticPolicy(
+        # return OVOQPolicy(
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
-        #     net_configs, self._device_, self.seed) # PPO-I
+        #     net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -82,38 +97,90 @@ class ActorCritic: # Done
         return self.critic(o)
 
 
-    def get_pi(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
-        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+    def get_pi(self, o, a=None,
+               on_policy=True,
+               reparameterize=False,
+               deterministic=False,
+               return_log_pi=True,
+               return_entropy=True):
+        action, log_pi, entropy = self.actor(o, a, on_policy,
+                                             reparameterize,
+                                             deterministic,
+                                             return_log_pi,
+                                             return_entropy)
         return action, log_pi, entropy
 
 
-    def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
+    def get_action(self, o, a=None,
+                   on_policy=True,
+                   reparameterize=False,
+                   deterministic=False,
+                   return_log_pi=True,
+                   return_entropy=True):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): a, _, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        with T.no_grad(): a, _, _ = self.actor(o, a, on_policy,
+                                               reparameterize,
+                                               deterministic,
+                                               return_log_pi,
+                                               return_entropy)
         return a.cpu()
 
 
-    def get_action_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
-        return self.get_action(o, a, reparameterize, deterministic, return_log_pi).numpy()
+    def get_action_np(self, o, a=None,
+                      on_policy=True,
+                      reparameterize=False,
+                      deterministic=False,
+                      return_log_pi=True,
+                      return_entropy=True):
+        return self.get_action(o, a, on_policy,
+                               reparameterize,
+                               deterministic,
+                               return_log_pi,
+                               return_entropy).numpy()
 
 
-    def get_pi_and_v(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
-        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        return action, log_pi, entropy, self.critic(o)
+    def get_pi_and_v(self, o, a=None,
+                    on_policy=True,
+                    reparameterize=False,
+                    deterministic=False,
+                    return_log_pi=True,
+                    return_entropy=True):
+        pi, log_pi, entropy = self.actor(o, a, on_policy,
+                                         reparameterize,
+                                         deterministic,
+                                         return_log_pi,
+                                         return_entropy)
+        return pi, log_pi, entropy, self.critic(o)
 
 
-    def get_a_and_v(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
-        action, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        # print('log_pi: ', log_pi)
+    def get_a_and_v(self, o, a=None,
+                    on_policy=True,
+                    reparameterize=False,
+                    deterministic=False,
+                    return_log_pi=True,
+                    return_entropy=True):
+        action, log_pi, entropy = self.actor(o, a, on_policy,
+                                             reparameterize,
+                                             deterministic,
+                                             return_log_pi,
+                                             return_entropy)
         return action.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
 
 
-    def get_a_and_v_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=True):
+    def get_a_and_v_np(self, o, a=None,
+                       on_policy=True,
+                       reparameterize=False,
+                       deterministic=False,
+                       return_log_pi=True,
+                       return_entropy=True):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): a, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        # print('log_pi: ', log_pi)
+        with T.no_grad(): a, log_pi, entropy = self.actor(o, a, on_policy,
+                                                          reparameterize,
+                                                          deterministic,
+                                                          return_log_pi,
+                                                          return_entropy)
         return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
 
 
@@ -231,7 +298,7 @@ class PPO(MFRL):
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
         super(PPO, self).__init__(exp_prefix, configs, seed, device)
-        # print('init PPO Algorithm!')
+        print('Initialize PPO Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -312,6 +379,9 @@ class PPO(MFRL):
             nt = 0
             self.buffer.reset()
             o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
+            ZList, elList = [0], [0]
+            ZListImag, elListImag = [0, 0], [0, 0]
+            AvgZ, AvgEL = 0, 0
 
             learn_start_real = time.time()
             while nt < NT:
@@ -322,6 +392,19 @@ class PPO(MFRL):
                     o, Z, el, t = self.internact_opB(n, o, Z, el, t)
                     # print(f'Steps: e={e} | el={el} || size={self.buffer.total_size()}')
 
+                    if el > 0:
+                        currZ = Z
+                        AvgZ = (sum(ZList)+currZ)/(len(ZList))
+                        currEL = el
+                        AvgEL = (sum(elList)+currEL)/(len(elList))
+                    else:
+                        lastZ = currZ
+                        ZList.append(lastZ)
+                        AvgZ = sum(ZList)/(len(ZList)-1)
+                        lastEL = currEL
+                        elList.append(lastEL)
+                        AvgEL = sum(elList)/(len(elList)-1)
+
                 with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
                 # self.buffer.traj_tail(d, v, el)
                 self.buffer.finish_path(el, v)
@@ -331,12 +414,12 @@ class PPO(MFRL):
                 if n > Ni:
                     # Optimizing policy and value networks
                     self.stop_pi = False
-                    kl = 0 #KL
+                    kl, dev = 0, 0
                     ppo_grads = 0
                     for g in range(1, G+1):
                         # print('KL: ', KL)
                         # PPO-P >>>>
-                        print(f'[ PPO ] grads={g}/{G} | stopPG={self.stop_pi} | KL={round(kl, 4)}', end='\r')
+                        print(f'[ PPO ] grads={g}/{G} | stopPG={self.stop_pi} | Dev={round(dev, 4)}', end='\r')
                         batch = self.buffer.sample_batch(batch_size, device=self._device_)
                         Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs, oldKL=kl)
                         oldJs = [Jv, Jpi]
@@ -345,30 +428,35 @@ class PPO(MFRL):
                         KLList.append(kl)
                         HList.append(PiInfo['entropy'])
                         DevList.append(PiInfo['deviation'])
+                        dev = PiInfo['deviation']
                         if not self.stop_pi:
                             ppo_grads += 1
-                        if PiInfo['deviation'] > max_dev:
-                            print(f'\nBreak AC grad loop at g={g}'+(' ')*80)
-                            break
+                        # if PiInfo['deviation'] > max_dev:
+                        #     print(f'\nBreak AC grad loop at g={g}'+(' ')*80)
+                        #     break
                         # PPO-P <<<<
                     # self.buffer.reset()
                 nt += E
 
-            # logs['time/training                  '] = time.time() - learn_start_real
-            logs['training/ppo/Jv                '] = np.mean(JVList)
-            logs['training/ppo/V(s)              '] = T.mean(self.buffer.val_buf).item()
-            logs['training/ppo/Jpi               '] = np.mean(JPiList)
-            logs['training/ppo/grads             '] = ppo_grads
-            logs['training/ppo/H                 '] = np.mean(HList)
-            logs['training/ppo/KL                '] = np.mean(KLList)
-            # logs['training/ppo/KL-target         '] = self.kl_targ
-            logs['training/ppo/deviation         '] = np.mean(DevList)
-            logs['training/ppo/log_pi            '] = PiInfo['log_pi']
+            # logs['time/training                       '] = time.time() - learn_start_real
+            logs['training/ppo/Jv                     '] = np.mean(JVList)
+            logs['training/ppo/V(s)                   '] = T.mean(self.buffer.val_buf).item()
+            logs['training/ppo/V-R                    '] = T.mean(self.buffer.val_buf).item()-T.mean(self.buffer.ret_buf).item()
+            logs['training/ppo/Jpi                    '] = np.mean(JPiList)
+            logs['training/ppo/grads                  '] = ppo_grads
+            logs['training/ppo/H                      '] = np.mean(HList)
+            logs['training/ppo/KL                     '] = np.mean(KLList)
+            logs['training/ppo/deviation              '] = np.mean(DevList)
+            logs['training/ppo/log_pi                 '] = PiInfo['log_pi']
 
-            # logs['time                           '] = t
-            # logs['data/average_return            '] = self.buffer.average_return()
-            logs['data/env_buffer                '] = self.buffer.total_size()
-            logs['data/total_interactions        '] = t
+            # logs['time                                '] = t
+            # logs['data/average_return                 '] = self.buffer.average_return()
+            logs['data/env_buffer                     '] = self.buffer.total_size()
+            logs['data/total_interactions             '] = t
+
+            logs['learning/rollout_return_mean        '] = np.mean(ZList[1:])
+            logs['learning/rollout_return_std         '] = np.std(ZList[1:])
+            logs['learning/rollout_length             '] = np.mean(elList[1:])
 
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate_op()
@@ -376,12 +464,14 @@ class PPO(MFRL):
             # logs['time/evaluation                '] = time.time() - eval_start_real
             #
             if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
-                logs['evaluation/episodic_score_mean '] = np.mean(ES)
-                logs['evaluation/episodic_score_std  '] = np.std(ES)
+                logs['evaluation/episodic_score_mean      '] = np.mean(ES)
+                logs['evaluation/episodic_score_std       '] = np.std(ES)
             else:
-                logs['evaluation/episodic_return_mean'] = np.mean(EZ)
-                logs['evaluation/episodic_return_std '] = np.std(EZ)
-            logs['evaluation/episodic_length_mean'] = np.mean(EL)
+                logs['evaluation/episodic_return_mean     '] = np.mean(EZ)
+                logs['evaluation/episodic_return_std      '] = np.std(EZ)
+            logs['evaluation/episodic_length_mean     '] = np.mean(EL)
+            logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
+
             #
             # logs['time/total                     '] = time.time() - start_time_real
             #
@@ -404,9 +494,16 @@ class PPO(MFRL):
             #             lastEZ = np.mean(EZ)
             #
             # Printing logs
+            # Printing logs
             if self.configs['experiment']['print_logs']:
+                return_means = ['learning/rollout_return_mean        ',
+                                'evaluation/episodic_return_mean     ',
+                                'evaluation/return_to_length         ']
                 for k, v in logs.items():
-                    print(f'{k}  {round(v, 4)}')
+                    if k in return_means:
+                        print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
+                    else:
+                        print(f'{k}  {round(v, 4)}'+(' '*10))
 
             # WandB
             if self.WandB:
@@ -527,7 +624,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-CH" # H < -2.7
+    group_name = f"{env_name}-{alg_name}-Mac-K" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:

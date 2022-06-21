@@ -22,7 +22,7 @@ import torch as T
 import torch.nn.functional as F
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import StochasticPolicy
+from rl.control.policy import StochasticPolicy, OVOQPolicy
 from rl.value_functions.q_function import SoftQFunction
 
 
@@ -57,7 +57,7 @@ class ActorCritic: # Done
                  act_up_lim, act_low_lim,
                  configs, seed, device
                  ) -> None:
-        # print('Initialize AC!')
+        print('Initialize AC')
         self.obs_dim, self.act_dim = obs_dim, act_dim
         self.act_up_lim, self.act_low_lim = act_up_lim, act_low_lim
         self.configs, self.seed = configs, seed
@@ -81,6 +81,10 @@ class ActorCritic: # Done
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
+        # return OVOQPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -100,27 +104,83 @@ class ActorCritic: # Done
         return self.critic_target(o, a)
 
 
-    def get_pi(self, o, a=None, reparameterize=True, deterministic=False, return_log_pi=False):
+    # def get_pi(self, o, a=None, reparameterize=True, deterministic=False, return_log_pi=False):
+    #     pi, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+    #     return pi, log_pi, entropy
+
+    def get_pi(self, o, a=None,
+               on_policy=False,
+               reparameterize=True,
+               deterministic=False,
+               return_log_pi=True,
+               return_entropy=True):
         # Update AC
-        pi, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        return pi, log_pi, entropy
+        action, log_pi, entropy = self.actor(o, a, on_policy,
+                                             reparameterize,
+                                             deterministic,
+                                             return_log_pi,
+                                             return_entropy)
+        return action, log_pi, entropy
 
 
-    def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
+    # def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
+    #     o = T.Tensor(o)
+    #     if a: a = T.Tensor(a)
+    #     with T.no_grad(): a, _, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+    #     return a.cpu()
+
+    def get_action(self, o, a=None,
+                   on_policy=False,
+                   reparameterize=False,
+                   deterministic=False,
+                   return_log_pi=False,
+                   return_entropy=False):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): a, _, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        with T.no_grad(): a, _, _ = self.actor(o, a, on_policy,
+                                               reparameterize,
+                                               deterministic,
+                                               return_log_pi,
+                                               return_entropy)
         return a.cpu()
 
 
-    def get_action_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
+    # def get_action_np(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
+    #     # Interaction/Evaluation
+    #     return self.get_action(o, a, reparameterize, deterministic, return_log_pi).numpy()
+
+    def get_action_np(self, o, a=None,
+                      on_policy=False,
+                      reparameterize=False,
+                      deterministic=False,
+                      return_log_pi=False,
+                      return_entropy=False):
         # Interaction/Evaluation
-        return self.get_action(o, a, reparameterize, deterministic, return_log_pi).numpy()
+        return self.get_action(o, a, on_policy,
+                               reparameterize,
+                               deterministic,
+                               return_log_pi,
+                               return_entropy).numpy()
 
 
-    def get_pi_and_q(self, o, a=None):
-        pi, log_pi, entropy = self.actor(o, a)
-        return pi, log_pi, entropy, self.critic(o)
+    # def get_pi_and_q(self, o, a=None):
+    #     pi, log_pi, entropy = self.actor(o, a)
+    #     return pi, log_pi, entropy, self.critic(o, a)
+
+    def get_pi_and_q(self, o, a=None,
+                    on_policy=False,
+                    reparameterize=True,
+                    deterministic=False,
+                    return_log_pi=True,
+                    return_entropy=True):
+        pi, log_pi, entropy = self.actor(o, a, on_policy,
+                                         reparameterize,
+                                         deterministic,
+                                         return_log_pi,
+                                         return_entropy)
+        return pi, log_pi, entropy, self.critic(o, a)
+
+
 
 
 
@@ -149,7 +209,7 @@ class SAC(MFRL):
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
         super(SAC, self).__init__(exp_prefix, configs, seed, device)
-        # print('init SAC Algorithm!')
+        print('Initialize SAC Algorithm')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -478,7 +538,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Mac-L"
+    group_name = f"{env_name}-{alg_name}-Mac-R"
     # group_name = f"{env_name}-{alg_name}-GCP-A"
     exp_prefix = f"seed:{seed}"
 
