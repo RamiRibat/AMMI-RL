@@ -217,7 +217,8 @@ class StochasticPolicy(nn.Module):
 		    nn.Tanh()
 		)
 		self.mean = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01)
-		self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01)
+		self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim)) # Q
+		# self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01) # R
 
 		# self.apply(init_weights_)
 
