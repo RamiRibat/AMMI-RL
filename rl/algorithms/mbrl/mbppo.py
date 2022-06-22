@@ -158,16 +158,8 @@ class MBPPO(MBRL, PPO):
         G_PPO = self.configs['algorithm']['learning']['grad_PPO_steps']
         max_dev = self.configs['actor']['max_dev']
 
-        # model_train_frequency = self.configs['world_model']['model_train_freq']
-        # batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
-        # wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
-        # real_ratio = self.configs['data']['real_ratio'] # rr
-
         global_step = 0
         start_time = time.time()
-        # o, Z, el, t = self.learn_env.reset(), 0, 0, 0
-        # oldJs = [0, 0]
-        # JVList, JPiList = [0]*Ni, [0]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
         t = 0
@@ -194,9 +186,7 @@ class MBPPO(MBRL, PPO):
                     ho_mean = 0
 
             nt = 0
-            # self.buffer.reset()
             o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
-            # o, d, Z, el = self.traj_env.reset(), 0, 0, 0
             ZList, elList = [0], [0]
             ZListImag, elListImag = [0, 0], [0, 0]
             AvgZ, AvgEL = 0, 0

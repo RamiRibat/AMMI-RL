@@ -539,7 +539,7 @@ def main(exp_prefix, config, seed, device, wb):
     DE = configs['world_model']['num_ensembles']
 
     # group_name = f"{env_name}-{alg_name}-Mac-C"
-    group_name = f"{env_name}-{alg_name}-GCP-E"
+    group_name = f"{env_name}-{alg_name}-GCP-F"
     exp_prefix = f"seed:{seed}"
 
     if wb:
