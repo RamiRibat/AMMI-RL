@@ -25,8 +25,8 @@ configurations = {
         'learning': {
             'epochs': 100, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
-            'init_epochs_v': 2, # Random Actions + No Learning
-            'init_epochs_q': 5, # Random Actions + No Learning
+            'ov_init_epochs': 2, # Random Actions + No Learning
+            'oq_init_epochs': 5, # Random Actions + No Learning
             'expl_epochs': 2, # Random Actions + Learning
 
             'env_steps' : 1,
@@ -60,8 +60,6 @@ configurations = {
         'type': 'PE',
         'num_ensembles': 7,
         'num_elites': 5,
-        # 'num_ensembles': 4,
-        # 'num_elites': 4,
         'sample_type': 'Random',
         'learn_reward': True,
         'oq_model_train_freq': 250,
@@ -91,7 +89,6 @@ configurations = {
         'kl_targ': 0.02, # 0.03
         'max_dev': 0.15,
         'entropy_coef': 0.,
-        # 'normz_step_size': 0.01,
         'alpha': 0.2,
         'automatic_entropy': False, # trainer_kwargs
         'target_entropy': "auto",
@@ -120,7 +117,6 @@ configurations = {
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 1e-3,
-            # 'lr': 3e-4,
             'max_grad_norm': 0.5,
         },
 
