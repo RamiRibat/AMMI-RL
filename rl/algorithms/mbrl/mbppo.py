@@ -288,7 +288,7 @@ class MBPPO(MBRL, PPO):
                         # k_avg, ZListImag, elListImag = self.rollout_real_world(g, n)
                         # k_avg = self.rollout_real_world_trajectories(g, n)
                         ZListImag, elListImag = self.rollout_world_model_trajectories(g, n)
-                        # ZListImag, elListImag = self.rollout_world_model_trajectoriesII(g, n)
+                        # ZListImag, elListImag = self.rollout_world_model_trajectories_q(g, n)
                         batch_size = int(self.model_traj_buffer.total_size())
                         # batch_size = 10000 #min(int(self.model_traj_buffer.total_size()), 10000)
                         stop_pi = False
@@ -516,7 +516,7 @@ class MBPPO(MBRL, PPO):
     	return k_end_total//Nτ
 
 
-    def rollout_world_model_trajectories(self, g, n):
+    def rollout_world_model_trajectories_q(self, g, n):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
     	Nτ = 250
@@ -629,7 +629,7 @@ class MBPPO(MBRL, PPO):
         self.model_traj_buffer.finish_path_batch(EL, V)
 
 
-    def rollout_world_model_trajectoriesII(self, g, n):
+    def rollout_world_model_trajectories(self, g, n):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
     	Nτ = 250
