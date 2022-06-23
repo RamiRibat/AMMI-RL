@@ -27,7 +27,8 @@ class VFunction(nn.Module):
 	    optimizer = 'T.optim.' + net_configs['optimizer']
 	    lr = net_configs['lr']
 	    # hid = 64
-	    hid = 256 # PPO-G
+	    hid = 128
+	    # hid = 256
 
 	    super().__init__() # To automatically use forward
 
