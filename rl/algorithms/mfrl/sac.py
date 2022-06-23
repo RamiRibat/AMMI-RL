@@ -25,6 +25,8 @@ from rl.algorithms.mfrl.mfrl import MFRL
 from rl.control.policy import StochasticPolicy, OVOQPolicy
 from rl.value_functions.q_function import SoftQFunction
 
+# from rl.utils.logx import EpochLogger
+
 
 class color:
     """
@@ -77,14 +79,14 @@ class ActorCritic: # Done
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        # return StochasticPolicy(
-        #     self.obs_dim, self.act_dim,
-        #     self.act_up_lim, self.act_low_lim,
-        #     net_configs, self._device_, self.seed)
-        return OVOQPolicy(
+        return StochasticPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
+        # return OVOQPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -267,6 +269,8 @@ class SAC(MFRL):
 
         batch_size = self.configs['data']['batch_size']
 
+        # epoch_logger = EpochLogger
+
         o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
         logs = dict()
@@ -356,32 +360,50 @@ class SAC(MFRL):
                 logs['evaluation/episodic_return_std      '] = np.std(EZ)
             logs['evaluation/episodic_length_mean     '] = np.mean(EL)
             logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
+            logs['evaluation/return_to_full_length    '] = (np.mean(EZ)/1000)
 
             logs['time/total                          '] = time.time() - start_time_real
 
-            if n > (N - 50):
-                if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
-                    if np.mean(ES) > lastES:
-                        print(f'[ Epoch {n}   Agent Saving ]                    ')
-                        env_name = self.configs['environment']['name']
-                        alg_name = self.configs['algorithm']['name']
-                        T.save(self.actor_critic.actor,
-                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
-                        lastES = np.mean(ES)
-                else:
-                    if np.mean(EZ) > lastEZ:
-                        print(f'[ Epoch {n}   Agent Saving ]                    ')
-                        env_name = self.configs['environment']['name']
-                        alg_name = self.configs['algorithm']['name']
-                        T.save(self.actor_critic.actor,
-                        f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
-                        lastEZ = np.mean(EZ)
+
+            # Log info about epoch
+            # epoch_logger.log_tabular('Epoch', n)
+            # epoch_logger.log_tabular('RollRet', np.mean(ZList[1:]))
+            # epoch_logger.log_tabular('RollLen', np.mean(elList[1:]))
+            # epoch_logger.log_tabular('EvalRet', np.mean(EZ))
+            # epoch_logger.log_tabular('EvalLen', np.mean(EL))
+            # epoch_logger.log_tabular('TotalEnvInteracts', t)
+            # epoch_logger.log_tabular('Time', time.time() - start_time_real)
+            # epoch_logger.dump_tabular()
+
+
+
+            # if n > (N - 50):
+            #     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
+            #         if np.mean(ES) > lastES:
+            #             print(f'[ Epoch {n}   Agent Saving ]                    ')
+            #             env_name = self.configs['environment']['name']
+            #             alg_name = self.configs['algorithm']['name']
+            #             T.save(self.actor_critic.actor,
+            #             f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
+            #             lastES = np.mean(ES)
+            #     else:
+            #         if np.mean(EZ) > lastEZ:
+            #             print(f'[ Epoch {n}   Agent Saving ]                    ')
+            #             env_name = self.configs['environment']['name']
+            #             alg_name = self.configs['algorithm']['name']
+            #             T.save(self.actor_critic.actor,
+            #             f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
+            #             lastEZ = np.mean(EZ)
+
+
+
 
             # Printing logs
             if self.configs['experiment']['print_logs']:
                 return_means = ['learning/real/rollout_return_mean   ',
                                 'evaluation/episodic_return_mean     ',
-                                'evaluation/return_to_length         ']
+                                'evaluation/return_to_length         ',
+                                'evaluation/performance              ']
                 for k, v in logs.items():
                     if k in return_means:
                         print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
@@ -538,7 +560,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Mac-U"
+    group_name = f"{env_name}-{alg_name}-Tanh-L"
     # group_name = f"{env_name}-{alg_name}-GCP-A"
     exp_prefix = f"seed:{seed}"
 

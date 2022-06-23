@@ -382,6 +382,7 @@ class MBPPO(MBRL, PPO):
                 logs['evaluation/episodic_return_std      '] = np.std(EZ)
             logs['evaluation/episodic_length_mean     '] = np.mean(EL)
             logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
+            logs['evaluation/performance              '] = (np.mean(EZ)/1000)
 
             logs['time/total                          '] = time.time() - start_time_real
 
@@ -408,7 +409,8 @@ class MBPPO(MBRL, PPO):
                 return_means = ['learning/real/rollout_return_mean   ',
                                 'learning/imag/rollout_return_mean   ',
                                 'evaluation/episodic_return_mean     ',
-                                'evaluation/return_to_length         ']
+                                'evaluation/return_to_length         ',
+                                'evaluation/performance              ']
                 for k, v in logs.items():
                     if k in return_means:
                         print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))

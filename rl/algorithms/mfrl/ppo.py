@@ -76,14 +76,14 @@ class ActorCritic: # Done
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        # return PPOPolicy(
-        #     self.obs_dim, self.act_dim,
-        #     self.act_up_lim, self.act_low_lim,
-        #     net_configs, self._device_, self.seed)
-        return OVOQPolicy(
+        return PPOPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
+        # return OVOQPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -454,9 +454,9 @@ class PPO(MFRL):
             logs['data/env_buffer                     '] = self.buffer.total_size()
             logs['data/total_interactions             '] = t
 
-            logs['learning/rollout_return_mean        '] = np.mean(ZList[1:])
-            logs['learning/rollout_return_std         '] = np.std(ZList[1:])
-            logs['learning/rollout_length             '] = np.mean(elList[1:])
+            logs['learning/real/rollout_return_mean   '] = np.mean(ZList[1:])
+            logs['learning/real/rollout_return_std    '] = np.std(ZList[1:])
+            logs['learning/real/rollout_length        '] = np.mean(elList[1:])
 
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate_op()
@@ -471,6 +471,7 @@ class PPO(MFRL):
                 logs['evaluation/episodic_return_std      '] = np.std(EZ)
             logs['evaluation/episodic_length_mean     '] = np.mean(EL)
             logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
+            logs['evaluation/performance              '] = (np.mean(EZ)/1000)
 
             #
             # logs['time/total                     '] = time.time() - start_time_real
@@ -498,7 +499,8 @@ class PPO(MFRL):
             if self.configs['experiment']['print_logs']:
                 return_means = ['learning/rollout_return_mean        ',
                                 'evaluation/episodic_return_mean     ',
-                                'evaluation/return_to_length         ']
+                                'evaluation/return_to_length         ',
+                                'evaluation/performance              ']
                 for k, v in logs.items():
                     if k in return_means:
                         print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
@@ -624,7 +626,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Mac-T" # H < -2.7
+    group_name = f"{env_name}-{alg_name}-Tanh-B" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:

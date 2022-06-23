@@ -99,32 +99,21 @@ class MBPO(MBRL, SAC):
         Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         E = self.configs['algorithm']['learning']['env_steps']
-        G_sac = self.configs['algorithm']['learning']['grad_SAC_steps']
+        GSAC = self.configs['algorithm']['learning']['grad_SAC_steps']
 
         # batch_size = self.configs['data']['batch_size']
 
-        model_train_frequency = self.configs['world_model']['model_train_freq']
+        model_train_frequency = self.configs['world_model']['oq_model_train_freq']
         batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
-        # real_ratio = self.configs['data']['real_ratio'] # rr
-        # batch_size = self.configs['data']['batch_size'] # bs
-        # batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
 
-        o, Z, el, t = self.learn_env.reset(), 0, 0, 0
+        # o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
-        # oldJs = [0, 0, 0]
-        # JQList, JAlphaList, JPiList = [0], [0], [0]
-        # AlphaList = [self.alpha]*Ni
-
-        # JTrainList, JValList, LossTestList = [0], [0], [0]
-        # WMList = {'mu': [0]*Ni, 'sigma': [0]*Ni}
-        # JMeanTrainList, JTrainList, JMeanValList, JValList = [], [], [], []
-        # LossTestList = []
-        # WMList = {'mu': [], 'sigma': []}
 
         logs = dict()
         lastEZ, lastES = 0, -2
         K = 1
+        t = 0
 
         start_time_real = time.time()
         for n in range(1, N+1):
@@ -151,6 +140,7 @@ class MBPO(MBRL, SAC):
             print(f'[ Replay Buffer ] Size: {self.buffer.size}')
 
             nt = 0
+            o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
             ZList, elList = [0], [0]
             ZListImag, elListImag = [0, 0], [0, 0]
             AvgZ, AvgEL = 0, 0
@@ -210,14 +200,14 @@ class MBPO(MBRL, SAC):
                         self.reallocate_oq_model_buffer(n)
 
                         # Generate M k-steps imaginary rollouts for SAC traingin
-                        ZListImag, elListImag = self.rollout_world_model(n) # GCP-E
+                        self.rollout_world_model(n) # GCP-E
                         # ZListImag, elListImag = self.rollout_world_modelII(n) # Mac/GCP-B
 
                     # JQList, JPiList = [], []
                     # AlphaList = [self.alpha]*G_sac
-                    for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
+                    for g in range(1, GSAC+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
-                        print(f'[ Epoch {n} | Training AC ] Env Steps: {nt+1} | AC Grads: {g} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(" "*10), end='\r')
+                        print(f'[ Epoch {n} | Training AC ] Env Steps: {nt+1} | AC Grads: {g}/{GSAC} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(" "*10), end='\r')
                         ## Sample a batch B_sac
                         B_sac = self.sac_batch()
                         ## Train networks using batch B_sac
@@ -279,6 +269,7 @@ class MBPO(MBRL, SAC):
                 logs['evaluation/episodic_return_std      '] = np.std(EZ)
             logs['evaluation/episodic_length_mean     '] = np.mean(EL)
             logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
+            logs['evaluation/performance              '] = (np.mean(EZ)/1000)
 
             logs['time/total                          '] = time.time() - start_time_real
 
@@ -305,7 +296,8 @@ class MBPO(MBRL, SAC):
                 return_means = ['learning/real/rollout_return_mean   ',
                                 'learning/imag/rollout_return_mean   ',
                                 'evaluation/episodic_return_mean     ',
-                                'evaluation/return_to_length         ']
+                                'evaluation/return_to_length         ',
+                                'evaluation/performance              ']
                 for k, v in logs.items():
                     if k in return_means:
                         print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
@@ -321,13 +313,13 @@ class MBPO(MBRL, SAC):
 
 
     def rollout_world_model(self, n):
-        ZListImag, elListImag = [0], [0]
+        # ZListImag, elListImag = [0], [0]
 
         K = self.set_oq_rollout_length(n)
 
         # 07. Sample st uniformly from Denv
         device = self._device_
-        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
+        batch_size_ro = self.configs['data']['oq_rollout_batch_size'] # bs_ro
         batch_size = min(batch_size_ro, self.buffer.size)
         print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
         B_ro = self.buffer.sample_batch(batch_size) # Torch
@@ -354,7 +346,7 @@ class MBPO(MBRL, SAC):
 
             O = O_next[nonD]
 
-        return ZListImag, elListImag
+        # return ZListImag, elListImag
 
 
     def rollout_world_modelII(self, n):
@@ -399,10 +391,10 @@ class MBPO(MBRL, SAC):
 
 
     def set_oq_rollout_length(self, n):
-        if self.configs['world_model']['rollout_schedule'] == None:
+        if self.configs['world_model']['oq_rollout_schedule'] == None:
         	K = 1
         else:
-        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['rollout_schedule']
+        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['oq_rollout_schedule']
 
         	if n <= min_epoch:
         		K = min_length
