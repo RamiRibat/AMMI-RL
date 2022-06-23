@@ -225,26 +225,26 @@ class MBPPO(MBRL, PPO):
                     # 03. Train model pθ on Denv via maximum likelihood
                     print(f'\n[ Epoch {n} | Training World Model ]'+(' '*50))
 
-                    ho_mean = self.fake_world.train_fake_world(self.buffer)
+                    # ho_mean = self.fake_world.train_fake_world(self.buffer)
 
-                    # model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
-                    # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
-                    # s, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
-                    # if n == Ni+1:
-                    #     samples_to_collect = min(4000, self.buffer.total_size())
-                    # else:
-                    #     samples_to_collect = 1000
-                    #
-                    # LossGen = []
-                    # for i, model in enumerate(self.models):
-                    #     # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
-                    #     loss_general = model.compute_loss(s[-samples_to_collect:],
-                    #                                       a[-samples_to_collect:],
-                    #                                       sp[-samples_to_collect:]) # generalization error
-                    #     dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
-                    #     reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
-                    # LossGen.append(loss_general)
-                    # ho_mean = np.mean(LossGen)
+                    model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
+                    model_fit_batch = self.buffer.sample_batch(batch_size=model_fit_bs, device=self._device_)
+                    s, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
+                    if n == Ni+1:
+                        samples_to_collect = min(4000, self.buffer.total_size())
+                    else:
+                        samples_to_collect = 1000
+
+                    LossGen = []
+                    for i, model in enumerate(self.models):
+                        # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
+                        loss_general = model.compute_loss(s[-samples_to_collect:],
+                                                          a[-samples_to_collect:],
+                                                          sp[-samples_to_collect:]) # generalization error
+                        dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
+                        reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
+                    LossGen.append(loss_general)
+                    ho_mean = np.mean(LossGen)
 
                     # self.init_model_traj_buffer()
 
@@ -256,21 +256,21 @@ class MBPPO(MBRL, PPO):
                     # KLtargs = [ int((kl-0.01*(kl-0.02)*(n-5))) for kl in [0.06, 0.055, 0.05, 0.045, 0.04] ]
                     # for g in range(1, G_ppo+1):
                     #     # Reset model buffer
-                    #     self.model_buffer.reset()
+                    #     self.model_traj_buffer.reset()
                     #     # # Generate M k-steps imaginary rollouts for PPO training
                     #     k_avg = self.rollout_real_world_trajectories(g, n)
                     #     # k_avg = self.rollout_world_model_trajectories(g, n)
                     #     # self.rollout_world_model_trajectories_batch(g, n)
                     #     # k_avg = self.rollout_world_model_trajectoriesII(g, n)
                     #
-                    #     # batch_size = int(self.model_buffer.total_size())
-                    #     batch_size = min(int(self.model_buffer.total_size()), 4000)
+                    #     # batch_size = int(self.model_traj_buffer.total_size())
+                    #     batch_size = min(int(self.model_traj_buffer.total_size()), 4000)
                     #     stop_pi = False
                     #     kl = 0
-                    #     print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
+                    #     print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}) ] Model Buffer: Size={self.model_traj_buffer.total_size()} | AvgK={self.model_traj_buffer.average_horizon()}'+(" "*25)+'\n')
                     #     for gg in range(1, 60+1): # 101
                     #         print(f'[ Epoch {n} ] AC: {g} | ac: {gg}/{GG[g-1]} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*40), end='\r')
-                    #         batch = self.model_buffer.sample_batch(batch_size, self._device_)
+                    #         batch = self.model_traj_buffer.sample_batch(batch_size, self._device_)
                     #         Jv, Jpi, kl, stop_pi = self.trainAC(g, batch, oldJs, 0.04)
                     #         # print(f'[ Epoch {n} ] AC: {g} | ac: {gg} || PG={stop_pi} | KL={kl}'+(' '*80), end='\r')
                     #         oldJs = [Jv, Jpi]
@@ -283,22 +283,22 @@ class MBPPO(MBRL, PPO):
                     # G_AC = 1
                     for g in range(1, G_AC+1):
                         # Reset model buffer
-                        self.model_buffer.reset()
+                        self.model_traj_buffer.reset()
                         # # Generate M k-steps imaginary rollouts for PPO training
                         # k_avg, ZListImag, elListImag = self.rollout_real_world(g, n)
                         # k_avg = self.rollout_real_world_trajectories(g, n)
                         ZListImag, elListImag = self.rollout_world_model_trajectories(g, n)
                         # ZListImag, elListImag = self.rollout_world_model_trajectoriesII(g, n)
-                        batch_size = int(self.model_buffer.total_size())
-                        # batch_size = 10000 #min(int(self.model_buffer.total_size()), 10000)
+                        batch_size = int(self.model_traj_buffer.total_size())
+                        # batch_size = 10000 #min(int(self.model_traj_buffer.total_size()), 10000)
                         stop_pi = False
                         kl = 0
                         dev = 0
-                        # print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}/{G}) ] Model Buffer: Size={self.model_buffer.total_size()} | AvgK={self.model_buffer.average_horizon()}'+(" "*25)+'\n')
+                        # print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}/{G}) ] Model Buffer: Size={self.model_traj_buffer.total_size()} | AvgK={self.model_traj_buffer.average_horizon()}'+(" "*25)+'\n')
                         for gg in range(1, G_PPO+1): # 101
                             # print(f'[ Epoch {n} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*50), end='\r')
                             print(f"[ Epoch {n} | Training AC ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*50), end='\r')
-                            batch = self.model_buffer.sample_batch(batch_size, self._device_)
+                            batch = self.model_traj_buffer.sample_batch(batch_size, self._device_)
                             Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs, oldKL=kl)
                             oldJs = [Jv, Jpi]
                             JVList.append(Jv)
@@ -331,10 +331,10 @@ class MBPPO(MBRL, PPO):
             # logs['training/wm/test_mse                '] = np.mean(LossTestList)
 
             logs['training/ppo/critic/Jv              '] = np.mean(JVList)
-            logs['training/ppo/critic/V(s)            '] = T.mean(self.model_buffer.val_buf).item()
-            # logs['training/ppo/critic/V_pi            '] = T.mean(self.model_buffer.val_buf).item()
-            # logs['training/ppo/critic/R_pi            '] = T.mean(self.model_buffer.ret_buf).item()
-            logs['training/ppo/critic/V-R             '] = T.mean(self.model_buffer.val_buf).item()-T.mean(self.model_buffer.ret_buf).item()
+            logs['training/ppo/critic/V(s)            '] = T.mean(self.model_traj_buffer.val_buf).item()
+            # logs['training/ppo/critic/V_pi            '] = T.mean(self.model_traj_buffer.val_buf).item()
+            # logs['training/ppo/critic/R_pi            '] = T.mean(self.model_traj_buffer.ret_buf).item()
+            logs['training/ppo/critic/V-R             '] = T.mean(self.model_traj_buffer.val_buf).item()-T.mean(self.model_traj_buffer.ret_buf).item()
 
             logs['training/ppo/actor/Jpi              '] = np.mean(JPiList)
             # logs['training/ppo/actor/ac-grads         '] = ac_grads
@@ -348,8 +348,8 @@ class MBPPO(MBRL, PPO):
             # logs['data/env_rollout_steps              '] = self.buffer.average_horizon()
             if hasattr(self, 'model_buffer'):
                 # logs['data/init_obs                       '] = 0. #len(self.buffer.init_obs)
-                logs['data/model_buffer_size              '] = self.model_buffer.total_size()
-                # logs['data/model_rollout_steps            '] = self.model_buffer.average_horizon()
+                logs['data/model_buffer_size              '] = self.model_traj_buffer.total_size()
+                # logs['data/model_rollout_steps            '] = self.model_traj_buffer.average_horizon()
             else:
                 # logs['data/gae_lambda                '] = self.buffer.gae_lambda
                 logs['data/init_obs                       '] = 0.
@@ -440,7 +440,7 @@ class MBPPO(MBRL, PPO):
         # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
         k_end_total = 0
         for em in range(1, EM+1): # Generate trajectories
-            print(f'[ Epoch {n} ] Model Rollout: em = {em} | Buffer = {self.model_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(' ')*20, end='\r')
+            print(f'[ Epoch {n} ] Model Rollout: em = {em} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(' ')*20, end='\r')
             # a = self.actor_critic.get_action_np(o)
             with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
             # print('log_pi: ', log_pi)
@@ -448,7 +448,7 @@ class MBPPO(MBRL, PPO):
             Z += r
             el += 1
             # t += 1
-            self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
+            self.model_traj_buffer.store(o, a, r, o_next, v, log_pi, el)
             o = o_next
             if d or (el == max_el):
                 if el == max_el:
@@ -456,7 +456,7 @@ class MBPPO(MBRL, PPO):
                 else:
                     # print('v=0')
                     v = T.Tensor([0.0])
-                self.model_buffer.finish_path(el, v)
+                self.model_traj_buffer.finish_path(el, v)
                 # print(f'termination: t={t} | el={el} | total_size={self.buffer.total_size()}')
                 o, Z, el = self.traj_env.reset(), 0, 0
 
@@ -474,7 +474,7 @@ class MBPPO(MBRL, PPO):
                 AvgEL = sum(elList)/(len(elList)-1)
 
         with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
-        self.model_buffer.finish_path(el, v)
+        self.model_traj_buffer.finish_path(el, v)
 
         return 0., ZList, elList #k_end_total//Nτ
 
@@ -492,13 +492,13 @@ class MBPPO(MBRL, PPO):
             o, Z, el = self.traj_env.reset(), 0, 0
             # print(f'nτ = {nτ}'+(' '*70), end='\r')
             for k in range(1, K+1): # Generate rollouts
-                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ}/{Nτ} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
-                # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
+                print(f'[ Epoch {n} ] Model Rollout: nτ = {nτ}/{Nτ} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | Return = {round(Z, 2)}', end='\r')
+                # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
                 with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
                 o_next, r, d, _ = self.traj_env.step(a)
                 Z += r
                 el += 1
-                self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
+                self.model_traj_buffer.store(o, a, r, o_next, v, log_pi, el)
                 o = o_next
                 if d or (el == K):
                     break
@@ -507,9 +507,9 @@ class MBPPO(MBRL, PPO):
                 with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
             else:
                 v = T.Tensor([0.0])
-            self.model_buffer.finish_path(el, v)
+            self.model_traj_buffer.finish_path(el, v)
             k_end_total += k
-            if self.model_buffer.total_size() >= 10000:
+            if self.model_traj_buffer.total_size() >= 10000:
                 print(f'Breaking img rollouts at nτ={nτ}'+(' ')*80)
                 break
 
@@ -534,9 +534,9 @@ class MBPPO(MBRL, PPO):
             for nτ, oi in enumerate(O_init): # Generate trajectories
                 o, Z, el = oi, 0, 0
                 for k in range(1, K+1): # Generate rollouts
-                    print(f'[ Epoch {n} | AC {g} ] Model Rollout: L={l} | nτ={nτ+1}/{O_Nτ} | k={k}/{K} | Buffer={self.model_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}', end='\r')
+                    print(f'[ Epoch {n} | AC {g} ] Model Rollout: L={l} | nτ={nτ+1}/{O_Nτ} | k={k}/{K} | Buffer={self.model_traj_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}', end='\r')
                     # print('\no: ', o)
-                    # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
+                    # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
                     with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
 
                     # o_next, r, d, _ = self.fake_world.step(o, a) # ip: Tensor, op: Tensor
@@ -544,7 +544,7 @@ class MBPPO(MBRL, PPO):
 
                     Z += float(r)
                     el += 1
-                    self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
+                    self.model_traj_buffer.store(o, a, r, o_next, v, log_pi, el)
                     o = o_next
 
                     currZ = Z
@@ -559,7 +559,7 @@ class MBPPO(MBRL, PPO):
                     with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
                 else:
                     v = T.Tensor([0.0])
-                self.model_buffer.finish_path(el, v)
+                self.model_traj_buffer.finish_path(el, v)
 
                 lastZ = currZ
                 ZList.append(lastZ)
@@ -568,12 +568,12 @@ class MBPPO(MBRL, PPO):
                 elList.append(lastEL)
                 AvgEL = sum(elList)/(len(elList)-1)
 
-                if self.model_buffer.total_size() >= self.configs['data']['model_buffer_size']:
-                    # print(f'Breaking img rollouts at L={l}/nτ={nτ+1} | Buffer = {self.model_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*85)
+                if self.model_traj_buffer.total_size() >= self.configs['data']['model_buffer_size']:
+                    # print(f'Breaking img rollouts at L={l}/nτ={nτ+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*85)
                     break
 
-            if self.model_buffer.total_size() >= self.configs['data']['model_buffer_size']:
-                print(f'Breaking img rollouts at L={l}/nτ={nτ+1} | Buffer = {self.model_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*85)
+            if self.model_traj_buffer.total_size() >= self.configs['data']['model_buffer_size']:
+                print(f'Breaking img rollouts at L={l}/nτ={nτ+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*85)
                 break
 
     	return ZList, elList
@@ -599,11 +599,11 @@ class MBPPO(MBRL, PPO):
         print('\n')
         for k in range(1, K+1):
             print(f'[ Epoch {n} | AC: {g} ] Model Rollout: k={k}/{K}'+(' '*50), end='\r')
-            # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
+            # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
             with T.no_grad(): A, Log_Pi, _, V = self.actor_critic.get_pi_and_v(T.Tensor(O)) # Stoch action | No repara
             O_next, R, D, _ = self.fake_world.step(O, A, deterministic=True) # ip: Tensor, op: Tensor
 
-            self.model_buffer.store_batch(O, A, R, O_next, V, Log_Pi, k) # ip: Tensor
+            self.model_traj_buffer.store_batch(O, A, R, O_next, V, Log_Pi, k) # ip: Tensor
 
             # O_next = T.Tensor(O_next)
             D = T.tensor(D, dtype=T.bool)
@@ -626,7 +626,7 @@ class MBPPO(MBRL, PPO):
         # print('EL: ', EL)
         # print('ZZ: ', ZZ)
 
-        self.model_buffer.finish_path_batch(EL, V)
+        self.model_traj_buffer.finish_path_batch(EL, V)
 
 
     def rollout_world_model_trajectoriesII(self, g, n):
@@ -648,9 +648,9 @@ class MBPPO(MBRL, PPO):
             for m, model in enumerate(self.models):
                 o, Z, el = oi, 0, 0
                 for k in range(1, K+1): # Generate rollouts
-                    print(f'[ Epoch {n} | AC {g} ] Model Rollout: nτ = {nτ+1} | M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}', end='\r')
+                    print(f'[ Epoch {n} | AC {g} ] Model Rollout: nτ = {nτ+1} | M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}', end='\r')
                     # print('\no: ', o)
-                    # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_buffer.total_size()}'+(' '*10))
+                    # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
                     with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
 
                     o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
@@ -660,7 +660,7 @@ class MBPPO(MBRL, PPO):
 
                     Z += float(r)
                     el += 1
-                    self.model_buffer.store(o, a, r, o_next, v, log_pi, el)
+                    self.model_traj_buffer.store(o, a, r, o_next, v, log_pi, el)
                     o = o_next
 
                     currZ = Z
@@ -675,7 +675,7 @@ class MBPPO(MBRL, PPO):
                     with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
                 else:
                     v = T.Tensor([0.0])
-                self.model_buffer.finish_path(el, v)
+                self.model_traj_buffer.finish_path(el, v)
 
                 k_end_total += k
 
@@ -686,8 +686,8 @@ class MBPPO(MBRL, PPO):
                 elList.append(lastEL)
                 AvgEL = sum(elList)/(len(elList)-1)
 
-            if self.model_buffer.total_size() >= self.configs['data']['model_buffer_size']:
-                print(f'Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*85)
+            if self.model_traj_buffer.total_size() >= self.configs['data']['model_buffer_size']:
+                print(f'Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*85)
                 break
 
     	return ZList, elList
@@ -802,7 +802,7 @@ def main(exp_prefix, config, seed, device, wb):
     DE = configs['world_model']['num_ensembles']
 
     # group_name = f"{env_name}-{alg_name}-Mac-X" # Local
-    group_name = f"{env_name}-{alg_name}-GCP-Y" # GCP
+    group_name = f"{env_name}-{alg_name}-GCP-Z" # GCP
     exp_prefix = f"seed:{seed}"
 
     if wb:
