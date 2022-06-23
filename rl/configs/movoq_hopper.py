@@ -26,11 +26,13 @@ configurations = {
             'epochs': 100, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'ov_init_epochs': 2, # Random Actions + No Learning
+            # 'ov_init_epochs': 1000, # Random Actions + No Learning
             'oq_init_epochs': 5, # Random Actions + No Learning
+            # 'oq_init_epochs': 1000, # Random Actions + No Learning
             'expl_epochs': 2, # Random Actions + Learning
 
             'env_steps' : 1,
-            'grad_WM_steps_v': 25,
+            'grad_MV_steps': 25,
             'grad_OV_steps': 10,
             'grad_PPO_steps': 50,
             'grad_OQ_SAC_steps': 20,
@@ -118,7 +120,8 @@ configurations = {
             'optimizer': "Adam",
             'lr': 1e-3,
             'max_grad_norm': 0.5,
-        },
+        }
+    },
 
     'critic-q': {
         'type': 'sofQ',
@@ -153,6 +156,7 @@ configurations = {
         'oq_model_val_ratio': 0.2,
         'oq_rollout_batch_size': 1e5,
         'oq_model_batch_size': 256,
+        'oq_batch_size': 256,
 
         'device': "auto",
     },

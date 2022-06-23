@@ -119,7 +119,7 @@ configurations = {
         'buffer_type': 'simple',
         'optimize_memory_usage': False,
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
-        'model_buffer_size': int(1e4),
+        'ov_model_buffer_size': int(1e4),
         # 'model_buffer_size': int(1e4),
         # 'real_ratio': 0.05,
         # 'model_val_ratio': 0.2,

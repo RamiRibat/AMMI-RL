@@ -44,7 +44,8 @@ configurations = {
         'action_noise': None,
         'clip_eps': 0.2,
         'kl_targ': 0.02, # 0.03
-        'max_dev': 0.15,
+        # 'max_dev': 0.15,
+        'max_dev': 1,
         'entropy_coef': 0.0,
         'network': {
             'arch': [256, 256],
