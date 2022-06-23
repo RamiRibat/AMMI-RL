@@ -289,7 +289,7 @@ class MBPPO(MBRL, PPO):
                         # k_avg = self.rollout_real_world_trajectories(g, n)
                         ZListImag, elListImag = self.rollout_world_model_trajectories(g, n)
                         # ZListImag, elListImag = self.rollout_world_model_trajectories_q(g, n)
-                        batch_size = int(self.model_traj_buffer.total_size())
+                        ppo_batch_size = int(self.model_traj_buffer.total_size())
                         # batch_size = 10000 #min(int(self.model_traj_buffer.total_size()), 10000)
                         stop_pi = False
                         kl = 0
@@ -297,8 +297,8 @@ class MBPPO(MBRL, PPO):
                         # print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}/{G}) ] Model Buffer: Size={self.model_traj_buffer.total_size()} | AvgK={self.model_traj_buffer.average_horizon()}'+(" "*25)+'\n')
                         for gg in range(1, G_PPO+1): # 101
                             # print(f'[ Epoch {n} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*50), end='\r')
-                            print(f"[ Epoch {n} | Training AC ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*50), end='\r')
-                            batch = self.model_traj_buffer.sample_batch(batch_size, self._device_)
+                            print(f"[ Epoch {n} | Training AC ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*30), end='\r')
+                            batch = self.model_traj_buffer.sample_batch(batch_size=ppo_batch_size, device=self._device_)
                             Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs, oldKL=kl)
                             oldJs = [Jv, Jpi]
                             JVList.append(Jv)
@@ -686,7 +686,7 @@ class MBPPO(MBRL, PPO):
                 elList.append(lastEL)
                 AvgEL = sum(elList)/(len(elList)-1)
 
-            if self.model_traj_buffer.total_size() >= self.configs['data']['model_buffer_size']:
+            if self.model_traj_buffer.total_size() >= self.configs['data']['ov_model_buffer_size']:
                 print(f'Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*85)
                 break
 
