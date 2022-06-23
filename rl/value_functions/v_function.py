@@ -22,7 +22,7 @@ class VFunction(nn.Module):
     V-Function
     """
     def __init__(self, obs_dim, act_dim, net_configs, device, seed):
-        # print('init VFunction!')
+	    print('Initialize V-function!')
 
 	    optimizer = 'T.optim.' + net_configs['optimizer']
 	    lr = net_configs['lr']
