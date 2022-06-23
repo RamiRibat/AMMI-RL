@@ -352,7 +352,7 @@ class EnsembleDynamicsModel():
         self.network_size = network_size
         self.elite_model_idxes = []
         self.ensemble_model = EnsembleModel(state_size, action_size, reward_size, network_size, hidden_size, use_decay=use_decay, device=device)
-        print('ensemble_model: ', self.ensemble_model)
+        # print('ensemble_model: ', self.ensemble_model)
 
         self.scaler = StandardScaler()
 
@@ -386,9 +386,9 @@ class EnsembleDynamicsModel():
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
-        # for epoch in range(2):
+        for epoch in range(2):
         # for epoch in range(25):
-        for epoch in itertools.count():
+        # for epoch in itertools.count():
             # losses = []
             # train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)]) # Numpy
             train_idx = T.vstack( [ T.randperm(train_inputs.shape[0]) for _ in range(self.network_size) ] ) # Torch [2]
