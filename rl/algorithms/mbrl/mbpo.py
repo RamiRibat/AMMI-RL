@@ -207,7 +207,7 @@ class MBPO(MBRL, SAC):
 
                         JValList.append(ho_mean) # ho: holdout
 
-                        self.reallocate_model_buffer(n)
+                        self.reallocate_oq_model_buffer(n)
 
                         # Generate M k-steps imaginary rollouts for SAC traingin
                         ZListImag, elListImag = self.rollout_world_model(n) # GCP-E
@@ -242,8 +242,8 @@ class MBPO(MBRL, SAC):
             # logs['training/wm/test_mse           '] = np.mean(LossTestList)
 
             logs['training/sac/critic/Jq              '] = np.mean(JQList)
-            # logs['training/sac/critic/Q(s,a)          '] = T.mean(self.model_buffer.q_buf).item()
-            # logs['training/sac/critic/Q-R             '] = T.mean(self.model_buffer.q_buf).item()-T.mean(self.model_buffer.ret_buf).item()
+            # logs['training/sac/critic/Q(s,a)          '] = T.mean(self.model_repl_buffer.q_buf).item()
+            # logs['training/sac/critic/Q-R             '] = T.mean(self.model_repl_buffer.q_buf).item()-T.mean(self.model_repl_buffer.ret_buf).item()
 
             logs['training/sac/actor/Jpi              '] = np.mean(JPiList)
             logs['training/sac/actor/H                '] = np.mean(HList)
@@ -253,10 +253,10 @@ class MBPO(MBRL, SAC):
 
             logs['data/env_buffer_size                '] = self.buffer.size
             if hasattr(self, 'model_buffer'):
-                logs['data/model_buffer_size              '] = self.model_buffer.size
+                logs['data/model_buffer_size              '] = self.model_repl_buffer.size
             else:
                 logs['data/model_buffer_size              '] = 0.
-            logs['data/rollout_length                 '] = self.set_rollout_length(n)
+            logs['data/rollout_length                 '] = self.set_oq_rollout_length(n)
 
             logs['learning/real/rollout_return_mean   '] = np.mean(ZList[1:])
             logs['learning/real/rollout_return_std    '] = np.std(ZList[1:])
@@ -323,7 +323,7 @@ class MBPO(MBRL, SAC):
     def rollout_world_model(self, n):
         ZListImag, elListImag = [0], [0]
 
-        K = self.set_rollout_length(n)
+        K = self.set_oq_rollout_length(n)
 
         # 07. Sample st uniformly from Denv
         device = self._device_
@@ -340,8 +340,8 @@ class MBPO(MBRL, SAC):
             O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
             # O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
 
-            # self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
-            self.model_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
+            # self.model_repl_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
+            self.model_repl_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
 
             O_next = T.Tensor(O_next)
             D = T.tensor(D, dtype=T.bool)
@@ -360,7 +360,7 @@ class MBPO(MBRL, SAC):
     def rollout_world_modelII(self, n):
         ZListImag, elListImag = [0], [0]
 
-        K = self.set_rollout_length(n)
+        K = self.set_oq_rollout_length(n)
 
         # 07. Sample st uniformly from Denv
         device = self._device_
@@ -383,8 +383,8 @@ class MBPO(MBRL, SAC):
                 D = self._termination_fn("Hopper-v2", O, A, O_next)
                 D = T.tensor(D, dtype=T.bool)
 
-                # self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
-                self.model_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
+                # self.model_repl_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
+                self.model_repl_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
 
                 O_next = T.Tensor(O_next)
                 nonD = ~D.squeeze(-1)
@@ -398,7 +398,7 @@ class MBPO(MBRL, SAC):
         return ZListImag, elListImag
 
 
-    def set_rollout_length(self, n):
+    def set_oq_rollout_length(self, n):
         if self.configs['world_model']['rollout_schedule'] == None:
         	K = 1
         else:
@@ -425,7 +425,7 @@ class MBPO(MBRL, SAC):
         B_real = self.buffer.sample_batch(batch_size_real, self._device_)
 
         if batch_size_img > 0:
-            B_img = self.model_buffer.sample_batch(batch_size_img, self._device_)
+            B_img = self.model_repl_buffer.sample_batch(batch_size_img, self._device_)
             keys = B_real.keys()
             B = {k: T.cat((B_real[k], B_img[k]), dim=0) for k in keys}
         else:

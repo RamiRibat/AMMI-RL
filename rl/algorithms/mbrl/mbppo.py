@@ -229,7 +229,7 @@ class MBPPO(MBRL, PPO):
 
                     # model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
                     # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
-                    # s, a, sp, r, _, _, _, _ = model_fit_batch.values()
+                    # s, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
                     # if n == Ni+1:
                     #     samples_to_collect = min(4000, self.buffer.total_size())
                     # else:

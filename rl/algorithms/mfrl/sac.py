@@ -77,14 +77,14 @@ class ActorCritic: # Done
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        return StochasticPolicy(
-            self.obs_dim, self.act_dim,
-            self.act_up_lim, self.act_low_lim,
-            net_configs, self._device_, self.seed)
-        # return OVOQPolicy(
+        # return StochasticPolicy(
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
+        return OVOQPolicy(
+            self.obs_dim, self.act_dim,
+            self.act_up_lim, self.act_low_lim,
+            net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -538,7 +538,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Mac-Q"
+    group_name = f"{env_name}-{alg_name}-Mac-U"
     # group_name = f"{env_name}-{alg_name}-GCP-A"
     exp_prefix = f"seed:{seed}"
 

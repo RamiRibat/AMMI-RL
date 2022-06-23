@@ -103,55 +103,54 @@ class MBRL:
         device = self._device_
 
         if self.configs['algorithm']['on-policy']:
-            max_size = self.configs['data']['model_buffer_size']
+            max_size = self.configs['data']['ov_model_buffer_size']
             num_traj = max_size//20
             # num_traj = max_size//15
             horizon = 1000
-            self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, seed, device)
+            self.model_traj_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, seed, device)
 
 
-    def reallocate_model_buffer(self, n):
-        # print(f'[ Epoch {n} | Model Buffer ] Rellocate Model Buffer'+(' '*80))
+    def reallocate_oq_model_buffer(self, n):
         seed = self.seed
         device = self._device_
+        buffer_size = self.buffer.total_size()
 
         NT = self.configs['algorithm']['learning']['epoch_steps']
-        model_train_frequency = self.configs['world_model']['model_train_freq']
-        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
-        batch_size = min(batch_size_ro, self.buffer.size)
-        K = self.set_rollout_length(n)
+        model_train_frequency = self.configs['world_model']['oq_model_train_freq']
+        batch_size_ro = self.configs['data']['oq_rollout_batch_size'] # bs_ro
+        batch_size = min(batch_size_ro, buffer_size)
+        K = self.set_oq_rollout_length(n)
 
-        if self.configs['algorithm']['on-policy']:
-            max_size = self.configs['data']['model_buffer_size']
-            self.model_buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
-        else:
-            model_retain_epochs = self.configs['world_model']['model_retain_epochs']
-            rollouts_per_epoch = batch_size_ro * (NT / model_train_frequency)
-            model_steps_per_epoch = int(K * rollouts_per_epoch)
-            new_buffer_size = model_retain_epochs * model_steps_per_epoch
+        # if self.configs['algorithm']['on-policy']:
+        #     max_size = self.configs['data']['ov_model_buffer_size']
+        #     self.model_traj_buffer = TrajBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+        # else:
+        model_retain_epochs = self.configs['world_model']['model_retain_epochs']
+        rollouts_per_epoch = batch_size_ro * (NT / model_train_frequency)
+        model_steps_per_epoch = int(K * rollouts_per_epoch)
+        new_buffer_size = model_retain_epochs * model_steps_per_epoch
 
-            if not hasattr(self, 'model_buffer'):
-            	print('[ MBRL ] Initializing new model buffer with size {:.2e}'.format(new_buffer_size)+(' '*50))
-            	self.model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
-            								act_dim=self.act_dim,
-            								size=new_buffer_size,
-            								seed=seed,
-            								device=device)
+        if not hasattr(self, 'model_repl_buffer'):
+        	print('[ MBRL ] Initializing new model buffer with size {:.2e}'.format(new_buffer_size)+(' '*50))
+        	self.model_repl_buffer = ReplayBuffer(obs_dim=self.obs_dim,
+        								act_dim=self.act_dim,
+        								size=new_buffer_size,
+        								seed=seed,
+        								device=device)
 
-            elif self.model_buffer.max_size != new_buffer_size:
-            	new_model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
-            								act_dim=self.act_dim,
-            								size=new_buffer_size,
-            								seed=seed,
-            								device=device)
-            	# old_data = self.model_buffer.return_all_np()
-            	old_data = self.model_buffer.data_for_WM_np()
-            	O, A, R, O_next, D = old_data.values()
-            	new_model_buffer.store_batch(O, A, R, O_next, D)
-            	assert self.model_buffer.size == new_model_buffer.size
-            	self.model_buffer = new_model_buffer
-
-        print(f'[ Epoch {n} | Model Buffer ] Rellocate Model Buffer: maxSize={self.model_buffer.max_size}'+(' '*80))
+        elif self.model_repl_buffer.max_size != new_buffer_size:
+        	new_model_buffer = ReplayBuffer(obs_dim=self.obs_dim,
+        								act_dim=self.act_dim,
+        								size=new_buffer_size,
+        								seed=seed,
+        								device=device)
+        	# old_data = self.model_repl_buffer.return_all_np()
+        	old_data = self.model_repl_buffer.data_for_WM_np()
+        	O, A, R, O_next, D = old_data.values()
+        	new_model_buffer.store_batch(O, A, R, O_next, D)
+        	assert self.model_repl_buffer.size == new_model_buffer.size
+        	self.model_repl_buffer = new_model_buffer
+        	print(f'[ MBRL ] Rellocate Model Buffer: maxSize={self.model_repl_buffer.max_size}'+(' '*50))
 
 
     def initialize_learning(self, NT, Ni):
@@ -216,7 +215,6 @@ class MBRL:
 
         with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
         o_next, r, d, _ = self.learn_env.step(a)
-        # o_next, r, d, _ = self.traj_env.step(a)
         Z += r
         el += 1
         t += 1
@@ -229,7 +227,6 @@ class MBRL:
                 v = T.Tensor([0.0])
             self.buffer.finish_path(el, v)
             o, Z, el = self.learn_env.reset(), 0, 0
-            # o, Z, el = self.traj_env.reset(), 0, 0
 
         return o, Z, el, t
 
@@ -253,7 +250,35 @@ class MBRL:
         el +=1
         t +=1
 
-        if d or (el == max_el): o, Z, el = self.learn_env.reset(), 0, 0
+        if d or (el == max_el):
+            o, Z, el = self.learn_env.reset(), 0, 0
+
+        return o, Z, el, t
+
+
+    def internact_ovoq(self, n, o, Z, el, t, on_policy=True):
+        Nt = self.configs['algorithm']['learning']['epoch_steps']
+        max_el = self.configs['environment']['horizon']
+
+        with T.no_grad():
+            a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=on_policy)
+
+        o_next, r, d, _ = self.learn_env.step(a)
+
+        Z += r
+        el += 1
+        t += 1
+        self.buffer.store(o, a, r, o_next, v, log_pi, el)
+
+        o = o_next
+
+        if d or (el == max_el):
+            if el == max_el:
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+            else:
+                v = T.Tensor([0.0])
+            self.buffer.finish_path(el, v)
+            o, Z, el = self.learn_env.reset(), 0, 0
 
         return o, Z, el, t
 

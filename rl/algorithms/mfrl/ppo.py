@@ -76,14 +76,14 @@ class ActorCritic: # Done
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        return PPOPolicy(
-            self.obs_dim, self.act_dim,
-            self.act_up_lim, self.act_low_lim,
-            net_configs, self._device_, self.seed)
-        # return OVOQPolicy(
+        # return PPOPolicy(
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
+        return OVOQPolicy(
+            self.obs_dim, self.act_dim,
+            self.act_up_lim, self.act_low_lim,
+            net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -507,8 +507,8 @@ class PPO(MFRL):
 
             # WandB
             if self.WandB:
-                # for i in range(int(E/1000)):
-                wandb.log(logs)
+                for i in range(int(E/1000)):
+                    wandb.log(logs)
 
         self.learn_env.close()
         self.eval_env.close()
@@ -529,7 +529,7 @@ class PPO(MFRL):
         """
         max_grad_norm = kl_targ = self.configs['critic']['network']['max_grad_norm']
 
-        observations, _, _, _, returns, _, _, _ = batch.values()
+        observations, _, _, _, _, returns, _, _, _ = batch.values()
         v = self.actor_critic.get_v(observations)
 
         Jv = 0.5 * ( (v - returns) ** 2 ).mean(axis=0)
@@ -554,7 +554,7 @@ class PPO(MFRL):
 
         PiInfo = dict()
 
-        observations, actions, _, _, _, _, advantages, log_pis_old = batch.values()
+        observations, actions, _, _, _, _, _, advantages, log_pis_old = batch.values()
 
         _, log_pi, entropy = self.actor_critic.get_pi(observations, actions)
         logratio = log_pi - log_pis_old
@@ -624,7 +624,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Mac-K" # H < -2.7
+    group_name = f"{env_name}-{alg_name}-Mac-T" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:
