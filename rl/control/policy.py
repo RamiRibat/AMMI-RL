@@ -54,12 +54,10 @@ class PPOPolicy(nn.Module):
 		)
 		self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
 
-
-
-		# self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
-		# self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
-		# self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
-		#
+		# self.mean = MLPNet(obs_dim, act_dim, net_configs)
+		# # self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor mean
+		# self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
+		# # self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
 		# self.apply(init_weights_)
 
 		# for param in list(self.parameters())[-2:]: param.data = 1e-2 * param.data
@@ -70,7 +68,7 @@ class PPOPolicy(nn.Module):
 		# self.log_std.data = T.max(self.log_std.data, self.min_log_std)
 		# self.log_std.data = T.min(self.log_std.data, self.max_log_std)
 
-		# print('PPOPolicy: ', self)
+		print('PPOPolicy: ', self)
 
 		self.act_dim = act_dim
 
@@ -209,6 +207,7 @@ class StochasticPolicy(nn.Module):
 		# self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
 		# self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		# self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
+		# self.apply(init_weights_)
 
 		self.mean_and_log_std_net = nn.Sequential(
 		    layer_init(nn.Linear(obs_dim, net_arch[0])),
@@ -217,10 +216,9 @@ class StochasticPolicy(nn.Module):
 		    nn.Tanh()
 		)
 		self.mean = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01)
-		self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim)) # Q
+		self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim)) # Q: Best in MBPO
 		# self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01) # R
 
-		# self.apply(init_weights_)
 
 		self.obs_bias   = T.zeros(obs_dim)
 		self.obs_scale  = T.ones(obs_dim)
@@ -316,6 +314,7 @@ class OVOQPolicy(nn.Module):
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
 
+		# We'll have a disturbed Initialization from log_std_q and log_std_v
 		self.mean_and_log_std_net = nn.Sequential(
 		    layer_init(nn.Linear(obs_dim, net_arch[0])),
 		    nn.Tanh(),
@@ -323,7 +322,7 @@ class OVOQPolicy(nn.Module):
 		    nn.Tanh()
 		)
 		self.mean = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01)
-		self.log_std_q = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01)
+		self.log_std_q = layer_init(nn.Linear(net_arch[-1], act_dim))
 		self.log_std_v = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
 
 		self.obs_bias   = T.zeros(obs_dim)
