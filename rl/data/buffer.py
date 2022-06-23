@@ -327,14 +327,39 @@ class TrajBuffer:
         if self.normz_adv:
             self.adv_batch[idxs] = self.normalize(self.adv_batch[idxs])
 
+        batch = dict(observations=self.obs_batch[idxs], # 1
+        			 actions=self.act_batch[idxs], # 2
+                     observations_next=self.obs_next_batch[idxs], # 3
+        			 rewards=self.rew_batch[idxs], # 4
+                     terminals=self.ter_batch[idxs], # 5
+        			 returns=self.ret_batch[idxs], # 6
+                     values=self.val_batch[idxs], # 7
+        			 advantages=self.adv_batch[idxs], # 8
+        			 log_pis=self.log_pi_batch[idxs] # 9
+                     )
+        if device:
+            return {k: v.to(device) for k,v in batch.items()} # 7
+        else:
+            return {k: v            for k,v in batch.items()}
+
+
+    def sample_batch_for_reply(self, batch_size=64, recent=False, device=False):
+        # assert self.ptr == self.max_size
+        # device = self.device
+        batch_size = min(batch_size, self.total_size())
+        idxs = np.random.randint(0, self.total_size(), size=batch_size)
+
+        self.batch_data(recent)
+
+        # Adv normalization
+        if self.normz_adv:
+            self.adv_batch[idxs] = self.normalize(self.adv_batch[idxs])
+
         batch = dict(observations=self.obs_batch[idxs],
         			 actions=self.act_batch[idxs],
-                     observations_next=self.obs_next_batch[idxs],
         			 rewards=self.rew_batch[idxs],
-        			 returns=self.ret_batch[idxs],
-                     values=self.val_batch[idxs],
-        			 advantages=self.adv_batch[idxs],
-        			 log_pis=self.log_pi_batch[idxs]
+                     observations_next=self.obs_next_batch[idxs],
+                     terminals=self.ter_batch[idxs]
                      )
         if device:
             return {k: v.to(device) for k,v in batch.items()} # 7
@@ -662,6 +687,10 @@ class ReplayBuffer:
         self.ter_buf = T.zeros((size, 1), dtype=T.float32)
 
         self.ptr, self.size, self.max_size = 0, 0, size
+
+
+    def total_size(self):
+        return self.size
 
 
     def store_transition(self, o, a, r, o_next, d):
