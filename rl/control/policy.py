@@ -42,14 +42,20 @@ class PPOPolicy(nn.Module):
 		net_arch = net_configs['arch']
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
-		hid = 256
+		# hid1 = 64
+		hid1 = 128
+		# hid1 = 256
+
+		# hid2 = 64
+		hid2 = 128
+		# hid2 = 256
 
 		self.mean = nn.Sequential(
-		    layer_init(nn.Linear(obs_dim, hid)),
+		    layer_init(nn.Linear(obs_dim, hid1)),
 		    nn.Tanh(),
-		    layer_init(nn.Linear(hid, hid)),
+		    layer_init(nn.Linear(hid1, hid2)),
 		    nn.Tanh(),
-		    layer_init(nn.Linear(hid, act_dim), std=0.01), # PPO-E: Major improvemet!
+		    layer_init(nn.Linear(hid2, act_dim), std=0.01), # PPO-E: Major improvemet!
 			nn.Identity()
 		)
 		self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
@@ -68,7 +74,7 @@ class PPOPolicy(nn.Module):
 		# self.log_std.data = T.max(self.log_std.data, self.min_log_std)
 		# self.log_std.data = T.min(self.log_std.data, self.max_log_std)
 
-		print('PPOPolicy: ', self)
+		# print('PPOPolicy: ', self)
 
 		self.act_dim = act_dim
 
@@ -114,71 +120,6 @@ class PPOPolicy(nn.Module):
 		return act, log_probs, entropy
 
 
-
-	def forward_new(self, obs, act=None,
-				reparameterize=False, # Default: True
-				deterministic=False, # Default: False
-				return_log_pi=True, # Default: False
-				return_entropy=True, # Default: False
-				):
-
-		if isinstance(obs, T.Tensor):
-			obs = obs.to(self.device)
-		else:
-			obs = obs
-
-		mean = self.mean(obs)
-		log_std = self.log_std
-		# log_std = T.clamp(self.log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
-		std = T.exp(log_std)
-
-		log_probs = None
-		entropy = None
-
-		if deterministic:
-			# print('deter')
-			act = mean
-			# log_probs = self.get_log_probs(act, mean, log_std, std)
-		else:
-			act = mean + std * T.randn(self.act_dim)
-			# print(f'Pi: mean={mean} | std={std}, | a={act}')
-			log_probs = self.get_log_probs(act, mean, log_std, std)
-			probs = Normal(mean, std)
-			entropy = probs.entropy().sum(-1, keepdims=True)
-
-		return act, log_probs, entropy
-
-
-	def get_log_probs(self, act, mean, log_std, std):
-		zs = (act - mean) / std
-		log_probs = - 0.5 * (zs ** 2).sum(axis=-1, keepdims=True) - log_std.sum(axis=-1, keepdims=True) - 0.5 * self.act_dim * np.log(2 * np.pi)
-		return log_probs
-
-
-
-	def kl_old_new(self, obs, old_mean, old_log_std):
-		new_mean = self.mean(obs)
-		new_log_std = self.log_std
-		kl_divergence = self.kl_divergence(new_mean, old_mean, new_log_std, old_log_std)
-		return kl_divergence
-
-
-	def mean_kl(self, obs):
-		new_log_std = self.log_std
-		old_log_std = self.log_std.detach().clone()
-		new_mean = self.mean(obs)
-		old_mean = new_mean.detach()
-		return self.kl_divergence(new_mean, old_mean, new_log_std, old_log_std)
-
-
-	def kl_divergence(self, new_mean, old_mean, new_log_std, old_log_std):
-		new_std, old_std = T.exp(new_log_std), T.exp(old_log_std)
-		Nr = (old_mean - new_mean) ** 2 + old_std ** 2 - new_std ** 2
-		Dr = 2 * new_std ** 2 + 1e-8
-		sample_kl = (Nr / Dr + new_log_std - old_log_std).sum(axis=-1, keepdims=True)
-		return T.mean(sample_kl)
-
-
 	# def to(self, device):
 	# 	self.obs_bias = self.obs_bias.to(device)
 	# 	self.obs_scale = self.obs_scale.to(device)
@@ -202,6 +143,13 @@ class StochasticPolicy(nn.Module):
 		net_arch = net_configs['arch']
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
+		# hid1 = 64
+		hid1 = 128
+		# hid1 = 256
+
+		# hid2 = 64
+		hid2 = 128
+		# hid2 = 256
 
 		# My suggestions:
 		# self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
@@ -209,15 +157,24 @@ class StochasticPolicy(nn.Module):
 		# self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
 		# self.apply(init_weights_)
 
+		# self.mean_and_log_std_net = nn.Sequential(
+		#     layer_init(nn.Linear(obs_dim, net_arch[0])),
+		#     nn.Tanh(),
+		#     layer_init(nn.Linear(net_arch[0], net_arch[1])),
+		#     nn.Tanh()
+		# )
+		# self.mean = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01)
+		# self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim)) # Q: Best in MBPO
+		# # self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01) # R
+
 		self.mean_and_log_std_net = nn.Sequential(
-		    layer_init(nn.Linear(obs_dim, net_arch[0])),
+		    layer_init(nn.Linear(obs_dim, hid1)),
 		    nn.Tanh(),
-		    layer_init(nn.Linear(net_arch[0], net_arch[1])),
+		    layer_init(nn.Linear(hid1, hid2)),
 		    nn.Tanh()
 		)
-		self.mean = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01)
-		self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim)) # Q: Best in MBPO
-		# self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01) # R
+		self.mean = layer_init(nn.Linear(hid2, act_dim), std=0.01)
+		self.log_std = layer_init(nn.Linear(hid2, act_dim))
 
 
 		self.obs_bias   = T.zeros(obs_dim)
