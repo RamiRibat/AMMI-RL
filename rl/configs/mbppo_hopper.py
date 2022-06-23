@@ -89,7 +89,7 @@ configurations = {
         'entropy_coef': 0.,
         # 'normz_step_size': 0.01,
         'network': {
-            'arch': [256,256],
+            'arch': [128, 128],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
@@ -101,10 +101,10 @@ configurations = {
     'critic': {
         'type': 'V',
         'number': 1,
-        # 'gamma': 0.995, # Discount factor - γ
-        # 'lam': 0.99, # GAE - λ
+        'gamma': 0.995, # Discount factor - γ
+        'lam': 0.99, # GAE - λ
         'network': {
-            'arch': [256, 256],
+            'arch': [128, 128],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
@@ -120,14 +120,6 @@ configurations = {
         'optimize_memory_usage': False,
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
         'ov_model_buffer_size': int(1e4),
-        # 'model_buffer_size': int(1e4),
-        # 'real_ratio': 0.05,
-        # 'model_val_ratio': 0.2,
-        # 'rollout_trajectories': 200, # 4 Models x 200 Traj's
-        # 'rollout_horizon': 1000,
-        # 'model_batch_size': 256,
-        # 'batch_size': 256,
-        # 'mini_batch_size': 64,
         'device': "auto",
     },
 

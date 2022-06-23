@@ -95,15 +95,16 @@ configurations = {
         'automatic_entropy': False, # trainer_kwargs
         'target_entropy': "auto",
         'network': {
-            'arch': [256,256],
+            'arch': [128, 128],
             'activation': 'Tanh',
+            # 'arch': [256, 256],
             # 'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 3e-4,
             'wd': 1e-5,
             'max_grad_norm': 0.5,
-            'batch_size': 256,
+            # 'batch_size': 256,
             # 'device': "auto",
         }
     },
@@ -114,7 +115,7 @@ configurations = {
         'gamma': 0.995, # Discount factor - γ
         'lam': 0.99, # GAE - λ
         'network': {
-            'arch': [256, 256],
+            'arch': [128, 128],
             'activation': 'Tanh',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
@@ -126,16 +127,16 @@ configurations = {
     'critic-q': {
         'type': 'sofQ',
         'number': 2,
-        'gamma': 0.99,
+        'gamma': 0.995,
         'tau': 5e-3,
         'network': {
-            'arch': [256, 256], #@#
+            'arch': [256, 256],
+            'activation': 'ReLU',
             'init_weights': 3e-3,
             'init_biases': 0,
-            'activation': 'ReLU',
             'output_activation': 'nn.Identity',
-            'optimizer': "Adam", #@#
-            'lr': 3e-4, #@#
+            'optimizer': "Adam",
+            'lr': 3e-4,
             'wd': 1e-5,
             'dropout': None,
             'batch_size': 256,

@@ -15,14 +15,10 @@ configurations = {
         'on-policy': True,
         'learning': {
             'epochs': 100, # N epochs
-            # 'epoch_steps': 2048, # NT steps/epoch
-            # 'epoch_steps': 4000, # NT steps/epoch
             'epoch_steps': 10000, # NT steps/epoch
             'init_epochs': 0, # Ni epochs
             'expl_epochs': 0, # Nx epochs
 
-            # 'env_steps' : 2048, # E: interact E times then train
-            # 'env_steps' : 4000, # E: interact E times then train
             'env_steps' : 10000, # E: interact E times then train
             'train_AC_freq': 1, # F: frequency of AC training
             'grad_AC_steps': 100, # ACG: ac grad
@@ -44,15 +40,17 @@ configurations = {
         'action_noise': None,
         'clip_eps': 0.2,
         'kl_targ': 0.02, # 0.03
-        # 'max_dev': 0.15,
-        'max_dev': 1,
+        'max_dev': 0.15,
+        # 'max_dev': 1,
         'entropy_coef': 0.0,
         'network': {
-            'arch': [256, 256],
+            'arch': [128, 128],
             'activation': 'Tanh',
+            # 'arch': [256, 256],
             # 'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
+            # 'lr': 1e-3,
             'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
@@ -64,8 +62,9 @@ configurations = {
         'gamma': 0.995,
         'lam': 0.99,
         'network': {
-            'arch': [256, 256],
+            'arch': [128, 128],
             'activation': 'Tanh',
+            # 'arch': [256, 256],
             # 'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
@@ -77,12 +76,6 @@ configurations = {
 
     'data': {
         'buffer_type': 'simple',
-        # 'buffer_size': int(2048),
-        # 'batch_size': 2048,
-        # 'n_mini_batches': 32,
-        # 'mini_batch_size': 64,
-        # 'buffer_size': int(4000),
-        # 'batch_size': 4000,
         'buffer_size': int(10000),
         'batch_size': 10000,
     },
