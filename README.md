@@ -27,12 +27,15 @@ We aim to finetune our implementations to work with a generalized set of hyperpa
 
 | Network | Architecture | Activation | Learning Rate | MFOV | MBOQ | MBOV | MBOQ |
 | --- | --- | --- | --- | :---: | :---: | :---: | :---: |
-| Policy-V | [256, 128, 64] | ReLU | 3x10-4 | 🟩 | ⬜️ | 🟦 | ⬜️ |
-| Policy-Q | [256, 128, 64] | ReLU | 3x10-4 | ⬜️ | 🟨 | ⬜️ | 🟦 |
-| V-function | [256, 128, 64] | ReLU | 3x10-4 | 🟩 | ⬜️ | 🟦 | ⬜️ |
-| Q-function | [2x256] | ReLU | 3x10-4 | ⬜️ | 🟩 | ⬜️ | 🟩 |
-| V-Model | [2x512] | ReLU | 1x10-3 | ⬜️ | ⬜️ | 🟩 | 🟥 |
-| Q-Model | [4x200] | Swish | 3x10-4 | ⬜️ | ⬜️ | 🟥 | 🟩 |
+| Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 |
+| Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 |
+| Policy | [256, 128, 64] | ReLU | 3e-4 | 🟩 | 🟨 | 🟦 | 🟦 |
+| V-function | [2x128] | Tanh | 1e-3 | 🟩 | ⬜️ | 🟩 | ⬜️ |
+| V-function | [256, 128, 64] | ReLU | 3e-4 | 🟩 | ⬜️ | 🟦 | ⬜️ |
+| Q-function | [2x256] | ReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟩 |
+| V-Model | [2x512] | ReLU | 1e-3 | ⬜️ | ⬜️ | 🟩 | 🟥 |
+| Q-Model | [4x200] | Swish | 3e-4 | ⬜️ | ⬜️ | 🟥 | 🟩 |
+
 
 
 ## Experiments and Results
