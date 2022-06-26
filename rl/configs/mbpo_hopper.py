@@ -15,7 +15,7 @@ configurations = {
         'model-based': True,
         'on-policy': False,
         'learning': {
-            'epochs': 100, # N epochs
+            'epochs': 200, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 5, # Ni epochs = 5000 exploration steps
             'expl_epochs': 0, # Nx epochs
@@ -105,14 +105,14 @@ configurations = {
         'gamma': 0.995,
         'tau': 5e-3,
         'network': {
-            # 'arch': [256, 256],
-            'arch': [256, 128, 64],
+            'arch': [256, 256],
+            # 'arch': [256, 128, 64],
+            'activation': 'ReLU',
+            'lr': 3e-4,
+            'optimizer': "Adam",
             'init_weights': 3e-3,
             'init_biases': 0,
-            'activation': 'ReLU',
             'output_activation': 'nn.Identity',
-            'optimizer': "Adam", #@#
-            'lr': 3e-4, #@#
             'wd': 1e-5,
             'dropout': None,
             'batch_size': 256,
