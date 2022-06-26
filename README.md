@@ -3,7 +3,7 @@
 This project was initiated in the RL course Fall 2021 at **The African Master's in Machine Intelligence** ([**AMMI**](https://aimsammi.org/)) as a course-project where we implemented the SAC algorithm ([Haarnoja et al.](https://arxiv.org/abs/1812.05905)) for continuous control tasks. It is now an open project where we care to design code bases and benchmarks for RL algorithms in order to develop new algorithms. We are designing this repo based on existing repositories as well as original papers to produce better implementations for a selected set of algorithms.
 
 
-## Algorithms:
+## Algorithms
 Algorithms we are re-implementing/plannning to re-implement:
 
 🟢 Done || 🟡 Now || 🟣 Next || 🔴 No plan
@@ -19,6 +19,20 @@ Algorithms we are re-implementing/plannning to re-implement:
 | MBPO | True | 2xQ | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
 | MoPAC | True | 2xQ | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟡 |
 | MPC-SAC | True | V/2xQ | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
+
+## Generalized Hyperparameters
+We aim to finetune our implementations to work with a generalized set of hyperparametrs across different algorithms. We are working with the following hyperparameters in the mean time:
+
+🟩 Best || 🟨 Good || 🟥 Bad || 🟦 In progress
+
+| Network | Architecture | Activation | Learning Rate | MFOV | MBOQ | MBOV | MBOQ |
+| --- | --- | --- | --- | :---: | :---: | :---: | :---: |
+| Policy-V | [256, 128, 64] | ReLU | 3x10-4 | 🟩 | ⬜️ | 🟦 | ⬜️ |
+| Policy-Q | [256, 128, 64] | ReLU | 3x10-4 | ⬜️ | 🟦 | ⬜️ | 🟦 |
+| V-function | [256, 128, 64] | ReLU | 3x10-4 | 🟩 | ⬜️ | 🟦 | ⬜️ |
+| Q-function | [2x256] | ReLU | 3x10-4 | ⬜️ | 🟩 | ⬜️ | 🟩 |
+| V-Model | [2x512] | ReLU | 1x10-3 | ⬜️ | ⬜️ | 🟩 | 🟥 |
+| Q-Model | [4x200] | Swish | 3x10-4 | ⬜️ | ⬜️ | 🟥 | 🟩 |
 
 
 ## Experiments and Results
