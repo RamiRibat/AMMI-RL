@@ -63,8 +63,8 @@ configurations = {
         'network': {
             # 'arch': [128, 128],
             # 'activation': 'Tanh',
-            'arch': [256, 256],
-            # 'arch': [256, 128, 64],
+            # 'arch': [256, 256],
+            'arch': [256, 128, 64],
             'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
@@ -75,7 +75,8 @@ configurations = {
     'data': {
         'buffer_type': 'simple',
         'buffer_size': int(1e6),
-        'batch_size': 256
+        # 'batch_size': 256,
+        'batch_size': 512
     },
 
     'experiment': {
