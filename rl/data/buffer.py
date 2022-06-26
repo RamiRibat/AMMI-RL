@@ -316,10 +316,15 @@ class TrajBuffer:
 
 
     def sample_batch(self, batch_size=64, recent=False, device=False):
+        # if self.total_size() >= self.max_size:
+        #     self.clean_buffer()
         # assert self.ptr == self.max_size
         # device = self.device
         batch_size = min(batch_size, self.total_size())
-        idxs = np.random.randint(0, self.total_size(), size=batch_size)
+        if recent:
+            idxs = np.random.randint(0, batch_size, size=batch_size)
+        else:
+            idxs = np.random.randint(0, self.total_size(), size=batch_size) # old
 
         self.batch_data(recent)
 
