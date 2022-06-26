@@ -25,7 +25,7 @@ We aim to finetune our implementations to work with a generalized set of hyperpa
 
 🟩 Best || 🟨 Good || 🟥 Bad || 🟦 In progress
 
-| Network | Architecture | Activation | Learning Rate | MFOV | MBOQ | MBOV | MBOQ |
+| Network | Architecture | Activation | Learning Rate | MFOV | MFOQ | MBOV | MBOQ |
 | --- | --- | --- | --- | :---: | :---: | :---: | :---: |
 | Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 |
 | Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 |
