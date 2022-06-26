@@ -23,16 +23,17 @@ Algorithms we are re-implementing/plannning to re-implement:
 ## Generalized Hyperparameters
 We aim to finetune our implementations to work with a generalized set of hyperparametrs across different algorithms. We are working with the following hyperparameters in the mean time:
 
-| Network | Architecture | Activation | Learning Rate | MFOV | MFOQ | MBOV | MBOQ |
-| --- | --- | --- | --- | :---: | :---: | :---: | :---: |
-| Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 |
-| Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 |
-| Policy | [256, 128, 64] | ReLU | 3e-4 | 🟩 | 🟨 | 🟦 | 🟦 |
-| V-function | [2x128] | Tanh | 1e-3 | 🟩 | ⬜️ | 🟩 | ⬜️ |
-| V-function | [256, 128, 64] | ReLU | 3e-4 | 🟩 | ⬜️ | 🟦 | ⬜️ |
-| Q-function | [2x256] | ReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟩 |
-| V-Model | [2x512] | ReLU | 1e-3 | ⬜️ | ⬜️ | 🟩 | 🟥 |
-| Q-Model | [4x200] | Swish | 3e-4 | ⬜️ | ⬜️ | 🟥 | 🟩 |
+| Network | Architecture | Activation | LR | MFOV | MFOQ | MBOV | MBOQ | Notes |
+| --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
+| Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 | Works best with xav. init |
+| Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
+| **Policy** | [256, 128, 64] | ReLU | 3e-4 | 🟩 | 🟨 | 🟦 | 🟦 | |
+| V-function | [2x128] | Tanh | 1e-3 | 🟩 | ⬜️ | 🟩 | ⬜️ | Works best with xav. init |
+| **V-function** | [256, 128, 64] | ReLU | 3e-4 | 🟩 | ⬜️ | 🟦 | ⬜️ | Works best with orth. init |
+| **Q-function** | [2x256] | ReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
+| Q-function | [256, 128, 64] | ReLU | 3e-4 | ⬜️ | 🟨 | ⬜️ | ⬜️ | Works best with orth. init |
+| V-Model | [2x512] | ReLU | 1e-3 | ⬜️ | ⬜️ | 🟩 | 🟥 | Long rollouts deterministic ME |
+| Q-Model | [4x200] | Swish | 3e-4 | ⬜️ | ⬜️ | 🟥 | 🟩 | Short rollouts probabilistic ME |
 
 🟩 Best || 🟨 Good || 🟥 Bad || 🟦 In progress
 
