@@ -28,7 +28,7 @@ We aim to finetune our implementations to work with a generalized set of hyperpa
 | Network | Architecture | Activation | Learning Rate | MFOV | MBOQ | MBOV | MBOQ |
 | --- | --- | --- | --- | :---: | :---: | :---: | :---: |
 | Policy-V | [256, 128, 64] | ReLU | 3x10-4 | 🟩 | ⬜️ | 🟦 | ⬜️ |
-| Policy-Q | [256, 128, 64] | ReLU | 3x10-4 | ⬜️ | 🟦 | ⬜️ | 🟦 |
+| Policy-Q | [256, 128, 64] | ReLU | 3x10-4 | ⬜️ | 🟨 | ⬜️ | 🟦 |
 | V-function | [256, 128, 64] | ReLU | 3x10-4 | 🟩 | ⬜️ | 🟦 | ⬜️ |
 | Q-function | [2x256] | ReLU | 3x10-4 | ⬜️ | 🟩 | ⬜️ | 🟩 |
 | V-Model | [2x512] | ReLU | 1x10-3 | ⬜️ | ⬜️ | 🟩 | 🟥 |
