@@ -82,11 +82,11 @@ configurations = {
 
     'actor': {
         'type': 'ppopolicy',
+        'constrained': False,
         'action_noise': None,
         'clip_eps': 0.2,
         'kl_targ': 0.02, # 0.03
         'max_dev': 0.15,
-        'entropy_coef': 0.,
         # 'normz_step_size': 0.01,
         'network': {
             # 'arch': [128, 128],
