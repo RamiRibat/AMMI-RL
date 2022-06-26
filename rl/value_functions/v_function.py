@@ -5,16 +5,29 @@ nn = T.nn
 
 from rl.networks.mlp import MLPNet
 
+
+# init1
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    T.nn.init.orthogonal_(layer.weight, std)
+    T.nn.init.constant_(layer.bias, bias_const)
+    return layer
+
+# init2
 def init_weights_(l):
 	if isinstance(l, nn.Linear):
 		nn.init.xavier_uniform_(l.weight, 1.0)
 		nn.init.uniform_(l.bias, 0.0)
 
 
-def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-    nn.init.orthogonal_(layer.weight, std)
-    nn.init.constant_(layer.bias, bias_const)
-    return layer
+def init_weights_B(l, std=np.sqrt(2), bias=0.0): # init1
+# def init_weights_(l, std=1.0, bias=0.0): # init2
+	if isinstance(l, nn.Linear):
+		# nn.init.xavier_uniform_(l.weight, std)
+		# nn.init.uniform_(l.bias, bias)
+		nn.init.orthogonal_(l.weight, std)
+		nn.init.constant_(l.bias, bias)
+
+
 
 
 class VFunction(nn.Module):
@@ -34,16 +47,18 @@ class VFunction(nn.Module):
 
 	    self.device = device
 
-	    # self.v = MLPNet(obs_dim, 1, net_configs)
-	    # self.apply(init_weights_)
+	    self.v = MLPNet(obs_dim, 1, net_configs)
+	    self.apply(init_weights_)
 
-	    self.v = nn.Sequential(
-			layer_init(nn.Linear(obs_dim, hid)),
-			nn.Tanh(),
-			layer_init(nn.Linear(hid, hid)),
-			nn.Tanh(),
-			layer_init(nn.Linear(hid, 1), std=1.0)
-						)
+	    # self.v = nn.Sequential(
+		# 	layer_init(nn.Linear(obs_dim, hid)),
+		# 	nn.Tanh(),
+		# 	layer_init(nn.Linear(hid, hid)),
+		# 	nn.Tanh(),
+		# 	layer_init(nn.Linear(hid, 1), std=1.0)
+		# 				)
+
+	    print('V-function: ', self)
 
 	    self.to(device)
 
