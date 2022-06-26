@@ -42,6 +42,8 @@ def main(cfg, seed, device, wb):
     print(f"\t Random seed: {seed}")
     print('=' * 50)
 
+    print('Configurations:\n', configurations)
+
     # configs['seed'] = seed
 
     # if configurations['experiment']['WandB']:
