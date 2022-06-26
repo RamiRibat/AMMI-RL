@@ -299,7 +299,7 @@ class MBPPO(MBRL, PPO):
                             # print(f'[ Epoch {n} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*50), end='\r')
                             print(f"[ Epoch {n} | Training AC ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*30), end='\r')
                             batch = self.model_traj_buffer.sample_batch(batch_size=ppo_batch_size, device=self._device_)
-                            Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs, oldKL=kl)
+                            Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs)
                             oldJs = [Jv, Jpi]
                             JVList.append(Jv)
                             JPiList.append(Jpi)
@@ -382,7 +382,7 @@ class MBPPO(MBRL, PPO):
                 logs['evaluation/episodic_return_std      '] = np.std(EZ)
             logs['evaluation/episodic_length_mean     '] = np.mean(EL)
             logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
-            logs['evaluation/performance              '] = (np.mean(EZ)/1000)
+            logs['evaluation/return_to_full_length    '] = (np.mean(EZ)/1000)
 
             logs['time/total                          '] = time.time() - start_time_real
 
@@ -410,7 +410,7 @@ class MBPPO(MBRL, PPO):
                                 'learning/imag/rollout_return_mean   ',
                                 'evaluation/episodic_return_mean     ',
                                 'evaluation/return_to_length         ',
-                                'evaluation/performance              ']
+                                'evaluation/return_to_full_length    ']
                 for k, v in logs.items():
                     if k in return_means:
                         print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
@@ -801,8 +801,8 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    # group_name = f"{env_name}-{alg_name}-Mac-X" # Local
-    group_name = f"{env_name}-{alg_name}-GCP-Z" # GCP
+    group_name = f"{env_name}-{alg_name}-Mac-0" # Local
+    # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 
     if wb:

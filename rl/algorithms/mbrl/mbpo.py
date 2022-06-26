@@ -269,7 +269,7 @@ class MBPO(MBRL, SAC):
                 logs['evaluation/episodic_return_std      '] = np.std(EZ)
             logs['evaluation/episodic_length_mean     '] = np.mean(EL)
             logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
-            logs['evaluation/performance              '] = (np.mean(EZ)/1000)
+            logs['evaluation/return_to_full_length    '] = (np.mean(EZ)/1000)
 
             logs['time/total                          '] = time.time() - start_time_real
 
@@ -297,7 +297,7 @@ class MBPO(MBRL, SAC):
                                 'learning/imag/rollout_return_mean   ',
                                 'evaluation/episodic_return_mean     ',
                                 'evaluation/return_to_length         ',
-                                'evaluation/performance              ']
+                                'evaluation/return_to_full_length    ']
                 for k, v in logs.items():
                     if k in return_means:
                         print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
@@ -530,8 +530,8 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    # group_name = f"{env_name}-{alg_name}-Mac-C"
-    group_name = f"{env_name}-{alg_name}-GCP-Z"
+    group_name = f"{env_name}-{alg_name}-MAC-0"
+    # group_name = f"{env_name}-{alg_name}-GCP-0"
     exp_prefix = f"seed:{seed}"
 
     if wb:

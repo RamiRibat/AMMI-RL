@@ -86,9 +86,12 @@ class MFRL:
         device = self._device_
         seed = self.seed
         if self.configs['algorithm']['on-policy']:
-            num_traj = max_size//20
+            num_traj = max_size//5
+            # num_traj = max_size//20
             horizon = 1000
-            self.buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device)
+            gamma = self.configs['critic']['gamma']
+            gae_lam = self.configs['critic']['gae_lam']
+            self.buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device, gamma, gae_lam)
         else:
             self.buffer = ReplayBuffer(obs_dim, act_dim, max_size, seed, device)
 
@@ -169,9 +172,7 @@ class MFRL:
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
 
-        # a = self.actor_critic.get_action_np(o)
         with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
-        # print('log_pi: ', log_pi)
         o_next, r, d, _ = self.learn_env.step(a)
         Z += r
         el += 1
@@ -182,12 +183,12 @@ class MFRL:
             if el == max_el:
                 with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
             else:
-                # print('v=0')
                 v = T.Tensor([0.0])
             self.buffer.finish_path(el, v)
 
             # print(f'termination: t={t} | el={el} | total_size={self.buffer.total_size()}')
             o, Z, el = self.learn_env.reset(), 0, 0
+
         return o, Z, el, t
 
 
