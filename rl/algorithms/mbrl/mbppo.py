@@ -801,8 +801,8 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Mac-0" # Local
-    # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
+    # group_name = f"{env_name}-{alg_name}-Mac-0" # Local
+    group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 
     if wb:
