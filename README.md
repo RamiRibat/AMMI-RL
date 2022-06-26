@@ -6,8 +6,6 @@ This project was initiated in the RL course Fall 2021 at **The African Master's 
 ## Algorithms
 Algorithms we are re-implementing/plannning to re-implement:
 
-🟢 Done || 🟡 Now || 🟣 Next || 🔴 No plan
-
 | Algorithms | Model | Value | On Policy | MPC | Paper | Progress |
 | --- | --- | --- | --- | --- | --- | :---: |
 | VPG | False | V(GAE) | True | False | [NeurIPS](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) | 🟢 |
@@ -20,10 +18,10 @@ Algorithms we are re-implementing/plannning to re-implement:
 | MoPAC | True | 2xQ | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟡 |
 | MPC-SAC | True | V/2xQ | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
 
+🟢 Done || 🟡 Now || 🟣 Next || 🔴 No plan
+
 ## Generalized Hyperparameters
 We aim to finetune our implementations to work with a generalized set of hyperparametrs across different algorithms. We are working with the following hyperparameters in the mean time:
-
-🟩 Best || 🟨 Good || 🟥 Bad || 🟦 In progress
 
 | Network | Architecture | Activation | Learning Rate | MFOV | MFOQ | MBOV | MBOQ |
 | --- | --- | --- | --- | :---: | :---: | :---: | :---: |
@@ -35,6 +33,8 @@ We aim to finetune our implementations to work with a generalized set of hyperpa
 | Q-function | [2x256] | ReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟩 |
 | V-Model | [2x512] | ReLU | 1e-3 | ⬜️ | ⬜️ | 🟩 | 🟥 |
 | Q-Model | [4x200] | Swish | 3e-4 | ⬜️ | ⬜️ | 🟥 | 🟩 |
+
+🟩 Best || 🟨 Good || 🟥 Bad || 🟦 In progress
 
 
 
