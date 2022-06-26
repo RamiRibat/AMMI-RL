@@ -81,10 +81,11 @@ configurations = {
         'automatic_entropy': False, # trainer_kwargs
         'target_entropy': "auto",
         'network': {
-            'arch': [128, 128],
-            'activation': 'Tanh',
+            # 'arch': [128, 128],
+            # 'activation': 'Tanh',
             # 'arch': [256, 256],
-            # 'activation': 'ReLU',
+            'arch': [256, 128, 64],
+            'activation': 'ReLU',
             'init_weights': 3e-3,
             'init_biases': 0,
             'output_activation': 'nn.Identity',
@@ -104,7 +105,8 @@ configurations = {
         'gamma': 0.995,
         'tau': 5e-3,
         'network': {
-            'arch': [256, 256], #@#
+            # 'arch': [256, 256],
+            'arch': [256, 128, 64],
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
@@ -130,7 +132,6 @@ configurations = {
         'oq_rollout_batch_size': 1e5,
         'model_batch_size': 256,
         'batch_size': 256,
-        # 'device': "auto",
     },
 
 

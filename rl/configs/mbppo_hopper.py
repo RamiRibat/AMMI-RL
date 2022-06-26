@@ -89,8 +89,10 @@ configurations = {
         'entropy_coef': 0.,
         # 'normz_step_size': 0.01,
         'network': {
-            'arch': [128, 128],
-            'activation': 'Tanh',
+            # 'arch': [128, 128],
+            # 'activation': 'Tanh',
+            'arch': [256, 128, 64],
+            'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 3e-4,
@@ -104,12 +106,14 @@ configurations = {
         'gamma': 0.995, # Discount factor - γ
         'lam': 0.99, # GAE - λ
         'network': {
-            'arch': [128, 128],
-            'activation': 'Tanh',
+            # 'arch': [128, 128],
+            # 'activation': 'Tanh',
+            'arch': [256, 128, 64],
+            'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 1e-3,
-            # 'lr': 3e-4,
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
     },

@@ -14,7 +14,7 @@ configurations = {
         'model-based': False,
         'on-policy': True,
         'learning': {
-            'epochs': 100, # N epochs
+            'epochs': 200, # N epochs
             'epoch_steps': 10000, # NT steps/epoch
             'init_epochs': 0, # Ni epochs
             'expl_epochs': 0, # Nx epochs
@@ -37,6 +37,7 @@ configurations = {
 
     'actor': {
         'type': 'ppopolicy',
+        'constrained': False,
         'action_noise': None,
         'clip_eps': 0.2,
         'kl_targ': 0.02, # 0.03
@@ -44,14 +45,16 @@ configurations = {
         # 'max_dev': 1,
         'entropy_coef': 0.0,
         'network': {
-            'arch': [128, 128],
-            'activation': 'Tanh',
-            # 'arch': [256, 256],
-            # 'activation': 'ReLU',
+            # 'arch': [64, 64],
+            # 'arch': [128, 64],
+            # 'arch': [128, 128],
+            # 'activation': 'Tanh',
+            # 'lr': 1e-3,
+            'arch': [256, 128, 64],
+            'activation': 'ReLU',
+            'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            # 'lr': 1e-3,
-            'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
     },
@@ -60,16 +63,20 @@ configurations = {
         'type': 'V',
         'number': 1,
         'gamma': 0.995,
-        'lam': 0.99,
+        'gae_lam': 0.99,
+        # 'gamma': 0.99,
+        # 'gae_lam': 0.95,
         'network': {
-            'arch': [128, 128],
-            'activation': 'Tanh',
-            # 'arch': [256, 256],
-            # 'activation': 'ReLU',
+            # 'arch': [64, 64],
+            # 'arch': [128, 64],
+            # 'arch': [128, 128],
+            # 'activation': 'Tanh',
+            # 'lr': 1e-3,
+            'arch': [256, 128, 64],
+            'activation': 'ReLU',
+            'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 1e-3,
-            # 'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
     },

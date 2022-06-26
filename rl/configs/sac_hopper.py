@@ -43,40 +43,39 @@ configurations = {
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {
-            'arch': [128, 128],
-            'activation': 'Tanh',
+            # 'arch': [128, 128],
+            # 'activation': 'Tanh',
             # 'arch': [256, 256],
-            # 'activation': 'ReLU',
+            'arch': [256, 128, 64],
+            'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 3e-4,
-            # 'lr': 1e-3
         }
     },
 
     'critic': {
         'type': 'sofQ',
         'number': 2,
-        'gamma': 0.995,
-        # 'gamma': 0.95,
+        'gamma': 0.99,
+        # 'gamma': 0.995,
         'tau': 5e-3,
         'network': {
             # 'arch': [128, 128],
             # 'activation': 'Tanh',
             'arch': [256, 256],
+            # 'arch': [256, 128, 64],
             'activation': 'ReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 3e-4,
-            # 'lr': 1e-3
         }
     },
 
     'data': {
         'buffer_type': 'simple',
         'buffer_size': int(1e6),
-        'batch_size': 256 # org
-        # 'batch_size': 1000
+        'batch_size': 256
     },
 
     'experiment': {
