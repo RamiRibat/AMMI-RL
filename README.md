@@ -1,5 +1,6 @@
 # AMMI-RL: Implementation for Continuous Control
 
+This project was initiated in the RL course Fall 2021 at **The African Master's in Machine Intelligence** ([**AMMI**](https://aimsammi.org/)) as a course-project where we implemented the SAC algorithm ([Haarnoja et al.](https://arxiv.org/abs/1812.05905)) for continuous control tasks. It is now an open project where we care to design code bases and benchmarks for RL algorithms in order to develop new algorithms. We are counting on existing repositories as well as original papers to produce better implementation for a selected set of algorithms.
 
 ## Algorithms:
 Algorithms we are re-implementing/plannning to re-implement:
@@ -124,7 +125,7 @@ python evaluate_agent.py -env Walker2d-v2 -alg SAC -seed 1 -EE 5
 
 
 
-## AMMI-RL Team, Group 2
+## AMMI-RL Team
 (last name alphabetical order) | contribution 
 - [Rami Ahmed](https://github.com/RamiSketche) | VPG, PPO, SAC, MBPO
 - [Wafaa Mohammed](https://github.com/Wafaa014) | SAC
