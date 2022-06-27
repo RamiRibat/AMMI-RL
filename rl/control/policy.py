@@ -209,7 +209,7 @@ class StochasticPolicy(nn.Module):
 		self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
 		self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
-		# self.apply(init_weights_)
+		self.apply(init_weights_)
 
 		# self.mean_and_log_std_net = nn.Sequential(
 		#     layer_init(nn.Linear(obs_dim, net_arch[0])),

@@ -73,21 +73,6 @@ class SoftQFunction(nn.Module):
 
         super(SoftQFunction, self).__init__() # To automatically use forward
 
-        # self.q1 = nn.Sequential(
-		# 	layer_init(nn.Linear(obs_dim + act_dim, hid)),
-		# 	nn.Tanh(),
-		# 	layer_init(nn.Linear(hid, hid)),
-		# 	nn.Tanh(),
-		# 	layer_init(nn.Linear(hid, 1), std=1.0)
-		# 				)
-        # self.q2 = nn.Sequential(
-		# 	layer_init(nn.Linear(obs_dim + act_dim, hid)),
-		# 	nn.Tanh(),
-		# 	layer_init(nn.Linear(hid, hid)),
-		# 	nn.Tanh(),
-		# 	layer_init(nn.Linear(hid, 1), std=1.0)
-		# 				)
-
         self.q1 = MLPNet(obs_dim + act_dim, 1, net_configs)
         self.q2 = MLPNet(obs_dim + act_dim, 1, net_configs)
         self.apply(init_weights_)
