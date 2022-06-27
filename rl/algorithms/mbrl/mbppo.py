@@ -280,7 +280,14 @@ class MBPPO(MBRL, PPO):
                     # # PPO-P <<<<
 
                     # PPO V2 >>>>
-                    # G_AC = 1
+                    f = lambda n: 20-2*(round(n+4.5, -1)-10)/10
+                    if n <= 50:
+                        G_AC = int(f(n))
+                    else:
+                        G_AC = 10
+                    G_PPO = 5*G_AC
+                    # print(f'G_AC={G_AC} | G_PPO={G_PPO}')
+
                     for g in range(1, G_AC+1):
                         # Reset model buffer
                         self.model_traj_buffer.reset()
@@ -801,7 +808,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-ReLU-5" # Local
+    group_name = f"{env_name}-{alg_name}-ReLU-6" # Local
     # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 

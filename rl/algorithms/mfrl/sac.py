@@ -560,7 +560,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-ReLU-F"
+    group_name = f"{env_name}-{alg_name}-ReLU-5"
     # group_name = f"{env_name}-{alg_name}-GCP-C"
     exp_prefix = f"seed:{seed}"
 

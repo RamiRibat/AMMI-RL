@@ -23,7 +23,7 @@ configurations = {
 
             'env_steps' : 1, # E: interact E times then train
             'grad_WM_steps': 0, # G: ac grad
-            'grad_SAC_steps': 40, #20, # ACG: ac grad, 40
+            'grad_SAC_steps': 20, #20, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -105,10 +105,12 @@ configurations = {
         'gamma': 0.995,
         'tau': 5e-3,
         'network': {
-            'arch': [256, 256],
+            'arch': [256, 128],
+            # 'arch': [256, 256],
             # 'arch': [256, 128, 64],
             'activation': 'ReLU',
-            'lr': 3e-4,
+            'lr': 1e-3,
+            # 'lr': 3e-4,
             'optimizer': "Adam",
             'init_weights': 3e-3,
             'init_biases': 0,
@@ -126,8 +128,8 @@ configurations = {
         'optimize_memory_usage': False,
         'buffer_size': int(5e5),
         'model_buffer_size': int(1e7),
-        'real_ratio': 0.025,
-        # 'real_ratio': 0.05,
+        # 'real_ratio': 0.025,
+        'real_ratio': 0.05,
         # 'real_ratio': 0.0,
         'model_val_ratio': 0.2,
         'oq_rollout_batch_size': 1e5,
