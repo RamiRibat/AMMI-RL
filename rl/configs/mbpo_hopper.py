@@ -105,8 +105,8 @@ configurations = {
         'gamma': 0.995,
         'tau': 5e-3,
         'network': {
-            # 'arch': [256, 256],
-            'arch': [256, 128, 64],
+            'arch': [256, 256],
+            # 'arch': [256, 128, 64],
             'activation': 'ReLU',
             'lr': 3e-4,
             'optimizer': "Adam",
