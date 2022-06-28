@@ -21,24 +21,6 @@ import rl.environments.mbpo.static as mbpo_static
 
 
 
-class color:
-    """
-    Source: https://stackoverflow.com/questions/8924173/how-to-print-bold-text-in-python
-    """
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    DARKCYAN = '\033[36m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
-
-
-
-
 
 
 class MBPO(MBRL, SAC):
@@ -67,7 +49,7 @@ class MBPO(MBRL, SAC):
         self._build()
 
 
-    ## build MBPO components: (env, D, AC, alpha)
+    ## build MEMB components: (env, D, AC, alpha)
     def _build(self):
         super(MBPO, self)._build()
         self._set_sac()
@@ -99,52 +81,56 @@ class MBPO(MBRL, SAC):
         Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         E = self.configs['algorithm']['learning']['env_steps']
-        GSAC = self.configs['algorithm']['learning']['grad_SAC_steps']
+        G_sac = self.configs['algorithm']['learning']['grad_SAC_steps']
 
         # batch_size = self.configs['data']['batch_size']
 
-        model_train_frequency = self.configs['world_model']['oq_model_train_freq']
+        model_train_frequency = self.configs['world_model']['model_train_freq']
         batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
+        real_ratio = self.configs['data']['real_ratio'] # rr
+        batch_size = self.configs['data']['batch_size'] # bs
+        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
 
-        # o, Z, el, t = self.learn_env.reset(), 0, 0, 0
+        o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
+        # oldJs = [0, 0, 0]
+        # JQList, JAlphaList, JPiList = [0], [0], [0]
+        # AlphaList = [self.alpha]*Ni
+
+        # JTrainList, JValList, LossTestList = [0], [0], [0]
+        # WMList = {'mu': [0]*Ni, 'sigma': [0]*Ni}
+        # JMeanTrainList, JTrainList, JMeanValList, JValList = [], [], [], []
+        # LossTestList = []
+        # WMList = {'mu': [], 'sigma': []}
 
         logs = dict()
         lastEZ, lastES = 0, -2
         K = 1
-        t = 0
 
         start_time_real = time.time()
         for n in range(1, N+1):
             if self.configs['experiment']['print_logs']:
                 print('=' * 50)
-                if (n > Nx) and (Nx > 0):
+                if n > Nx:
                     print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
+                    # JQList, JPiList = [], []
+                    # JTrainList, JValList, LossTestList = [], [], []
                     oldJs = [0, 0, 0]
-                    JQList, JAlphaList, JPiList = [], [], []
-                    HList = []
-                    JTrainList, JValList, LossTestList = [], [], []
-                elif (n > Ni) and (Ni > 0):
+                    JQList, JAlphaList, JPiList = [0], [0], [0]
+                    JTrainList, JValList, LossTestList = [0], [0], [0]
+                elif n > Ni:
                     print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
                     JQList, JPiList = [], []
-                    HList = []
                     JTrainList, JValList, LossTestList = [], [], []
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
                     oldJs = [0, 0, 0]
                     JQList, JAlphaList, JPiList = [0], [0], [0]
-                    HList = [0]
                     JTrainList, JValList, LossTestList = [0], [0], [0]
 
             print(f'[ Replay Buffer ] Size: {self.buffer.size}')
-
             nt = 0
-            o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
-            ZList, elList = [0], [0]
-            ZListImag, elListImag = [0, 0], [0, 0]
-            AvgZ, AvgEL = 0, 0
-
             learn_start_real = time.time()
             while nt < NT: # full epoch
                 # Interaction steps
@@ -152,70 +138,46 @@ class MBPO(MBRL, SAC):
                     o, Z, el, t = self.internact(n, o, Z, el, t)
                     # print('Return: ', Z)
 
-                    if el > 0:
-                        currZ = Z
-                        AvgZ = (sum(ZList)+currZ)/(len(ZList))
-                        currEL = el
-                        AvgEL = (sum(elList)+currEL)/(len(elList))
-                    else:
-                        lastZ = currZ
-                        ZList.append(lastZ)
-                        AvgZ = sum(ZList)/(len(ZList)-1)
-                        lastEL = currEL
-                        elList.append(lastEL)
-                        AvgEL = sum(elList)/(len(elList)-1)
-
-                    # print(f'[ Epoch {n}   Interaction ] Env Steps: {e} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(" "*10), end='\r')
-
                 # Taking gradient steps after exploration
                 if n > Ni:
                     if nt % model_train_frequency == 0:
                         #03. Train model pθ on Denv via maximum likelihood
                         # PyTorch Lightning Model Training
-                        print(f'\n[ Epoch {n} | Training World Model ]'+(' '*50))
+                        print(f'\n[ Epoch {n}   Training World Model ]'+(' '*50))
+                        # print(f'\n\n[ Training ] Dynamics Model(s), mEpochs = {mEpochs}
+                        # self.data_module = RLDataModule(self.buffer, self.configs['data'])
+
+                        # JTrainLog, JValLog, LossTest = self.fake_world.train(self.data_module)
+                        # JTrainList.append(JTrainLog)
+                        # JValList.append(JValLog)
+                        # LossTestList.append(LossTest)
 
                         ho_mean = self.fake_world.train_fake_world(self.buffer)
-
-                        # model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.size)
-                        # model_fit_batch = self.buffer.sample_batch(model_fit_bs, self._device_)
-                        # s, a, r, sp, _ = model_fit_batch.values()
-                        # if n == Ni+1:
-                        #     samples_to_collect = min(Ni*1000, self.buffer.size)
-                        # else:
-                        #     samples_to_collect = 250
-                        #
-                        # LossGen = []
-                        # for i, model in enumerate(self.models):
-                        #     # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
-                        #     loss_general = model.compute_loss(s[-samples_to_collect:],
-                        #                                       a[-samples_to_collect:],
-                        #                                       sp[-samples_to_collect:]) # generalization error
-                        #     dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
-                        #     reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
-                        # LossGen.append(loss_general)
-                        # ho_mean = np.mean(LossGen)
-
                         JValList.append(ho_mean) # ho: holdout
 
-                        self.reallocate_oq_model_buffer(n)
+                        # Update K-steps length
+                        K = self.set_rollout_length(n)
+
+                        # Reallocate model buffer
+                        # if K != K_new:
+                        #     K = K_new
+                        self.reallocate_model_buffer(batch_size_ro, K, NT, model_train_frequency)
 
                         # Generate M k-steps imaginary rollouts for SAC traingin
-                        self.rollout_world_model(n) # GCP-E
-                        # ZListImag, elListImag = self.rollout_world_modelII(n) # Mac/GCP-B
+                        self.rollout_world_model(batch_size_ro, K, n)
 
                     # JQList, JPiList = [], []
                     # AlphaList = [self.alpha]*G_sac
-                    for g in range(1, GSAC+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
+                    for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
-                        print(f'[ Epoch {n} | Training AC ] Env Steps: {nt+1} | AC Grads: {g}/{GSAC} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(" "*10), end='\r')
+                        # print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}', end='\r')
                         ## Sample a batch B_sac
-                        B_sac = self.sac_batch()
+                        B_sac = self.sac_batch(real_ratio, batch_size)
                         ## Train networks using batch B_sac
-                        Jq, Jalpha, Jpi, PiInfo = self.trainAC(g, B_sac, oldJs)
+                        Jq, Jalpha, Jpi = self.trainAC(g, B_sac, oldJs)
                         oldJs = [Jq, Jalpha, Jpi]
-                        JQList.append(Jq)
-                        JPiList.append(Jpi)
-                        HList.append(PiInfo['entropy'])
+                        JQList.append(Jq.item())
+                        JPiList.append(Jpi.item())
                         if self.configs['actor']['automatic_entropy']:
                             JAlphaList.append(Jalpha.item())
                             AlphaList.append(self.alpha)
@@ -227,34 +189,21 @@ class MBPO(MBRL, SAC):
 
             # logs['training/wm/Jtrain_mean        '] = np.mean(JMeanTrainList)
             # logs['training/wm/Jtrain             '] = np.mean(JTrainList)
-            # logs['training/wm/Jval                    '] = ho_mean
-            logs['training/wm/Jval                    '] = np.mean(JValList)
+            logs['training/wm/Jval               '] = np.mean(JValList)
             # logs['training/wm/test_mse           '] = np.mean(LossTestList)
 
-            logs['training/sac/critic/Jq              '] = np.mean(JQList)
-            # logs['training/sac/critic/Q(s,a)          '] = T.mean(self.model_repl_buffer.q_buf).item()
-            # logs['training/sac/critic/Q-R             '] = T.mean(self.model_repl_buffer.q_buf).item()-T.mean(self.model_repl_buffer.ret_buf).item()
-
-            logs['training/sac/actor/Jpi              '] = np.mean(JPiList)
-            logs['training/sac/actor/H                '] = np.mean(HList)
+            logs['training/sac/Jq                '] = np.mean(JQList)
+            logs['training/sac/Jpi               '] = np.mean(JPiList)
             if self.configs['actor']['automatic_entropy']:
-                logs['training/sac/actor/Jalpha           '] = np.mean(JAlphaList)
-                logs['training/sac/actor/alpha            '] = np.mean(AlphaList)
+                logs['training/obj/sac/Jalpha        '] = np.mean(JAlphaList)
+                logs['training/obj/sac/alpha         '] = np.mean(AlphaList)
 
-            logs['data/env_buffer_size                '] = self.buffer.size
+            logs['data/env_buffer                '] = self.buffer.size
             if hasattr(self, 'model_buffer'):
-                logs['data/model_buffer_size              '] = self.model_repl_buffer.size
+                logs['data/model_buffer              '] = self.model_buffer.size
             else:
-                logs['data/model_buffer_size              '] = 0.
-            logs['data/rollout_length                 '] = self.set_oq_rollout_length(n)
-
-            logs['learning/real/rollout_return_mean   '] = np.mean(ZList[1:])
-            logs['learning/real/rollout_return_std    '] = np.std(ZList[1:])
-            logs['learning/real/rollout_length        '] = np.mean(elList[1:])
-
-            # logs['learning/imag/rollout_return_mean   '] = np.mean(ZListImag[1:])
-            # logs['learning/imag/rollout_return_std    '] = np.std(ZListImag[1:])
-            # logs['learning/imag/rollout_length        '] = np.mean(elListImag[1:])
+                logs['data/model_buffer              '] = 0
+            logs['data/rollout_length            '] = K
 
             eval_start_real = time.time()
             EZ, ES, EL = self.evaluate()
@@ -262,16 +211,14 @@ class MBPO(MBRL, SAC):
             # logs['time/evaluation                '] = time.time() - eval_start_real
 
             if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
-                logs['evaluation/episodic_score_mean      '] = np.mean(ES)
-                logs['evaluation/episodic_score_std       '] = np.std(ES)
+                logs['evaluation/episodic_score_mean '] = np.mean(ES)
+                logs['evaluation/episodic_score_std  '] = np.std(ES)
             else:
-                logs['evaluation/episodic_return_mean     '] = np.mean(EZ)
-                logs['evaluation/episodic_return_std      '] = np.std(EZ)
-            logs['evaluation/episodic_length_mean     '] = np.mean(EL)
-            logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
-            logs['evaluation/return_to_full_length    '] = (np.mean(EZ)/1000)
+                logs['evaluation/episodic_return_mean'] = np.mean(EZ)
+                logs['evaluation/episodic_return_std '] = np.std(EZ)
+            logs['evaluation/episodic_length_mean'] = np.mean(EL)
 
-            logs['time/total                          '] = time.time() - start_time_real
+            logs['time/total                     '] = time.time() - start_time_real
 
             # if n > (N - 50):
             #     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
@@ -293,16 +240,8 @@ class MBPO(MBRL, SAC):
 
             # Printing logs
             if self.configs['experiment']['print_logs']:
-                return_means = ['learning/real/rollout_return_mean   ',
-                                'learning/imag/rollout_return_mean   ',
-                                'evaluation/episodic_return_mean     ',
-                                'evaluation/return_to_length         ',
-                                'evaluation/return_to_full_length    ']
                 for k, v in logs.items():
-                    if k in return_means:
-                        print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
-                    else:
-                        print(f'{k}  {round(v, 4)}'+(' '*10))
+                    print(f'{k}  {round(v, 2)}'+(' '*10))
 
             # WandB
             if self.WandB:
@@ -312,89 +251,11 @@ class MBPO(MBRL, SAC):
         self.eval_env.close()
 
 
-    def rollout_world_model(self, n):
-        # ZListImag, elListImag = [0], [0]
-
-        K = self.set_oq_rollout_length(n)
-
-        # 07. Sample st uniformly from Denv
-        device = self._device_
-        batch_size_ro = self.configs['data']['oq_rollout_batch_size'] # bs_ro
-        batch_size = min(batch_size_ro, self.buffer.size)
-        print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-        B_ro = self.buffer.sample_batch(batch_size) # Torch
-        O = B_ro['observations']
-
-    	# 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
-        for k in range(1, K+1):
-            A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
-
-            O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
-            # O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
-
-            # self.model_repl_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
-            self.model_repl_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
-
-            O_next = T.Tensor(O_next)
-            D = T.tensor(D, dtype=T.bool)
-            # nonD = ~D
-            nonD = ~D.squeeze(-1)
-
-            if nonD.sum() == 0:
-                print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
-                break
-
-            O = O_next[nonD]
-
-        # return ZListImag, elListImag
-
-
-    def rollout_world_modelII(self, n):
-        ZListImag, elListImag = [0], [0]
-
-        K = self.set_oq_rollout_length(n)
-
-        # 07. Sample st uniformly from Denv
-        device = self._device_
-        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
-        batch_size = min(batch_size_ro, self.buffer.size)
-        print(f'[ Epoch {n} | Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-        # B_ro = self.buffer.sample_batch(batch_size) # Torch
-        # O = B_ro['observations']
-
-    	# 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
-        for m, model in enumerate(self.models):
-            B_ro = self.buffer.sample_batch(int(batch_size/4)) # Torch
-            O = B_ro['observations']
-            for k in range(1, K+1):
-                A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
-
-                # O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
-                O_next = model.forward(O, A).detach() # ip: Tensor, op: Tensor
-                R = model.reward(O, A).detach()
-                D = self._termination_fn("Hopper-v2", O, A, O_next)
-                D = T.tensor(D, dtype=T.bool)
-
-                # self.model_repl_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
-                self.model_repl_buffer.store_batch(O, A, R, O_next, D) # ip: Tensor
-
-                O_next = T.Tensor(O_next)
-                nonD = ~D.squeeze(-1)
-
-                if nonD.sum() == 0:
-                    print(f'[ Epoch {n} | Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
-                    break
-
-                O = O_next[nonD]
-
-        return ZListImag, elListImag
-
-
-    def set_oq_rollout_length(self, n):
-        if self.configs['world_model']['oq_rollout_schedule'] == None:
+    def set_rollout_length(self, n):
+        if self.configs['world_model']['rollout_schedule'] == None:
         	K = 1
         else:
-        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['oq_rollout_schedule']
+        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['rollout_schedule']
 
         	if n <= min_epoch:
         		K = min_length
@@ -407,108 +268,60 @@ class MBPO(MBRL, SAC):
         return K
 
 
-    def sac_batch(self):
-        real_ratio = self.configs['data']['real_ratio'] # rr
-        batch_size = self.configs['data']['batch_size'] # bs
+    def rollout_world_model(self, batch_size_ro, K, n):
+    	#07. Sample st uniformly from Denv
+    	# device = self._device_
+    	batch_size = min(batch_size_ro, self.buffer.size)
+    	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
+    	B_ro = self.buffer.sample_batch_np(batch_size)
+    	O = B_ro['observations'] # Torch
+    	# print('rollout_world_model, O.shape: ', O.shape)
+    	# print('a.ptr=', self.model_buffer.ptr)
 
-        batch_size_real = int(real_ratio * batch_size) # 0.05*256
-        batch_size_img = batch_size - batch_size_real # 256 - (0.05*256)
+    	#08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
+    	for k in range(1, K+1):
+    		# with T.no_grad():
+    		# 	# A, _ = self.actor_critic.actor(O) # ip:Tensor, op:Tensor
+    		# 	A, _ = self.actor_critic.actor.step_np(T.as_tensor(O, dtype=T.float32)) # ip:Tensor, op:Numpy
+    		A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
 
-        B_real = self.buffer.sample_batch(batch_size_real, self._device_)
+    		# O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Tensor
+    		# O_next, R, D, _ = self.fake_world.step_np(O, A) # ip:Tensor, op:Numpy
+    		O_next, R, D, _ = self.fake_world.step(O, A) # ip:Tensor, op:Numpy
 
-        if batch_size_img > 0:
-            B_img = self.model_repl_buffer.sample_batch(batch_size_img, self._device_)
-            keys = B_real.keys()
-            B = {k: T.cat((B_real[k], B_img[k]), dim=0) for k in keys}
-        else:
-            B = B_real
-        return B
+    		# print('rollout_world_model, O_next.shape: ', O_next.shape)
 
+    		# O = O.detach().cpu().numpy()
+    		# A = A.detach().cpu().numpy()
 
-    def _reward_fn(self, env_name, obs, act):
-        if len(obs.shape) == 1 and len(act.shape) == 1:
-            obs = obs[None]
-            act = act[None]
-            return_single = True
-        elif len(obs.shape) == 1:
-            obs = obs[None]
-            return_single = True
-        else:
-            return_single = False
+    		# self.model_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip:Numpy
+    		self.model_buffer.store_batch(O, A, R, O_next, D) # ip:Numpy
+    		# print('model buff ptr: ', self.model_buffer.ptr)
 
-        next_obs = next_obs.numpy()
-        if env_name == "Hopper-v2":
-            assert len(obs.shape) == len(act.shape) == 2
-            vel_x = obs[:, -6] / 0.02
-            power = np.square(act).sum(axis=-1)
-            height = obs[:, 0]
-            ang = obs[:, 1]
-            alive_bonus = 1.0 * (height > 0.7) * (np.abs(ang) <= 0.2)
-            rewards = vel_x + alive_bonus - 1e-3*power
+    		# nonD = ~D
+    		nonD = ~D.squeeze(-1)
+    		if nonD.sum() == 0:
+    		    print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
+    		    break
 
-            return rewards
-        elif env_name == "Walker2d-v2":
-            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
-            pass
-        elif 'walker_' in env_name:
-            pass
+    		O = O_next[nonD]#.reshape(-1,len(O[0,:]))
+    		# O = T.as_tensor(O, dtype=T.float32)#.to(device)
+
+    	# print('z.ptr=', self.model_buffer.ptr)
 
 
-    def _termination_fn(self, env_name, obs, act, next_obs):
-        if len(obs.shape) == 1 and len(act.shape) == 1:
-            obs = obs[None]
-            act = act[None]
-            next_obs = next_obs[None]
-            return_single = True
-        elif len(obs.shape) == 1:
-            obs = obs[None]
-            next_obs = next_obs[None]
-            return_single = True
-        else:
-            return_single = False
+    def sac_batch(self, real_ratio, batch_size):
+    	batch_size_real = int(real_ratio * batch_size) # 0.05*256
+    	batch_size_img = batch_size - batch_size_real # 256 - (0.05*256)
+    	B_real = self.buffer.sample_batch(batch_size_real, self._device_)
 
-        next_obs = next_obs.numpy()
-        if env_name == "Hopper-v2":
-            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
-
-            height = next_obs[:, 0]
-            angle = next_obs[:, 1]
-            not_done = np.isfinite(next_obs).all(axis=-1) \
-                       * np.abs(next_obs[:, 1:] < 100).all(axis=-1) \
-                       * (height > .7) \
-                       * (np.abs(angle) < .2)
-
-            done = ~not_done
-            done = done[:, None]
-            return done
-        elif env_name == "Walker2d-v2":
-            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
-
-            height = next_obs[:, 0]
-            angle = next_obs[:, 1]
-            not_done = (height > 0.8) \
-                       * (height < 2.0) \
-                       * (angle > -1.0) \
-                       * (angle < 1.0)
-            done = ~not_done
-            done = done[:, None]
-            return done
-        elif 'walker_' in env_name:
-            torso_height =  next_obs[:, -2]
-            torso_ang = next_obs[:, -1]
-            if 'walker_7' in env_name or 'walker_5' in env_name:
-                offset = 0.
-            else:
-                offset = 0.26
-            not_done = (torso_height > 0.8 - offset) \
-                       * (torso_height < 2.0 - offset) \
-                       * (torso_ang > -1.0) \
-                       * (torso_ang < 1.0)
-            done = ~not_done
-            done = done[:, None]
-            return done
-
-
+    	if batch_size_img > 0:
+    		B_img = self.model_buffer.sample_batch(batch_size_img, self._device_)
+    		keys = B_real.keys()
+    		B = {k: T.cat((B_real[k], B_img[k]), dim=0) for k in keys}
+    	else:
+    		B = B_real
+    	return B
 
 
 
@@ -530,11 +343,11 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-ReLU-6"
-    # group_name = f"{env_name}-{alg_name}-GCP-0"
+    group_name = f"{env_name}-{alg_name}"
     exp_prefix = f"seed:{seed}"
 
     if wb:
+        # print('WandB')
         wandb.init(
             name=exp_prefix,
             group=group_name,

@@ -35,7 +35,7 @@ configurations = {
         }
     },
 
-    'actor': {
+    'actor': { # No init
         'type': 'ppopolicy',
         'constrained': False,
         'action_noise': None,
@@ -47,10 +47,12 @@ configurations = {
             # 'arch': [64, 64],
             # 'arch': [128, 64],
             # 'arch': [128, 128],
+            # 'arch': [256, 128],
+            'arch': [256, 256],
+            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
-            # 'lr': 1e-3,
-            'arch': [256, 128, 64],
             'activation': 'ReLU',
+            # 'lr': 1e-3,
             'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
@@ -58,18 +60,19 @@ configurations = {
         }
     },
 
-    'critic': {
+    'critic': { # Init
         'type': 'V',
         'number': 1,
-        'gamma': 0.995,
-        'gae_lam': 0.99,
-        # 'gamma': 0.99,
-        # 'gae_lam': 0.95,
+        # 'gamma': 0.995,
+        # 'gae_lam': 0.99,
+        'gamma': 0.99, # ReLU-12
+        'gae_lam': 0.95, # ReLU-12
         'network': {
             # 'arch': [64, 64],
             # 'arch': [128, 64],
-            # 'arch': [128, 128],
-            'arch': [256, 128],
+            'arch': [128, 128],
+            # 'arch': [256, 128],
+            # 'arch': [256, 256],
             # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'ReLU',

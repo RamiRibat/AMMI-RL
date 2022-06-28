@@ -68,7 +68,7 @@ class SoftQFunction(nn.Module):
 
         optimizer = 'T.optim.' + net_configs['optimizer']
         lr = net_configs['lr']
-        hid = 128
+        # hid = 128
         # hid = 256
 
         super(SoftQFunction, self).__init__() # To automatically use forward

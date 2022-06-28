@@ -19,6 +19,13 @@ def init_weights_(l):
 		nn.init.uniform_(l.bias, 0.0)
 
 
+# init3
+def init_weights_3(l):
+	if isinstance(l, nn.Linear):
+		nn.init.orthogonal_(l.weight, np.sqrt(2))
+		nn.init.constant_(l.bias, 0.0)
+
+
 def init_weights_B(l, std=np.sqrt(2), bias=0.0): # init1
 # def init_weights_(l, std=1.0, bias=0.0): # init2
 	if isinstance(l, nn.Linear):
@@ -40,7 +47,7 @@ class VFunction(nn.Module):
 	    optimizer = 'T.optim.' + net_configs['optimizer']
 	    lr = net_configs['lr']
 	    # hid = 64
-	    hid = 128
+	    # hid = 128
 	    # hid = 256
 
 	    super().__init__() # To automatically use forward
@@ -48,7 +55,7 @@ class VFunction(nn.Module):
 	    self.device = device
 
 	    self.v = MLPNet(obs_dim, 1, net_configs)
-	    self.apply(init_weights_)
+	    self.apply(init_weights_3)
 
 	    # self.v = nn.Sequential(
 		# 	layer_init(nn.Linear(obs_dim, hid)),
@@ -62,7 +69,7 @@ class VFunction(nn.Module):
 
 	    self.to(device)
 
-	    self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5)
+	    self.optimizer = eval(optimizer)(self.parameters(), lr)
 
 
     def forward(self, o):

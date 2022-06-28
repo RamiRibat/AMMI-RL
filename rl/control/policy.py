@@ -8,10 +8,8 @@ from rl.networks.mlp import MLPNet
 
 
 LOG_STD_MAX = 2
-LOG_STD_MIN = -20
-
-# LOG_STD_MAX = 1.0
-# LOG_STD_MIN = -2.5
+LOG_STD_MIN = -5
+# LOG_STD_MIN = -20
 
 epsilon = 1e-8
 
@@ -73,14 +71,6 @@ class PPOPolicy(nn.Module):
 		self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
 		# self.apply(init_weights_)
 
-		# for param in list(self.parameters())[-2:]: param.data = 1e-2 * param.data
-		# init_log_std = 0.
-		# self.min_log_std = T.ones(act_dim)*(-2.5)
-		# self.max_log_std = T.ones(act_dim)*(1.0)
-		# self.log_std = nn.Parameter(T.ones(act_dim) * init_log_std, requires_grad=True)
-		# self.log_std.data = T.max(self.log_std.data, self.min_log_std)
-		# self.log_std.data = T.min(self.log_std.data, self.max_log_std)
-
 		print('PPOPolicy: ', self)
 
 		self.act_dim = act_dim
@@ -92,8 +82,8 @@ class PPOPolicy(nn.Module):
 
 		self.to(device)
 
-		self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5) # PPO-E
-		# self.optimizer = eval(optimizer)(self.parameters(), lr)
+		# self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5) # PPO-E
+		self.optimizer = eval(optimizer)(self.parameters(), lr)
 
 
 	def forward(self, obs, act=None,
@@ -210,25 +200,6 @@ class StochasticPolicy(nn.Module):
 		self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
 		self.apply(init_weights_)
-
-		# self.mean_and_log_std_net = nn.Sequential(
-		#     layer_init(nn.Linear(obs_dim, net_arch[0])),
-		#     nn.Tanh(),
-		#     layer_init(nn.Linear(net_arch[0], net_arch[1])),
-		#     nn.Tanh()
-		# )
-		# self.mean = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01)
-		# self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim)) # Q: Best in MBPO
-		# # self.log_std = layer_init(nn.Linear(net_arch[-1], act_dim), std=0.01) # R
-
-		# self.mean_and_log_std_net = nn.Sequential(
-		#     layer_init(nn.Linear(obs_dim, hid1)),
-		#     nn.Tanh(),
-		#     layer_init(nn.Linear(hid1, hid2)),
-		#     nn.Tanh()
-		# )
-		# self.mean = layer_init(nn.Linear(hid2, act_dim), std=0.01)
-		# self.log_std = layer_init(nn.Linear(hid2, act_dim))
 
 
 		self.obs_bias   = T.zeros(obs_dim)

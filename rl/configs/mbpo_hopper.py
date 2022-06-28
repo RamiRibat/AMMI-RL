@@ -74,7 +74,7 @@ configurations = {
         }
     },
 
-    'actor': {
+    'actor': { # No init
         'type': 'gaussianpolicy',
         'action_noise': None, # Optional
         'alpha': 0.2, # Temprature/Entropy #@#
@@ -98,7 +98,7 @@ configurations = {
         }
     },
 
-    'critic': {
+    'critic': { # Init
         'type': 'sofQ',
         'number': 2,
         # 'gamma': 0.99,
