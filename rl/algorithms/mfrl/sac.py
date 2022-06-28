@@ -306,6 +306,7 @@ class SAC(MFRL):
         R = batch['rewards']
         O_next = batch['observations_next']
         D = batch['terminals']
+        # print('gamma:\n', gamma)
 
         # Calculate two Q-functions
         # Qs = self.actor_critic.critic(O, A)
@@ -318,6 +319,9 @@ class SAC(MFRL):
             # Qs_targ = T.cat(self.actor_critic.critic_target(O_next, A_next), dim=1)
             Qs_targ = T.cat(self.actor_critic.get_q_target(O_next, A_next), dim=1)
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
+            # print('min_Q_targ: ', min_Q_targ)
+            # print('log_pi_next: ', log_pi_next)
+            # print(': ', )
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
 
         # # MSE loss

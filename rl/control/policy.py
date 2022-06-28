@@ -237,6 +237,7 @@ class StochasticPolicy(nn.Module):
 			log_prob = normal_ditribution.log_prob(sample)
 			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(-1, keepdim=True)
+			# print('log_prob: ', log_prob)
 		if return_entropy:
 			entropy = normal_ditribution.entropy().sum(-1, keepdims=True)
 
@@ -244,7 +245,7 @@ class StochasticPolicy(nn.Module):
 
 
 	def forward(self, obs, act=None,
-			    on_policy=True,
+			    # on_policy=True,
 				reparameterize=True, # Default: True
 				deterministic=False, # Default: False
 				return_log_pi=False, # Default: False
@@ -264,7 +265,8 @@ class StochasticPolicy(nn.Module):
 		if deterministic: # Evaluation
 			with T.no_grad(): pi = T.tanh(mean)
 		else: # Stochastic | Interaction | Policy Evaluation/Improvement
-			pi, log_pi, entropy = self.pi_prob(mean, std, reparameterize, return_log_pi, return_entropy=True)
+			pi, log_pi, entropy = self.pi_prob(mean, std, reparameterize=reparameterize, return_log_prob=return_log_pi, return_entropy=return_entropy)
+			# print('log_pi: ', log_pi)
 
 		pi = (pi * self.act_scale) + self.act_bias
 
