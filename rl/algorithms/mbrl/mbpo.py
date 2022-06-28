@@ -85,12 +85,12 @@ class MBPO(MBRL, SAC):
 
         # batch_size = self.configs['data']['batch_size']
 
-        model_train_frequency = self.configs['world_model']['model_train_freq']
+        model_train_frequency = self.configs['world_model']['oq_model_train_freq']
         batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
         real_ratio = self.configs['data']['real_ratio'] # rr
         batch_size = self.configs['data']['batch_size'] # bs
-        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
+        batch_size_ro = self.configs['data']['oq_rollout_batch_size'] # bs_ro
 
         o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
@@ -252,10 +252,10 @@ class MBPO(MBRL, SAC):
 
 
     def set_rollout_length(self, n):
-        if self.configs['world_model']['rollout_schedule'] == None:
+        if self.configs['world_model']['oq_rollout_schedule'] == None:
         	K = 1
         else:
-        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['rollout_schedule']
+        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['oq_rollout_schedule']
 
         	if n <= min_epoch:
         		K = min_length
@@ -343,7 +343,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Old-0"
+    group_name = f"{env_name}-{alg_name}-Old-1"
     exp_prefix = f"seed:{seed}"
 
     if wb:

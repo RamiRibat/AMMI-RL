@@ -306,8 +306,8 @@ class EnsembleDynamicsModel():
         holdout_inputs = holdout_inputs[None, :, :].repeat([self.network_size, 1, 1])
         holdout_labels = holdout_labels[None, :, :].repeat([self.network_size, 1, 1])
 
-        # for epoch in range(2):
-        for epoch in itertools.count():
+        for epoch in range(2):
+        # for epoch in itertools.count():
             train_idx = np.vstack([np.random.permutation(train_inputs.shape[0]) for _ in range(self.network_size)])
             # train_idx = np.vstack([np.arange(train_inputs.shape[0])] for _ in range(self.network_size))
             for start_pos in range(0, train_inputs.shape[0], batch_size):
