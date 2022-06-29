@@ -64,12 +64,9 @@ class SoftQFunction(nn.Module):
     """
     def __init__(self, obs_dim, act_dim, net_configs, device, seed):
         print('Initialize Soft Q-function!')
-        # if seed: random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
         optimizer = 'T.optim.' + net_configs['optimizer']
         lr = net_configs['lr']
-        # hid = 128
-        # hid = 256
 
         super(SoftQFunction, self).__init__() # To automatically use forward
 
