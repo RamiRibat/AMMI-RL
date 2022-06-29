@@ -97,18 +97,22 @@ class ActorCritic: # Done
 
 class PPO(MFRL):
     """
-    Algorithm: Proximal Policy Optimization (On-policy, Model-free)
+    Algorithm: Proximal Policy Optimization (On-Policy, Model-Free)
 
-        01. Input: θ, φ                                                         > Initial parameters
-        02. for k = 0, 1, 2, ... do
-        03.     Collect set of traj's D = {τi} by πk = π(φk)
-        04.     Compute RTG Rhat_t
-        05.     Compute advantage estimate Ahat_t based on Vk = V(θk)
-        06.     Update πφ by maxz Jπ
-                    φ = arg max_φ {(1/T|Dk|) sum sum min((π/πk), 1 +- eps) Aπk }
-        07.     Fit Vθ by MSE(Jv)
-                    θ = arg min_θ {(1/T|Dk|) sum sum (Vθ(st) - RTG)^2 }
-        08. end for
+        01. Initialize: Models parameters( Policy net πφ, Value net Vψ )
+        02. Initialize: Trajectory buffer Dτ = {}
+        03. Hyperparameters: Disc. factor γ, GAE λ, num traj's Nτ, rollout horizon H
+        04. for n = 0, 1, 2, ..., N:
+        05.     Collect set of traj's {τ^πk} by πk = π(φk) for e = 0, 1, 2, ..., E
+        06.     Aggregate the traj's in traj buffer, Dτ = Dτ U {τ^πk}
+        07.     Compute RTG R^_t, GAE A^_t based on Vk = V(θk)
+        08.     for g = 0, 1, 2, ..., G do
+        09.         Update πφ by maxz Jπ
+                        φ = arg max_φ {(1/T|Dk|) sum sum min((π/πk), 1 +- eps) Aπk }
+        10.         Fit Vθ by MSE(Jv)
+                        ψ = arg min_ψ {(1/T|Dk|) sum sum (Vψ(st) - RTG)^2 }
+        11.     end for
+        12. end for
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
         super(PPO, self).__init__(exp_prefix, configs, seed, device)

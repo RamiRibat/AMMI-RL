@@ -25,18 +25,77 @@ import rl.environments.mbpo.static as mbpo_static
 
 class MBPPO(MBRL, PPO):
     """
-    Algorithm: Model-Based Game (PPO) (Dyna-style, Model-Based)
+    Greek alphabet:
+        Α α, Β β, Γ γ, Δ δ, Ε ε, Ζ ζ, Η η, Θ θ, Ι ι, Κ κ, Λ λ, Μ μ,
+        Ν ν, Ξ ξ, Ο ο, Π π, Ρ ρ, Σ σ/ς, Τ τ, Υ υ, Φ φ, Χ χ, Ψ ψ, Ω ω.
 
-        1:
-        2:
-        3:
-        4:
-        5:
-        6:
-        7:
-        8:
-        9:
-        10:
+    Algorithm: Model-Based Game: Policy As Leader (PAL) – Practical Version
+
+        01: Initialize: Models parameters( Policy net πφ0, Value net Vψ0, ensemble of MDP world models {M^θ0}_{1:nM} )
+        02. Initialize: Replay buffer D.
+        03: Hyperparameters: Initial samples Ninit, samples per update N, buffer size B ≈ N, number of NPG steps K ≈ 1
+        04: Initial Data: Collect N_init samples from the environment by interacting with initial policy. Store data in buffer D.
+        05: for n = 0, 1, 2, ..., N (nEpochs) do
+        06:    Learn dynamics model(s) Mkat_k+1 using data in the buffer.
+        07:    Policy updates: π_n+1; V_n+1 = MB-PPO(π_n, V_n, Mhat_n+1) // call K times
+        08:    Collect dataset of N samples from World by interacting with πn+1.
+        09.    Add data to replay buffer D, discarding old data if size is larger than B.
+        10: end for
+
+
+    Algorithm: Model-Based Game: Model As Leader (MAL) – Practical Version
+        1: Initialize: Policy network π_0, model network(s) Mhat_0, value network V_0.
+        2: Hyperparameters: Initial samples N_init, samples per update N, number of PPO steps K >> 1
+        3: Initial Data: Collect N_init samples from the environment by interacting with initial policy. Store data in buffer D.
+        4: Initial Model: Learn model(s) Mhat_0 using data in D.
+        5: for k = 0, 1, 2, ... do
+        6:    Optimize π_k+1 using Mck by running K >> 1 steps of model-based PPO (Subroutine 1).
+        7:    Collect dataset D_k+1 of N samples from world using πk+1. Aggregate data D = D U D_k+1.
+        8:    Learn dynamics model(s) Mhat_k+1 using data in D.
+        9: end for
+
+
+    Algorithm: Model-Based Proximal Policy Optimization (On-Policy, Dyna-style, Model-Based)
+
+        01. Inputs: Models parameters( Policy net πφn, Value net Vψn, ensemble of MDP world models {M^θn+1}_{1:nM}, Replay buffer D)
+        02. Hyperparameters: Disc. factor γ, GAE λ, num traj's Nτ, model rollout horizon H
+        03. Initialize: Trajectory buffer Dτ = {}
+        04. for k = 0, 1, 2, ..., Nτ:
+        05.     Sample init p(s^k_0) from distribution/buffer
+        05.     Rollout a traj {τ^k_π/M} from {M^θ}_{1:nM} by πn = π(φn) for e = 0, 1, 2, ..., H
+        06.     Aggregate traj τ^k in the traj buffer, Dτ = Dτ U {τ^k_π/M}
+        07.     Compute RTG R^_t, GAE A^_t based on Vn = V(θn)
+        08. end for
+        09. Update πφ by maxz Jπ
+                φ = arg max_φ {(1/T|Dk|) sum sum min((π/πk), 1 +- eps) Aπk }
+        10. Fit Vθ by MSE(Jv)
+                θ = arg min_θ {(1/T|Dk|) sum sum (Vθ(st) - RTG)^2 }
+        11.     end for
+        12. end for
+        1x. Return: Policy net πθn+1, value net Vφn+1
+
+    Subroutine 1: Model-Based Natural Policy Gradient Update Step
+    
+        1: Require: Policy (stochastic) network πθ, value/baseline network V , ensemble of MDP dynamics models fMcφg,
+        reward function R, initial state distribution or buffer.
+        2: Hyperparameters: Discount factor γ, GAE λ, number of trajectories Nτ, rollout horizon H, normalized NPG step
+        size δ
+        3: Initialize trajectory buffer Dτ = fg
+        4: for k = 1; 2; : : : ; Nτ do
+        5: Sample initial state sk 0 from initial state distribution/buffer
+        6: Perform H step rollout from sk 0 with πθ to get τjk = (sk 0; ak 0; sk 1; ak 2; : : : sk H; ak H), one for each model Mcφj in the
+        ensemble.
+        7: Query reward function to obtain rewards for each step of the trajectories
+        8: Truncate trajectories if termination/truncation conditions are part of the environment
+        9: Aggregate the trajectories in trajectory buffer, Dτ = Dτ [ fτg
+        10: end for
+        11: Compute advantages for each trajectory using V and GAE (Schulman et al., 2016).
+        12: Compute vanilla policy gradient using the dataset
+        g = E(s;a)∼Dτ [rθ log πθ(ajs)Aπ(s; a)]
+        13: Perform normalized NPG update (F denotes the Fisher matrix)
+        θ = θ + sgT Fδ−1g F −1g
+        14: Update value/baseline network V to fit the computed returns in Dτ.
+        15: Return Policy network πθ, value network V
 
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:

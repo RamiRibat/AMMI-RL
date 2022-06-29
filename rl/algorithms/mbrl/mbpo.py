@@ -85,12 +85,12 @@ class MBPO(MBRL, SAC):
 
         # batch_size = self.configs['data']['batch_size']
 
-        model_train_frequency = self.configs['world_model']['oq_model_train_freq']
+        model_train_frequency = self.configs['world_model']['model_train_freq']
         batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
         real_ratio = self.configs['data']['real_ratio'] # rr
         batch_size = self.configs['data']['batch_size'] # bs
-        batch_size_ro = self.configs['data']['oq_rollout_batch_size'] # bs_ro
+        batch_size_ro = self.configs['data']['rollout_batch_size'] # bs_ro
 
         o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
@@ -170,7 +170,7 @@ class MBPO(MBRL, SAC):
                     # AlphaList = [self.alpha]*G_sac
                     for g in range(1, G_sac+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
-                        # print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}', end='\r')
+                        print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}'+(" "*10), end='\r')
                         ## Sample a batch B_sac
                         B_sac = self.sac_batch(real_ratio, batch_size)
                         ## Train networks using batch B_sac
@@ -252,10 +252,10 @@ class MBPO(MBRL, SAC):
 
 
     def set_rollout_length(self, n):
-        if self.configs['world_model']['oq_rollout_schedule'] == None:
+        if self.configs['world_model']['rollout_schedule'] == None:
         	K = 1
         else:
-        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['oq_rollout_schedule']
+        	min_epoch, max_epoch, min_length, max_length = self.configs['world_model']['rollout_schedule']
 
         	if n <= min_epoch:
         		K = min_length
@@ -270,10 +270,10 @@ class MBPO(MBRL, SAC):
 
     def rollout_world_model(self, batch_size_ro, K, n):
     	#07. Sample st uniformly from Denv
-    	# device = self._device_
+    	device = self._device_
     	batch_size = min(batch_size_ro, self.buffer.size)
     	print(f'[ Epoch {n}   Model Rollout ] Batch Size: {batch_size} | Rollout Length: {K}'+(' '*50))
-    	B_ro = self.buffer.sample_batch_np(batch_size)
+    	B_ro = self.buffer.sample_batch(batch_size)
     	O = B_ro['observations'] # Torch
     	# print('rollout_world_model, O.shape: ', O.shape)
     	# print('a.ptr=', self.model_buffer.ptr)
@@ -298,8 +298,13 @@ class MBPO(MBRL, SAC):
     		self.model_buffer.store_batch(O, A, R, O_next, D) # ip:Numpy
     		# print('model buff ptr: ', self.model_buffer.ptr)
 
+    		O_next = T.Tensor(O_next)
+    		D = T.tensor(D, dtype=T.bool)
+    		# print('af: D = ', D)
     		# nonD = ~D
     		nonD = ~D.squeeze(-1)
+    		# print('nonD = ', nonD)
+
     		if nonD.sum() == 0:
     		    print(f'[ Epoch {n}   Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}')
     		    break
@@ -343,7 +348,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Old-3"
+    group_name = f"{env_name}-{alg_name}-XI"
     exp_prefix = f"seed:{seed}"
 
     if wb:

@@ -23,10 +23,10 @@ def init_weights_(l):
 		nn.init.uniform_(l.bias, 0.0)
 
 
-# def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-#     T.nn.init.orthogonal_(layer.weight, std)
-#     T.nn.init.constant_(layer.bias, bias_const)
-#     return layer
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    T.nn.init.orthogonal_(layer.weight, std)
+    T.nn.init.constant_(layer.bias, bias_const)
+    return layer
 
 
 class PPOPolicy(nn.Module):
@@ -143,14 +143,14 @@ class StochasticPolicy(nn.Module):
 		else:
 			sample = normal_ditribution.sample()
 
-		prob, log_prob, entropy = T.tanh(sample), None, None
+		prob, log_prob = T.tanh(sample), None
 
 		if return_log_prob:
 			log_prob = normal_ditribution.log_prob(sample)
 			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(1, keepdim=True)
 
-		return prob, log_prob, entropy
+		return prob, log_prob
 
 
 	def forward(self,
@@ -170,18 +170,18 @@ class StochasticPolicy(nn.Module):
 		T.as_tensor(obs, dtype=T.float32).to(self.device)
 		)
 
-		log_pi, entropy = None, None
+		log_pi = None
 
 		if deterministic: # Evaluation
 			with T.no_grad(): pi = T.tanh(mean)
 
 		else: # Stochastic | Interaction
 			# print('reparameterize: ', reparameterize)
-			pi, log_pi, entropy = self.pi_prob(mean, std, reparameterize, return_log_pi)
+			pi, log_pi = self.pi_prob(mean, std, reparameterize, return_log_pi)
 
 		pi = (pi * self.act_scale) + self.act_bias
 
-		return pi, log_pi, entropy
+		return pi, log_pi
 
 
 	def to(self, device):

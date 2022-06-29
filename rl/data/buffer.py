@@ -194,7 +194,7 @@ class TrajBuffer:
 
 
 
-class ReplayBufferPT:
+class ReplayBuffer:
     """
     FIFO Replay buffer for off-policy data:
         __init__: initialize: empty matrices for storing traj's, poniter, size, max_size
@@ -225,11 +225,11 @@ class ReplayBufferPT:
 
     def override_batch(self, O, A, R, O_next, D, batch_size):
         available_size = self.max_size - self.ptr # 84
-        self.obs_buf[self.ptr:self.ptr+available_size] = O[:available_size,:]
-        self.act_buf[self.ptr:self.ptr+available_size] = A[:available_size,:]
-        self.rew_buf[self.ptr:self.ptr+available_size] = R[:available_size].reshape(-1,1)
-        self.obs_next_buf[self.ptr:self.ptr+available_size] = O_next[:available_size,:]
-        self.ter_buf[self.ptr:self.ptr+available_size] = D[:available_size]
+        self.obs_buf[self.ptr:self.ptr+available_size] = T.Tensor(O[:available_size,:])
+        self.act_buf[self.ptr:self.ptr+available_size] = T.Tensor(A[:available_size,:])
+        self.rew_buf[self.ptr:self.ptr+available_size] = T.tensor(R[:available_size].reshape(-1,1))
+        self.obs_next_buf[self.ptr:self.ptr+available_size] = T.Tensor(O_next[:available_size,:])
+        self.ter_buf[self.ptr:self.ptr+available_size] = T.tensor(D[:available_size])
         self.ptr = (self.ptr+available_size) % self.max_size # 0
         remain_size = batch_size - available_size # 316
         # print('ptr=', self.ptr)
@@ -242,11 +242,11 @@ class ReplayBufferPT:
                                 D[available_size:],
                                 remain_size)
         else:
-            self.obs_buf[self.ptr:self.ptr+remain_size] = O[available_size:,:]
-            self.act_buf[self.ptr:self.ptr+remain_size] = A[available_size:,:]
-            self.rew_buf[self.ptr:self.ptr+remain_size] = R[available_size:].reshape(-1,1)
-            self.obs_next_buf[self.ptr:self.ptr+remain_size] = O_next[available_size:,:]
-            self.ter_buf[self.ptr:self.ptr+remain_size] = D[available_size:]
+            self.obs_buf[self.ptr:self.ptr+remain_size] = T.Tensor(O[available_size:,:])
+            self.act_buf[self.ptr:self.ptr+remain_size] = T.Tensor(A[available_size:,:])
+            self.rew_buf[self.ptr:self.ptr+remain_size] = T.tensor(R[available_size:].reshape(-1,1))
+            self.obs_next_buf[self.ptr:self.ptr+remain_size] = T.Tensor(O_next[available_size:,:])
+            self.ter_buf[self.ptr:self.ptr+remain_size] = T.tensor(D[available_size:])
             self.ptr = (self.ptr+remain_size) % self.max_size # 316
 
 
@@ -257,11 +257,11 @@ class ReplayBufferPT:
     	if self.ptr+batch_size > self.max_size:
             self.override_batch(O, A, R, O_next, D, batch_size)
     	else:
-    		self.obs_buf[self.ptr:self.ptr+batch_size] = O
-    		self.act_buf[self.ptr:self.ptr+batch_size] = A
-    		self.rew_buf[self.ptr:self.ptr+batch_size] = R.reshape(-1,1)
-    		self.obs_next_buf[self.ptr:self.ptr+batch_size] = O_next
-    		self.ter_buf[self.ptr:self.ptr+batch_size] = D
+    		self.obs_buf[self.ptr:self.ptr+batch_size] = T.Tensor(O)
+    		self.act_buf[self.ptr:self.ptr+batch_size] = T.Tensor(A)
+    		self.rew_buf[self.ptr:self.ptr+batch_size] = T.tensor(R.reshape(-1,1))
+    		self.obs_next_buf[self.ptr:self.ptr+batch_size] = T.Tensor(O_next)
+    		self.ter_buf[self.ptr:self.ptr+batch_size] = T.tensor(D, dtype=T.bool)
     		self.ptr = (self.ptr+batch_size) % self.max_size
 
     		self.size = min(self.size+batch_size, self.max_size)
@@ -334,12 +334,13 @@ class ReplayBufferPT:
 
 
     def return_all_stack(self):
-        # data = self.return_all_np()
-        # return {k: np.stack(v) for k, v in data.items()}
         data = self.return_all()
         return {k: T.stack([v])[0] for k, v in data.items()}
-        # state, action, reward, next_state, done = np.stack(state), np.stack(action), np.stack(reward), np.stack(next_state), np.stack(done)
-        # return state, action, reward, next_state, done
+
+
+    def return_all_stack_np(self):
+        data = self.return_all_np()
+        return {k: np.stack(v) for k, v in data.items()}
 
 
 
@@ -352,7 +353,7 @@ class ReplayBufferPT:
 
 
 
-class ReplayBuffer:
+class ReplayBufferNP:
     """
     FIFO Replay buffer for off-policy data:
         __init__: initialize: empty matrices for storing traj's, poniter, size, max_size
@@ -361,6 +362,13 @@ class ReplayBuffer:
     """
 
     def __init__(self, obs_dim, act_dim, size, seed, device):
+
+        # np.random.seed(seed)
+        # T.manual_seed(seed)
+
+        # self.name = None
+        # self.device = device
+
         self.obs_buf = np.zeros(combined_shape(size, obs_dim), dtype=np.float32)
         self.act_buf = np.zeros(combined_shape(size, act_dim), dtype=np.float32)
         self.rew_buf = np.zeros(combined_shape(size, 1), dtype=np.float32)

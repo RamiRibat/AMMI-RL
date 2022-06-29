@@ -80,14 +80,14 @@ class ActorCritic: # Done
 
 
     def get_pi(self, o, a=None, reparameterize=True, deterministic=False, return_log_pi=False):
-        pi, log_pi, entropy = self.actor(o, a, reparameterize, deterministic, return_log_pi)
-        return pi, log_pi, entropy
+        pi, log_pi = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        return pi, log_pi
 
 
     def get_action(self, o, a=None, reparameterize=False, deterministic=False, return_log_pi=False):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): a, _, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
+        with T.no_grad(): a, _ = self.actor(o, a, reparameterize, deterministic, return_log_pi)
         return a.cpu()
 
 
@@ -96,8 +96,8 @@ class ActorCritic: # Done
 
 
     def get_pi_and_q(self, o, a=None):
-        pi, log_pi, entropy = self.actor(o, a)
-        return pi, log_pi, entropy, self.critic(o)
+        pi, log_pi = self.actor(o, a)
+        return pi, log_pi, self.critic(o)
 
 
 
@@ -306,7 +306,6 @@ class SAC(MFRL):
         R = batch['rewards']
         O_next = batch['observations_next']
         D = batch['terminals']
-        # print('gamma:\n', gamma)
 
         # Calculate two Q-functions
         # Qs = self.actor_critic.critic(O, A)
@@ -314,14 +313,11 @@ class SAC(MFRL):
         # # Bellman backup for Qs
         with T.no_grad():
             # pi_next, log_pi_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
-            pi_next, log_pi_next, entropy_next = self.actor_critic.get_pi(O_next, reparameterize=True, return_log_pi=True)
+            pi_next, log_pi_next = self.actor_critic.get_pi(O_next, reparameterize=True, return_log_pi=True)
             A_next = pi_next
             # Qs_targ = T.cat(self.actor_critic.critic_target(O_next, A_next), dim=1)
             Qs_targ = T.cat(self.actor_critic.get_q_target(O_next, A_next), dim=1)
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
-            # print('min_Q_targ: ', min_Q_targ)
-            # print('log_pi_next: ', log_pi_next)
-            # print(': ', )
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
 
         # # MSE loss
@@ -372,7 +368,7 @@ class SAC(MFRL):
         # Policy Evaluation
         # pi, log_pi = self.actor_critic.actor(O, return_log_pi=True)
         # Qs_pi = T.cat(self.actor_critic.critic(O, pi), dim=1)
-        pi, log_pi, entropy = self.actor_critic.get_pi(O, reparameterize=True, return_log_pi=True)
+        pi, log_pi = self.actor_critic.get_pi(O, reparameterize=True, return_log_pi=True)
         Qs_pi = T.cat(self.actor_critic.get_q(O, pi), dim=1)
         min_Q_pi, _ = T.min(Qs_pi, dim=1, keepdim=True)
 
@@ -414,7 +410,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Mac-J"
+    group_name = f"{env_name}-{alg_name}"
     exp_prefix = f"seed:{seed}"
 
     if wb:

@@ -54,9 +54,9 @@ configurations = {
         'sample_type': 'Random',
         'learn_reward': True,
         # 'learn_log_sigma_limits': False,
-        'oq_model_train_freq': 250,#250, # Mf
+        'model_train_freq': 250,#250, # Mf
         'model_retain_epochs': 1,
-        'oq_rollout_schedule': [20, 150, 1, 15], # original
+        'rollout_schedule': [20, 150, 1, 15], # original
         # 'rollout_schedule': [10, 150, 1, 50],
         'network': {
             'arch': [200, 200, 200, 200], #@#
@@ -130,7 +130,7 @@ configurations = {
         'model_buffer_size': int(1e7),
         'real_ratio': 0.05,
         'model_val_ratio': 0.2,
-        'oq_rollout_batch_size': 1e5,
+        'rollout_batch_size': 1e5,
         'model_batch_size': 256,
         'batch_size': 256,
     },

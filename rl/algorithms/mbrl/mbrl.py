@@ -127,7 +127,7 @@ class MBRL:
         	# T.cuda.empty_cache()
         	self.model_buffer = new_model_buffer
 
-        print(f'[ Model Buffer ] Size: {self.model_buffer.size}'+(' '*60))
+        print(f'[ Model Buffer ] Size: {self.model_buffer.size}'+(' '*80))
 
 
     def initialize_learning(self, NT, Ni):
