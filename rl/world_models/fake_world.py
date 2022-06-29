@@ -89,11 +89,6 @@ class FakeWorld:
         # else:
         #     ensemble_model_means, ensemble_model_vars = self.model.predict(inputs, factored=True)
 
-        # print('obs,: ', obs)
-        # print('act: ', act)
-        # print('inputs: ', inputs)
-        # print('ensemble_model_means: ', ensemble_model_means)
-
         ensemble_model_means[:, :, 1:] += obs
         ensemble_model_stds = np.sqrt(ensemble_model_vars)
 
@@ -137,15 +132,11 @@ class FakeWorld:
         # data = buffer.return_all_np_stack()
         data = buffer.data_for_WM_stack() # Torch (TrajBuffer)
         state, action, reward, next_state, done = data.values()
-        # print('state: ', state)
 
-        # state, action, reward, next_state, done = env_pool.sample(len(env_pool))
         delta_state = next_state - state
 
         inputs = np.concatenate((state, action), axis=-1)
         labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1)
-        # print('inputs: ', inputs)
-        # print('labels: ', labels)
 
         holdout_mse_mean = self.model.train(inputs, labels, batch_size=256, holdout_ratio=0.2)
 
