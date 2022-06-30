@@ -24,9 +24,25 @@ from torch.distributions.normal import Normal
 nn = T.nn
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import PPOPolicy
+from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy
+# from rl.control.policy import NPGPolicy
 from rl.value_functions.v_function import VFunction
 
+
+class color:
+    """
+    Source: https://stackoverflow.com/questions/8924173/how-to-print-bold-text-in-python
+    """
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
 
 
 
@@ -43,7 +59,7 @@ class ActorCritic: # Done
                  configs, seed, device
                  ) -> None:
         print('Initialize AC!')
-        super(ActorCritic, self).__init__()
+        # super(ActorCritic, self).__init__()
         self.obs_dim, self.act_dim = obs_dim, act_dim
         self.act_up_lim, self.act_low_lim = act_up_lim, act_low_lim
         self.configs, self.seed = configs, seed
@@ -64,6 +80,10 @@ class ActorCritic: # Done
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
+        # return OVOQPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -73,25 +93,96 @@ class ActorCritic: # Done
             net_configs, self._device_, self.seed)
 
 
-    def get_v(self, x):
-        return self.critic(x)
+    def get_v(self, o):
+        return self.critic(o)
 
 
-    def get_pi(self, x, action=None):
-        action, log_pi, entropy = self.actor(x, action)
+    def get_pi(self, o, a=None,
+               on_policy=True,
+               reparameterize=False,
+               deterministic=False,
+               return_log_pi=True,
+               return_entropy=True):
+        action, log_pi, entropy = self.actor(o, a, on_policy,
+                                             reparameterize,
+                                             deterministic,
+                                             return_log_pi,
+                                             return_entropy)
         return action, log_pi, entropy
 
 
-    def get_action(self, o, a=None):
+    def get_action(self, o, a=None,
+                   on_policy=True,
+                   reparameterize=False,
+                   deterministic=False,
+                   return_log_pi=True,
+                   return_entropy=True):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): action, _, _ = self.actor(T.Tensor(o), a)
-        return action.cpu().numpy()
+        with T.no_grad(): a, _, _ = self.actor(o, a, on_policy,
+                                               reparameterize,
+                                               deterministic,
+                                               return_log_pi,
+                                               return_entropy)
+        return a.cpu()
 
 
-    def get_pi_and_v(self, x, action=None):
-        action, log_pi, entropy = self.actor(x, action)
-        return action, log_pi, entropy, self.critic(x)
+    def get_action_np(self, o, a=None,
+                      on_policy=True,
+                      reparameterize=False,
+                      deterministic=False,
+                      return_log_pi=True,
+                      return_entropy=True):
+        return self.get_action(o, a, on_policy,
+                               reparameterize,
+                               deterministic,
+                               return_log_pi,
+                               return_entropy).numpy()
+
+
+    def get_pi_and_v(self, o, a=None,
+                    on_policy=True,
+                    reparameterize=False,
+                    deterministic=False,
+                    return_log_pi=True,
+                    return_entropy=True):
+        pi, log_pi, entropy = self.actor(o, a, on_policy,
+                                         reparameterize,
+                                         deterministic,
+                                         return_log_pi,
+                                         return_entropy)
+        return pi, log_pi, entropy, self.critic(o)
+
+
+    def get_a_and_v(self, o, a=None,
+                    on_policy=True,
+                    reparameterize=False,
+                    deterministic=False,
+                    return_log_pi=True,
+                    return_entropy=True):
+        action, log_pi, entropy = self.actor(o, a, on_policy,
+                                             reparameterize,
+                                             deterministic,
+                                             return_log_pi,
+                                             return_entropy)
+        return action.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
+
+
+    def get_a_and_v_np(self, o, a=None,
+                       on_policy=True,
+                       reparameterize=False,
+                       deterministic=False,
+                       return_log_pi=True,
+                       return_entropy=True):
+        o = T.Tensor(o)
+        if a: a = T.Tensor(a)
+        with T.no_grad(): a, log_pi, entropy = self.actor(o, a, on_policy,
+                                                          reparameterize,
+                                                          deterministic,
+                                                          return_log_pi,
+                                                          return_entropy)
+        return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
+
 
 
 
@@ -116,7 +207,7 @@ class PPO(MFRL):
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
         super(PPO, self).__init__(exp_prefix, configs, seed, device)
-        # print('init PPO Algorithm!')
+        print('Initialize PPO Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -138,6 +229,10 @@ class PPO(MFRL):
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             self.configs, self.seed, self._device_)
+        # self.actor_critic = ActorCriticII(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     self.configs, self.seed, self._device_)
 
 
     def learn(self):
@@ -151,93 +246,144 @@ class PPO(MFRL):
         G = self.configs['algorithm']['learning']['grad_AC_steps']
 
         batch_size = self.configs['data']['batch_size']
-        mini_batch_size = self.configs['data']['mini_batch_size']
+        # mini_batch_size = self.configs['data']['mini_batch_size']
+
+        max_dev = self.configs['actor']['max_dev']
 
 
         global_step = 0
         start_time = time.time()
-        o, d, Z, el, t = self.learn_env.reset(), 0, 0, 0, 0
+        t = 0
+        # o, d, Z, el, t = self.learn_env.reset(), 0, 0, 0, 0
         oldJs = [0, 0]
-        JVList, JPiList = [0]*Ni, [0]*Ni
         logs = dict()
         lastEZ, lastES = 0, -2
+        # KLrange = np.linspace(0.025, 0.0025, 200)
+        # num_traj = 1000
+        # stop_pi = False
+        pg = 0
 
         start_time_real = time.time()
         for n in range(1, N + 1):
+            n_real = int(n*NT/1000)
             if self.configs['experiment']['print_logs']:
-                print('=' * 80)
+                print('=' * 50)
                 if n > Nx:
-                    print(f'\n[ Epoch {n}   Learning ]')
+                    print(f'\n[ Epoch {n_real}   Learning ]'+(' '*50))
+                    oldJs = [0, 0]
+                    JVList, JPiList, KLList = [], [], []
+                    HList, DevList, LogPiList = [], [], []
+                    ho_mean = 0
                 elif n > Ni:
-                    print(f'\n[ Epoch {n}   Exploration + Learning ]')
+                    print(f'\n[ Epoch {n_real}   Exploration + Learning ]'+(' '*50))
+                    JVList, JPiList, KLList = [], [], []
+                    HList, DevList, LogPiList = [], [], []
                 else:
-                    print(f'\n[ Epoch {n}   Inintial Exploration ]')
+                    print(f'\n[ Epoch {n_real}   Inintial Exploration ]'+(' '*50))
+                    oldJs = [0, 0]
+                    JVList, JPiList, KLList = [0], [0], [0]
+                    HList, DevList, LogPiList = [0], [0], [0]
+                    ho_mean = 0
+
 
             nt = 0
-            # self.buffer.reset()
+            self.buffer.reset()
+            o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
+            ZList, elList = [0], [0]
+            ZListImag, elListImag = [0, 0], [0, 0]
+            AvgZ, AvgEL = 0, 0
+            ppo_grads = 0
+
             learn_start_real = time.time()
             while nt < NT:
                 # Interaction steps (On-Policy)
                 for e in range(1, E+1):
                     print('t: ', t, end='\r')
-                    # global_step += 1 #* num_envs
-                    o, d, Z, el, t = self.internact_op(n, o, d, Z, el, t)
+                    # o, d, Z, el, t = self.internact_op(n, o, d, Z, el, t)
+                    o, Z, el, t = self.internact_opB(n, o, Z, el, t)
+                    # print(f'Steps: e={e} | el={el} || size={self.buffer.total_size()}')
 
-                    if t % 1000 == 0:
-                        # print(f"Training: global_step={global_step}, return={round(Z, 2)}, ep_length={el}")
-                        EZ, ES, EL = self.evaluate_op()
-                        print(f"Evaluation: global_step={t}, return={round(np.mean(EZ), 2)}, ep_length={np.mean(EL)}")
-                        logs['evaluation/episodic_return_mean'] = np.mean(EZ)
-                        logs['evaluation/episodic_length_mean'] = np.mean(EL)
-                        if self.WandB:
-                            wandb.log(logs)
+                    if el > 0:
+                        currZ = Z
+                        AvgZ = (sum(ZList)+currZ)/(len(ZList))
+                        currEL = el
+                        AvgEL = (sum(elList)+currEL)/(len(elList))
+                    else:
+                        lastZ = currZ
+                        ZList.append(lastZ)
+                        AvgZ = sum(ZList)/(len(ZList)-1)
+                        lastEL = currEL
+                        elList.append(lastEL)
+                        AvgEL = sum(elList)/(len(elList)-1)
 
-                # with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o))
-                # self.buffer.traj_tail(d, v)
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+                # self.buffer.traj_tail(d, v, el)
+                self.buffer.finish_path(el, v)
+                # print('self.log_pi_buf: ', self.buffer.log_pi_buf)
 
                 # Taking gradient steps after exploration
-                if n > Ni and n % F == 0:
-                    # print('updateAC')
-                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o))
-                    self.buffer.traj_tail(d, v)
+                if n > Ni:
                     # Optimizing policy and value networks
-                    b_inds = np.arange(batch_size)
+                    self.stop_pi = False
+                    kl, dev = 0, 0
+                    # ppo_grads = 0
                     for g in range(1, G+1):
+                        # print('KL: ', KL)
                         # PPO-P >>>>
-                        for b in range(0, batch_size, mini_batch_size):
-                            # print('ptr: ', self.buffer.ptr)
-                            mini_batch = self.buffer.sample_batch(mini_batch_size)
-                            Jv, Jpi, stop_pi = self.trainAC(g, mini_batch, oldJs)
-                            oldJs = [Jv, Jpi]
-                            JVList.append(Jv.item())
-                            JPiList.append(Jpi.item())
+                        print(f'[ PPO ] grads={g}/{G} | stopPG={self.stop_pi} | Dev={round(dev, 4)}', end='\r')
+                        batch = self.buffer.sample_batch(batch_size, device=self._device_)
+                        Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs)
+                        oldJs = [Jv, Jpi]
+                        JVList.append(Jv)
+                        JPiList.append(Jpi)
+                        KLList.append(kl)
+                        HList.append(PiInfo['entropy'])
+                        DevList.append(PiInfo['deviation'])
+                        dev = PiInfo['deviation']
+                        if not self.stop_pi:
+                            ppo_grads += 1
+                        # if PiInfo['deviation'] > max_dev:
+                        #     print(f'\nBreak AC grad loop at g={g}'+(' ')*80)
+                        #     break
                         # PPO-P <<<<
-
-                        # np.random.shuffle(b_inds)
-                        # for start in range(0, batch_size, mini_batch_size):
-                        #     end = start + mini_batch_size
-                        #     mb_inds = b_inds[start:end]
-                        #     mini_batch = self.buffer.sample_inds(mb_inds)
-                        #     self.trainAC(mini_batch)
-                    self.buffer.reset()
+                    # self.buffer.reset()
                 nt += E
 
-            # logs['time/training                  '] = time.time() - learn_start_real
-            # logs['training/ppo/Jv                '] = np.mean(JVList)
-            # logs['training/ppo/Jpi               '] = np.mean(JPiList)
-            #
-            # eval_start_real = time.time()
-            # EZ, ES, EL = self.evaluate_op()
+            # logs['time/training                       '] = time.time() - learn_start_real
+            logs['training/ppo/Jv                     '] = np.mean(JVList)
+            logs['training/ppo/V(s)                   '] = T.mean(self.buffer.val_buf).item()
+            logs['training/ppo/V-R                    '] = T.mean(self.buffer.val_buf).item()-T.mean(self.buffer.ret_buf).item()
+            logs['training/ppo/Jpi                    '] = np.mean(JPiList)
+            logs['training/ppo/grads                  '] = ppo_grads
+            logs['training/ppo/H                      '] = np.mean(HList)
+            logs['training/ppo/KL                     '] = np.mean(KLList)
+            logs['training/ppo/deviation              '] = np.mean(DevList)
+            logs['training/ppo/log_pi                 '] = PiInfo['log_pi']
+
+            # logs['time                                '] = t
+            # logs['data/average_return                 '] = self.buffer.average_return()
+            logs['data/env_buffer                     '] = self.buffer.total_size()
+            logs['data/total_interactions             '] = t
+
+            logs['learning/real/rollout_return_mean   '] = np.mean(ZList[1:])
+            logs['learning/real/rollout_return_std    '] = np.std(ZList[1:])
+            logs['learning/real/rollout_length        '] = np.mean(elList[1:])
+
+            eval_start_real = time.time()
+            EZ, ES, EL = self.evaluate_op()
             #
             # logs['time/evaluation                '] = time.time() - eval_start_real
             #
-            # if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
-            #     logs['evaluation/episodic_score_mean '] = np.mean(ES)
-            #     logs['evaluation/episodic_score_std  '] = np.std(ES)
-            # else:
-            #     logs['evaluation/episodic_return_mean'] = np.mean(EZ)
-            #     logs['evaluation/episodic_return_std '] = np.std(EZ)
-            # logs['evaluation/episodic_length_mean'] = np.mean(EL)
+            if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand':
+                logs['evaluation/episodic_score_mean      '] = np.mean(ES)
+                logs['evaluation/episodic_score_std       '] = np.std(ES)
+            else:
+                logs['evaluation/episodic_return_mean     '] = np.mean(EZ)
+                logs['evaluation/episodic_return_std      '] = np.std(EZ)
+            logs['evaluation/episodic_length_mean     '] = np.mean(EL)
+            logs['evaluation/return_to_length         '] = np.mean(EZ)/np.mean(EL)
+            logs['evaluation/return_to_full_length    '] = (np.mean(EZ)/1000)
+
             #
             # logs['time/total                     '] = time.time() - start_time_real
             #
@@ -259,14 +405,23 @@ class PPO(MFRL):
             #             f'./saved_agents/{env_name}-{alg_name}-seed:{self.seed}-epoch:{n}.pth.tar')
             #             lastEZ = np.mean(EZ)
             #
-            # # Printing logs
-            # if self.configs['experiment']['print_logs']:
-            #     for k, v in logs.items():
-            #         print(f'{k}  {round(v, 2)}')
-            #
-            # # WandB
-            # if self.WandB:
-            #     wandb.log(logs)
+            # Printing logs
+            # Printing logs
+            if self.configs['experiment']['print_logs']:
+                return_means = ['learning/real/rollout_return_mean   ',
+                                'evaluation/episodic_return_mean     ',
+                                'evaluation/return_to_length         ',
+                                'evaluation/return_to_full_length    ']
+                for k, v in logs.items():
+                    if k in return_means:
+                        print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
+                    else:
+                        print(f'{k}  {round(v, 4)}'+(' '*10))
+
+            # WandB
+            if self.WandB:
+                for i in range(int(E/1000)):
+                    wandb.log(logs)
 
         self.learn_env.close()
         self.eval_env.close()
@@ -274,8 +429,11 @@ class PPO(MFRL):
 
     def trainAC(self, g, batch, oldJs):
         Jv = self.updateV(batch, oldJs[0])
-        Jpi, stop_pi = self.updatePi(batch, oldJs[1])
-        return Jv, Jpi, stop_pi
+        Jv = Jv.item()
+        Jpi, kl, PiInfo = self.updatePi(batch, oldJs[1], g)
+        Jpi = Jpi.item()
+        kl = kl.item()
+        return Jv, Jpi, kl, PiInfo#, deviation, stop_pi
 
 
     def updateV(self, batch, Jv_old):
@@ -284,62 +442,80 @@ class PPO(MFRL):
         """
         max_grad_norm = kl_targ = self.configs['critic']['network']['max_grad_norm']
 
-        observations, _, returns, _, _, _ = batch.values()
+        observations, _, _, _, _, returns, _, _, _ = batch.values()
         v = self.actor_critic.get_v(observations)
 
         Jv = 0.5 * ( (v - returns) ** 2 ).mean(axis=0)
 
         self.actor_critic.critic.optimizer.zero_grad()
         Jv.backward()
-        nn.utils.clip_grad_norm_(self.actor_critic.critic.parameters(), max_grad_norm)
+        nn.utils.clip_grad_norm_(self.actor_critic.critic.parameters(), max_grad_norm) # PPO-D
         self.actor_critic.critic.optimizer.step()
 
         return Jv
 
 
-    def updatePi(self, batch, Jpi_old, stop_pi=False):
+    def updatePi(self, batch, Jpi_old, g):
         """
         Jπ(φ) =
         """
+        constrained = self.configs['actor']['constrained']
         clip_eps = self.configs['actor']['clip_eps']
-        kl_targ = self.configs['actor']['kl_targ']
         entropy_coef = self.configs['actor']['entropy_coef']
         max_grad_norm = self.configs['actor']['network']['max_grad_norm']
+        kl_targ = self.configs['actor']['kl_targ']
+        max_dev = self.configs['actor']['max_dev']
+        G = self.configs['algorithm']['learning']['grad_AC_steps']
 
-        observations, actions, _, _, advantages, log_pis_old = batch.values()
+        PiInfo = dict()
+
+        observations, actions, _, _, _, _, _, advantages, log_pis_old = batch.values()
 
         _, log_pi, entropy = self.actor_critic.get_pi(observations, actions)
         logratio = log_pi - log_pis_old
+
         ratio = logratio.exp()
 
+        # print('log_pi_old: ', log_pis_old)
+        # print('log_pi: ', log_pi)
+        # print('ratio: ', ratio.mean().item())
+
         with T.no_grad():
+            # old_mean = self.actor_critic.actor.mean(observations)
+            # old_log_std = self.actor_critic.actor.log_std
             # calculate approx_kl http://joschu.net/blog/kl-approx.html
             approx_kl_old = (-logratio).mean()
             approx_kl = ((ratio - 1) - logratio).mean()
+            deviation = ((ratio - 1).abs()).mean()
 
-        # clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
-        # Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
-        # Jentropy = entropy_coef * entropy.mean()
-        # Jpi = Jpg + Jentropy
-
-        # if approx_kl_old <= kl_targ:
         clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
         Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
-        Jentropy = entropy_coef * entropy.mean()
+        # Jpg = - ( ratio * advantages ).mean(axis=0)
+        # Jpi = - ( ratio * advantages + entropy_coef * entropy ).mean(axis=0)
+
+        # Jpg = - (ratio * advantages).mean(axis=0)
+
+        Jentropy = - entropy_coef * entropy.mean()
         Jpi = Jpg + Jentropy
-        self.actor_critic.actor.optimizer.zero_grad()
-        Jpi.backward()
-        nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm)
-        self.actor_critic.actor.optimizer.step()
-        # else:
-        #     # print('Stop policy gradient updates!')
-        #     Jpi = Jpi_old
-        #     stop_pi = True
 
-        # if approx_kl > 1.5 * kl_targ:
-        #     stop = True
+        if (constrained) and ((deviation > max_dev) and (g > 0.1*G)):
+            self.stop_pi = True
+        else:
+            self.stop_pi = False
+            self.actor_critic.actor.optimizer.zero_grad()
+            Jpi.backward()
+            nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm) # PPO-D
+            self.actor_critic.actor.optimizer.step()
 
-        return Jpi, stop_pi
+        PiInfo['KL'] = approx_kl_old
+        # PiInfo['KL-new'] = approx_kl
+        PiInfo['entropy'] = entropy.mean().item()
+        PiInfo['ratio'] = ratio.mean().item()
+        PiInfo['deviation'] = deviation.item()
+        PiInfo['log_pi'] = log_pi.mean().item()
+        PiInfo['stop_pi'] = self.stop_pi
+
+        return Jpi, approx_kl_old, PiInfo#, stop_pi
 
 
 
@@ -359,7 +535,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}"
+    group_name = f"{env_name}-{alg_name}-ReLU-15" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:
