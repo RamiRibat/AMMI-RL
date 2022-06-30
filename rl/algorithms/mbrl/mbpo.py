@@ -107,8 +107,8 @@ class MBPO(MBRL, SAC):
         batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
 
-        o, t = self.learn_env.reset(), 0
-        # o, Z, el, t = self.learn_env.reset(), 0, 0, 0
+        # o, t = self.learn_env.reset(), 0
+        o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
 
         logs = dict()
@@ -142,7 +142,7 @@ class MBPO(MBRL, SAC):
 
             nt = 0
             # o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
-            Z, el, = 0, 0
+            # Z, el = 0, 0
             ZList, elList = [0], [0]
             ZListImag, elListImag = [0, 0], [0, 0]
             AvgZ, AvgEL = 0, 0
