@@ -41,9 +41,9 @@ class color:
 
 
 
-class MBPO(MBRL, SAC):
+class MBSAC(MBRL, SAC):
     """
-    Algorithm: Model-Based Policy Optimization (Dyna-style, Model-Based)
+    Algorithm: Model-Based Policy Optimization (MB-SAC) (Dyna-style, Model-Based)
 
         1: Initialize policy πφ, predictive model pθ, environment dataset Denv, model dataset Dmodel
         2: for N epochs do
@@ -58,8 +58,8 @@ class MBPO(MBRL, SAC):
 
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
-        super(MBPO, self).__init__(exp_prefix, configs, seed, device)
-        # print('init MBPO Algorithm!')
+        super(MBSAC, self).__init__(exp_prefix, configs, seed, device)
+        # print('init MBSAC Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -67,9 +67,9 @@ class MBPO(MBRL, SAC):
         self._build()
 
 
-    ## build MBPO components: (env, D, AC, alpha)
+    ## build MBSAC components: (env, D, AC, alpha)
     def _build(self):
-        super(MBPO, self)._build()
+        super(MBSAC, self)._build()
         self._set_sac()
         self._set_fake_world()
 
@@ -520,7 +520,7 @@ class MBPO(MBRL, SAC):
 
 def main(exp_prefix, config, seed, device, wb):
 
-    print('Start an MBPO experiment...')
+    print('Start an MBSAC experiment...')
     print('\n')
 
     configs = config.configurations
@@ -548,12 +548,12 @@ def main(exp_prefix, config, seed, device, wb):
             config=configs
         )
 
-    agent = MBPO(exp_prefix, configs, seed, device, wb)
+    agent = MBSAC(exp_prefix, configs, seed, device, wb)
 
     agent.learn()
 
     print('\n')
-    print('... End the MBPO experiment')
+    print('... End the MBSAC experiment')
 
 
 if __name__ == "__main__":
