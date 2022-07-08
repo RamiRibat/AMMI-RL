@@ -15,7 +15,7 @@ configurations = {
         'model-based': True,
         'on-policy': False,
         'learning': {
-            'epochs': 200, # N epochs
+            'epochs': 500, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 5, # Ni epochs = 5000 exploration steps
             'expl_epochs': 0, # Nx epochs
@@ -92,7 +92,7 @@ configurations = {
             'lr': 3e-4,
         }
     },
-    
+
 
     'critic': {
         'type': 'sofQ',
