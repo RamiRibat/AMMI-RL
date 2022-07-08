@@ -795,7 +795,7 @@ class MBPPO(MBRL, PPO):
         else:
             return_single = False
 
-        next_obs = next_obs.numpy()
+        next_obs = next_obs.cpu().numpy()
         if env_name == "Hopper-v2":
             assert len(obs.shape) == len(act.shape) == 2
             vel_x = obs[:, -6] / 0.02
@@ -814,7 +814,6 @@ class MBPPO(MBRL, PPO):
 
 
     def _termination_fn(self, env_name, obs, act, next_obs):
-        next_obs = next_obs.numpy()
         if len(obs.shape) == 1 and len(act.shape) == 1:
             obs = obs[None]
             act = act[None]
@@ -827,7 +826,8 @@ class MBPPO(MBRL, PPO):
         else:
             return_single = False
 
-        next_obs = next_obs.numpy()
+        next_obs = next_obs.cpu().numpy()
+
         if env_name == "Hopper-v2":
             assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
 
