@@ -29,8 +29,8 @@ configurations = {
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
-            'grad_AC_steps': 20, # ACG: ac grad, 40
-            'grad_PPO_steps': 100, # ACG: ac grad, 40
+            'grad_AC_steps': 15, # ACG: ac grad, 40
+            'grad_PPO_steps': 50, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -84,33 +84,17 @@ configurations = {
         'type': 'ppopolicy',
         'constrained': False,
         'action_noise': None,
-        'clip_eps': 0.2,
+        'clip_eps': 0.25,
         'kl_targ': 0.02, # 0.03
         'max_dev': 0.15,
         'entropy_coef': 0.0,
         # 'normz_step_size': 0.01,
         'network': {
-            # 'arch': [128, 128],
+            'arch': [128, 128],
+            # 'arch': [256, 256],
+            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
-            'arch': [256, 128, 64],
-            'activation': 'ReLU',
-            'output_activation': 'nn.Identity',
-            'optimizer': "Adam",
-            'lr': 3e-4,
-            'max_grad_norm': 0.5,
-        }
-    },
-
-    'critic': {
-        'type': 'V',
-        'number': 1,
-        'gamma': 0.995, # Discount factor - γ
-        'lam': 0.99, # GAE - λ
-        'network': {
-            # 'arch': [128, 128],
-            # 'activation': 'Tanh',
-            'arch': [256, 128, 64],
-            'activation': 'ReLU',
+            'activation': 'PReLU',
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             # 'lr': 1e-3,
@@ -119,12 +103,36 @@ configurations = {
         }
     },
 
+    'critic': {
+        'type': 'V',
+        'number': 1,
+        # 'gamma': 0.995, # Discount factor - γ
+        # 'lam': 0.99, # GAE - λ
+        'gamma': 0.99, # ReLU-12
+        'gae_lam': 0.95, # ReLU-12
+        'network': {
+            'arch': [128, 128],
+            # 'arch': [256, 256],
+            # 'arch': [256, 128, 64],
+            # 'activation': 'Tanh',
+            'activation': 'PReLU',
+            'lr': 1e-3,
+            # 'lr': 3e-4,
+            'output_activation': 'nn.Identity',
+            'optimizer': "Adam",
+            'max_grad_norm': 0.5,
+        }
+    },
+
 
     'data': {
         'buffer_type': 'simple',
         'optimize_memory_usage': False,
+        # 'init_obs_size': 50,
+        'init_obs_size': 250,
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
-        'ov_model_buffer_size': int(1e4),
+        'ov_model_buffer_size': int(2e4),
+        # 'ov_model_buffer_size': int(2e5),
         'device': "auto",
     },
 
