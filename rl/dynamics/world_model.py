@@ -30,7 +30,7 @@ class WorldModel:
 
         self.state_dim, self.act_dim = state_dim, act_dim
         self.device, self.learn_reward = device, learn_reward
-        if self.device == 'gpu' : self.device = 'cuda'
+        # if self.device == 'gpu' : self.device = 'cuda'
         # construct the dynamics model
         self.dynamics_net = DynamicsNet(state_dim, act_dim, hidden_size, residual=residual, seed=seed).to(self.device)
         self.dynamics_net.set_transformations()  # in case device is different from default, it will set transforms correctly
