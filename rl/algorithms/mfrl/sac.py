@@ -542,7 +542,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-ReLU-16"
+    group_name = f"{env_name}-{alg_name}"
     # group_name = f"{env_name}-{alg_name}-GCP-C"
     exp_prefix = f"seed:{seed}"
 
@@ -552,7 +552,8 @@ def main(exp_prefix, config, seed, device, wb):
             name=exp_prefix,
             group=group_name,
             # project='test',
-            project='AMMI-RL-2022',
+            # project='AMMI-RL-2022',
+            project=f'AMMI-RL-{env_name}',
             config=configs
         )
 
