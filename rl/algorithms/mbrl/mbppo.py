@@ -646,10 +646,7 @@ class MBPPO(MBRL, PPO):
     	# 07. Sample st uniformly from Denv
     	device = self._device_
     	Nτ = self.configs['data']['init_obs_size']
-    	# Nτ = 50
-    	# Nτ = 250
     	K = 1000
-    	# K = min(25*n, 1000)
 
     	O = O_init = self.buffer.sample_init_obs_batch(Nτ)
     	O_Nτ = len(O_init)
@@ -669,6 +666,7 @@ class MBPPO(MBRL, PPO):
                     with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
 
                     o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
+                    print('o_next: ', o_next)
                     r = model.reward(o, a).detach()
                     d = self._termination_fn("Hopper-v2", o, a, o_next)
                     d = T.tensor(d, dtype=T.bool)
@@ -796,6 +794,7 @@ class MBPPO(MBRL, PPO):
             return_single = False
 
         next_obs = next_obs.cpu().numpy()
+
         if env_name == "Hopper-v2":
             assert len(obs.shape) == len(act.shape) == 2
             vel_x = obs[:, -6] / 0.02

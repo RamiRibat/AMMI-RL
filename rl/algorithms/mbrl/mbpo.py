@@ -333,6 +333,7 @@ class MBPO(MBRL, SAC):
             A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
 
             O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
+            # print('O_next: ', O_next)
             # O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
 
             # self.model_repl_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
