@@ -72,7 +72,7 @@ class SoftQFunction(nn.Module):
 
         self.q1 = MLPNet(obs_dim + act_dim, 1, net_configs)
         self.q2 = MLPNet(obs_dim + act_dim, 1, net_configs)
-        self.apply(init_weights_)
+        # self.apply(init_weights_)
 
         self.Qs = [self.q1, self.q2]
 

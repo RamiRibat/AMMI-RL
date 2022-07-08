@@ -26,6 +26,14 @@ def init_weights_3(l):
 		nn.init.constant_(l.bias, 0.0)
 
 
+
+# init4
+def init_weights_4(l):
+    if isinstance(l, nn.Linear):
+        nn.init.xavier_uniform_(l.weight, 1.0)
+        nn.init.uniform_(l.bias, 0.1)
+
+
 def init_weights_B(l, std=np.sqrt(2), bias=0.0): # init1
 # def init_weights_(l, std=1.0, bias=0.0): # init2
 	if isinstance(l, nn.Linear):
@@ -55,7 +63,7 @@ class VFunction(nn.Module):
 	    self.device = device
 
 	    self.v = MLPNet(obs_dim, 1, net_configs)
-	    self.apply(init_weights_3)
+	    # self.apply(init_weights_4)
 
 	    # self.v = nn.Sequential(
 		# 	layer_init(nn.Linear(obs_dim, hid)),
