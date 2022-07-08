@@ -784,6 +784,7 @@ class MBPPO(MBRL, PPO):
 
 
     def _reward_fn(self, env_name, obs, act):
+        next_obs = next_obs.numpy()
         if len(obs.shape) == 1 and len(act.shape) == 1:
             obs = obs[None]
             act = act[None]
@@ -813,6 +814,7 @@ class MBPPO(MBRL, PPO):
 
 
     def _termination_fn(self, env_name, obs, act, next_obs):
+        next_obs = next_obs.numpy()
         if len(obs.shape) == 1 and len(act.shape) == 1:
             obs = obs[None]
             act = act[None]
