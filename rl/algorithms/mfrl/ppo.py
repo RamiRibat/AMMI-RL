@@ -80,6 +80,10 @@ class ActorCritic: # Done
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
+        # return StochasticPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
         # return OVOQPolicy(
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
@@ -182,6 +186,7 @@ class ActorCritic: # Done
                                                           return_log_pi,
                                                           return_entropy)
         return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
+
 
 
 
@@ -328,7 +333,6 @@ class PPO(MFRL):
                     kl, dev = 0, 0
                     # ppo_grads = 0
                     for g in range(1, G+1):
-                        # print('KL: ', KL)
                         # PPO-P >>>>
                         print(f'[ PPO ] grads={g}/{G} | stopPG={self.stop_pi} | Dev={round(dev, 4)}', end='\r')
                         batch = self.buffer.sample_batch(batch_size, device=self._device_)
@@ -350,15 +354,15 @@ class PPO(MFRL):
                 nt += E
 
             # logs['time/training                       '] = time.time() - learn_start_real
-            logs['training/ppo/Jv                     '] = np.mean(JVList)
-            logs['training/ppo/V(s)                   '] = T.mean(self.buffer.val_buf).item()
-            logs['training/ppo/V-R                    '] = T.mean(self.buffer.val_buf).item()-T.mean(self.buffer.ret_buf).item()
-            logs['training/ppo/Jpi                    '] = np.mean(JPiList)
-            logs['training/ppo/grads                  '] = ppo_grads
-            logs['training/ppo/H                      '] = np.mean(HList)
-            logs['training/ppo/KL                     '] = np.mean(KLList)
-            logs['training/ppo/deviation              '] = np.mean(DevList)
-            logs['training/ppo/log_pi                 '] = PiInfo['log_pi']
+            logs['training/ppo/critic/Jv              '] = np.mean(JVList)
+            logs['training/ppo/critic/V(s)            '] = T.mean(self.buffer.val_buf).item()
+            logs['training/ppo/critic/V-R             '] = T.mean(self.buffer.val_buf).item()-T.mean(self.buffer.ret_buf).item()
+            logs['training/ppo/actor/Jpi              '] = np.mean(JPiList)
+            logs['training/ppo/actor/grads            '] = ppo_grads
+            logs['training/ppo/actor/H                '] = np.mean(HList)
+            logs['training/ppo/actor/KL               '] = np.mean(KLList)
+            logs['training/ppo/actor/deviation        '] = np.mean(DevList)
+            logs['training/ppo/actor/log_pi           '] = PiInfo['log_pi']
 
             # logs['time                                '] = t
             # logs['data/average_return                 '] = self.buffer.average_return()
@@ -378,6 +382,7 @@ class PPO(MFRL):
                 logs['evaluation/episodic_score_mean      '] = np.mean(ES)
                 logs['evaluation/episodic_score_std       '] = np.std(ES)
             else:
+                logs['training/ppo/critic/Jv              '] = np.mean(JVList)
                 logs['evaluation/episodic_return_mean     '] = np.mean(EZ)
                 logs['evaluation/episodic_return_std      '] = np.std(EZ)
             logs['evaluation/episodic_length_mean     '] = np.mean(EL)
@@ -449,7 +454,7 @@ class PPO(MFRL):
 
         self.actor_critic.critic.optimizer.zero_grad()
         Jv.backward()
-        nn.utils.clip_grad_norm_(self.actor_critic.critic.parameters(), max_grad_norm) # PPO-D
+        # nn.utils.clip_grad_norm_(self.actor_critic.critic.parameters(), max_grad_norm) # PPO-D
         self.actor_critic.critic.optimizer.step()
 
         return Jv
@@ -476,13 +481,7 @@ class PPO(MFRL):
 
         ratio = logratio.exp()
 
-        # print('log_pi_old: ', log_pis_old)
-        # print('log_pi: ', log_pi)
-        # print('ratio: ', ratio.mean().item())
-
         with T.no_grad():
-            # old_mean = self.actor_critic.actor.mean(observations)
-            # old_log_std = self.actor_critic.actor.log_std
             # calculate approx_kl http://joschu.net/blog/kl-approx.html
             approx_kl_old = (-logratio).mean()
             approx_kl = ((ratio - 1) - logratio).mean()
@@ -498,13 +497,14 @@ class PPO(MFRL):
         Jentropy = - entropy_coef * entropy.mean()
         Jpi = Jpg + Jentropy
 
+        # if (constrained) and (deviation > max_dev):
         if (constrained) and ((deviation > max_dev) and (g > 0.1*G)):
             self.stop_pi = True
         else:
             self.stop_pi = False
             self.actor_critic.actor.optimizer.zero_grad()
             Jpi.backward()
-            nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm) # PPO-D
+            # nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm) # PPO-D
             self.actor_critic.actor.optimizer.step()
 
         PiInfo['KL'] = approx_kl_old
@@ -535,7 +535,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-ReLU-15" # H < -2.7
+    group_name = f"{env_name}-{alg_name}-ReLU-89" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:

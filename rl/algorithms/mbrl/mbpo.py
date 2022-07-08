@@ -218,7 +218,7 @@ class MBPO(MBRL, SAC):
                         oldJs = [Jq, Jalpha, Jpi]
                         JQList.append(Jq)
                         JPiList.append(Jpi)
-                        # HList.append(PiInfo['entropy'])
+                        HList.append(PiInfo['entropy'])
                         if self.configs['actor']['automatic_entropy']:
                             JAlphaList.append(Jalpha.item())
                             AlphaList.append(self.alpha)
@@ -533,7 +533,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-ReLU-7"
+    group_name = f"{env_name}-{alg_name}-ReLU-8"
     # group_name = f"{env_name}-{alg_name}-GCP-0"
     exp_prefix = f"seed:{seed}"
 
