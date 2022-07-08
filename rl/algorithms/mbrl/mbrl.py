@@ -92,7 +92,7 @@ class MBRL:
 
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
-        self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m) for m in range(4) ]
+        self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(4) ]
 
 
     def init_model_traj_buffer(self):
