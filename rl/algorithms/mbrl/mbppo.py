@@ -665,8 +665,13 @@ class MBPPO(MBRL, PPO):
                     # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
                     with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
 
-                    o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
-                    print('o_next: ', o_next)
+                    # o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
+                    # # print('o_next: ', o_next)
+                    # r = model.reward(o, a).detach()
+                    # d = self._termination_fn("Hopper-v2", o, a, o_next)
+                    # d = T.tensor(d, dtype=T.bool)
+
+                    o_next = model.forward(o, a).detach().detach().cpu() # ip: Tensor, op: Tensor
                     r = model.reward(o, a).detach()
                     d = self._termination_fn("Hopper-v2", o, a, o_next)
                     d = T.tensor(d, dtype=T.bool)
