@@ -16,26 +16,6 @@ class FakeWorld:
         # self.model_type = model_type
 
 
-    def _reward_fn(self, env_name, obs, act):
-        # TODO
-        next_obs = next_obs.numpy()
-        if env_name == "Hopper-v2":
-            assert len(obs.shape) == len(act.shape) == 2
-            vel_x = obs[:, -6] / 0.02
-            power = np.square(act).sum(axis=-1)
-            height = obs[:, 0]
-            ang = obs[:, 1]
-            alive_bonus = 1.0 * (height > 0.7) * (np.abs(ang) <= 0.2)
-            rewards = vel_x + alive_bonus - 1e-3*power
-
-            return rewards
-        elif env_name == "Walker2d-v2":
-            assert len(obs.shape) == len(next_obs.shape) == len(act.shape) == 2
-            pass
-        elif 'walker_' in env_name:
-            pass
-
-
     def _termination_fn(self, env_name, obs, act, next_obs):
         # TODO
         next_obs = next_obs.numpy()
@@ -84,6 +64,14 @@ class FakeWorld:
 
         k = x.shape[-1]
 
+        # ## [ num_networks, batch_size ]
+        # log_prob = -1 / 2 * (k * np.log(2 * np.pi) + np.log(variances).sum(-1) + (np.power(x - means, 2) / variances).sum(-1))
+        # ## [ batch_size ]
+        # prob = np.exp(log_prob).sum(0)
+        # ## [ batch_size ]
+        # log_prob = np.log(prob)
+        # stds = np.std(means, 0).mean(-1)
+
         ## [ num_networks, batch_size ]
         log_prob = -1 / 2 * (k * T.log(2 * T.tensor(np.pi)) + T.log(variances).sum(-1) + (T.pow(x - means, 2) / variances).sum(-1))
         ## [ batch_size ]
@@ -92,26 +80,31 @@ class FakeWorld:
         log_prob = T.log(prob)
         stds = T.std(means, 0).mean(-1)
 
+        # return log_prob.numpy(), stds.numpy()
         return log_prob, stds
 
 
     def step(self, obs, act, deterministic=False): # ip: Torch
+        # print('obs: ', obs)
+        # print('act: ', act)
 
-        if len(obs.shape) == 1 and len(act.shape) == 1:
+        if len(obs.shape) == 1:
             obs = obs[None]
             act = act[None]
-            return_single = True
-        elif len(obs.shape) == 1:
-            obs = obs[None]
             return_single = True
         else:
             return_single = False
 
+        # obs = obs.numpy()
+        # act = act.numpy()
+
+        # inputs = np.concatenate((obs, act), axis=-1) # Numpy
         inputs = T.cat((obs, act), axis=-1) # Torch
 
         ensemble_model_means, ensemble_model_vars = self.model.predict(inputs) # ip: Torch, op: Numpy (stack)
 
-        ensemble_model_means[:, :, 1:] += obs
+        ensemble_model_means[:, :, 1:] += obs#.numpy()
+        # ensemble_model_stds = np.sqrt(ensemble_model_vars) # Numpy
         ensemble_model_stds = T.sqrt(ensemble_model_vars) # Torch
 
         if deterministic:
@@ -119,6 +112,7 @@ class FakeWorld:
         else:
             size = ensemble_model_means.shape
             # ensemble_samples = ensemble_model_means + np.random.normal(size=size) * ensemble_model_stds # Numpy
+            # ensemble_samples = ensemble_model_means + T.normal(0, 1, size=size) * ensemble_model_stds # Torch A
             ensemble_samples = ensemble_model_means + T.randn(size=size) * ensemble_model_stds # Torch B
 
         num_models, batch_size, _ = ensemble_model_means.shape
@@ -142,6 +136,8 @@ class FakeWorld:
         terminals = T.tensor(terminals, dtype=T.bool)
 
         batch_size = model_means.shape[0]
+        # return_means = np.concatenate((model_means[:, :1], terminals, model_means[:, 1:]), axis=-1) # Numpy
+        # return_stds = np.concatenate((model_stds[:, :1], np.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1) # Numpy
         return_means = T.cat( (model_means[:, :1], terminals, model_means[:, 1:]),               axis=-1 ) # Torch
         return_stds =  T.cat( (model_stds [:, :1], T.zeros((batch_size, 1)), model_stds[:, 1:]), axis=-1 ) # Torch
 
@@ -161,17 +157,18 @@ class FakeWorld:
         # Get all samples from environment
         # data = buffer.return_all_stack_np() # Numpy
         # data = buffer.return_all_stack() # Torch
-        data = buffer.data_for_WM_stack() # Torch (TrajBuffer)
-        state, action, reward, next_state, _ = data.values()
+        data = buffer.data_for_WM_stack()
+        state, action, reward, next_state, done = data.values()
         delta_state = next_state - state
 
+        # inputs = np.concatenate((state, action), axis=-1) # Numpy
+        # labels = np.concatenate((np.reshape(reward, (reward.shape[0], -1)), delta_state), axis=-1) # Numpy
         inputs = T.cat( (state, action), axis=-1 ) # Torch
         labels = T.cat( ( T.reshape( reward, (reward.shape[0], -1) ), delta_state ), axis=-1 ) # Torch
 
         holdout_mse_mean = self.model.train( inputs, labels, batch_size=256, holdout_ratio=0.2 ) ###
 
-        # return holdout_mse_mean
-        return holdout_mse_mean.item()
+        return holdout_mse_mean
 
 
 

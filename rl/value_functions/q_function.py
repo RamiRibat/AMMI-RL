@@ -8,22 +8,11 @@ from rl.networks.mlp import MLPNet
 
 
 
+
 def init_weights_(l):
 	if isinstance(l, nn.Linear):
 		nn.init.xavier_uniform_(l.weight, 1.0)
 		nn.init.uniform_(l.bias, 0.0)
-
-
-def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-    T.nn.init.orthogonal_(layer.weight, std)
-    T.nn.init.constant_(layer.bias, bias_const)
-    return layer
-
-
-# def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-#     nn.init.orthogonal_(layer.weight, std)
-#     nn.init.constant_(layer.bias, bias_const)
-#     return layer
 
 
 
@@ -43,6 +32,7 @@ class QFunction(nn.Module):
         super(QFunction, self).__init__() # To automatically use forward
 
         self.q1 = MLPNet(obs_dim + act_dim, 1, net_configs)
+
         self.apply(init_weights_)
 
         self.to(device)
@@ -56,14 +46,13 @@ class QFunction(nn.Module):
         return self.q1(q_inputs)
 
 
-
-
 class SoftQFunction(nn.Module):
     """
     Soft Q-Function
     """
     def __init__(self, obs_dim, act_dim, net_configs, device, seed):
-        print('Initialize Soft Q-function!')
+        # print('init Soft QFunction!')
+        # if seed: random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
         optimizer = 'T.optim.' + net_configs['optimizer']
         lr = net_configs['lr']
@@ -72,9 +61,9 @@ class SoftQFunction(nn.Module):
 
         self.q1 = MLPNet(obs_dim + act_dim, 1, net_configs)
         self.q2 = MLPNet(obs_dim + act_dim, 1, net_configs)
-        # self.apply(init_weights_)
-
         self.Qs = [self.q1, self.q2]
+
+        self.apply(init_weights_)
 
         self.to(device)
 

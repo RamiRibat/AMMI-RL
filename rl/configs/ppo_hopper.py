@@ -39,22 +39,19 @@ configurations = {
         'type': 'ppopolicy',
         'constrained': False,
         'action_noise': None,
-        'clip_eps': 0.25,
-        'kl_targ': 0.02,
+        'clip_eps': 0.2,
+        'kl_targ': 0.02, # 0.03
         'max_dev': 0.15,
         'entropy_coef': 0.0,
         'network': {
             # 'arch': [64, 64],
             # 'arch': [128, 64],
-            'arch': [128, 128],
+            # 'arch': [128, 128],
             # 'arch': [256, 128],
-            # 'arch': [256, 256],
+            'arch': [256, 256],
             # 'arch': [256, 128, 64],
-            # 'arch': [512, 256, 128],
-            # 'arch': [512, 512],
             # 'activation': 'Tanh',
-            'activation': 'PReLU',
-            # 'n_parameters': 2,
+            'activation': 'ReLU',
             # 'lr': 1e-3,
             'lr': 3e-4,
             'output_activation': 'nn.Identity',
@@ -66,8 +63,8 @@ configurations = {
     'critic': { # Init
         'type': 'V',
         'number': 1,
-        # 'gamma': 0.995, # Stable performance
-        # 'gae_lam': 0.99, # Stable performance
+        # 'gamma': 0.995,
+        # 'gae_lam': 0.99,
         'gamma': 0.99, # ReLU-12
         'gae_lam': 0.95, # ReLU-12
         'network': {
@@ -78,8 +75,7 @@ configurations = {
             # 'arch': [256, 256],
             # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
-            'activation': 'PReLU',
-            # 'n_parameters': 1,
+            'activation': 'ReLU',
             'lr': 1e-3,
             # 'lr': 3e-4,
             'output_activation': 'nn.Identity',
@@ -90,8 +86,8 @@ configurations = {
 
     'data': {
         'buffer_type': 'simple',
-        'buffer_size': int(1e4),
-        'batch_size': int(1e4),
+        'buffer_size': int(10000),
+        'batch_size': 10000,
     },
 
     'experiment': {

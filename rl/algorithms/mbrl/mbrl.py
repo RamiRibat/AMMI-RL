@@ -9,7 +9,7 @@ from rl.data.buffer import TrajBuffer, ReplayBuffer
 from rl.data.dataset import RLDataModule
 # from rl.world_models.world_model import WorldModel
 from rl.world_models.model import EnsembleDynamicsModel
-from rl.dynamics.world_model import WorldModel
+# from rl.dynamics.world_model import WorldModel
 
 
 
@@ -71,8 +71,8 @@ class MBRL:
 
     def _set_env_buffer(self):
         max_size = self.configs['data']['buffer_size']
-        num_traj = max_size//20
-        horizon = 1000
+        # num_traj = max_size//20
+        # horizon = 1000
         device = self._device_
         if self.configs['algorithm']['on-policy']:
             self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
@@ -92,7 +92,7 @@ class MBRL:
 
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
-        self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(4) ]
+        # self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m) for m in range(4) ]
 
 
     def init_model_traj_buffer(self):
@@ -317,7 +317,7 @@ class MBRL:
     def evaluate(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
-            # print('\n[ Evaluation ]')
+            print('\n[ Evaluation ]')
             EE = self.configs['algorithm']['evaluation']['eval_episodes']
             max_el = self.configs['environment']['horizon']
             EZ = [] # Evaluation episodic return

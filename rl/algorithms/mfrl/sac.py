@@ -22,7 +22,7 @@ import torch as T
 import torch.nn.functional as F
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import StochasticPolicy, OVOQPolicy
+from rl.control.policy import StochasticPolicy#, OVOQPolicy
 from rl.value_functions.q_function import SoftQFunction
 
 # from rl.utils.logx import EpochLogger
@@ -308,7 +308,6 @@ class SAC(MFRL):
                         oldJs = [Jq, Jalpha, Jpi]
                         JQList.append(Jq)
                         JPiList.append(Jpi)
-                        HList.append(PiInfo['entropy'])
                         if self.configs['actor']['automatic_entropy']:
                             JAlphaList.append(Jalpha)
                             AlphaList.append(self.alpha)
@@ -318,7 +317,6 @@ class SAC(MFRL):
             # logs['time/training                     '] = time.time() - learn_start_real
             logs['training/sac/critic/Jq              '] = np.mean(JQList)
             logs['training/sac/actor/Jpi              '] = np.mean(JPiList)
-            logs['training/sac/actor/H                '] = np.mean(HList)
             if self.configs['actor']['automatic_entropy']:
                 logs['training/sac/actor/Jalpha           '] = np.mean(JAlphaList)
                 logs['training/sac/actor/alpha            '] = np.mean(AlphaList)
@@ -542,7 +540,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Mac-1"
+    group_name = f"{env_name}-{alg_name}-ReLU-10"
     # group_name = f"{env_name}-{alg_name}-GCP-C"
     exp_prefix = f"seed:{seed}"
 
@@ -552,8 +550,7 @@ def main(exp_prefix, config, seed, device, wb):
             name=exp_prefix,
             group=group_name,
             # project='test',
-            # project='AMMI-RL-2022',
-            project=f'AMMI-RL-{env_name}',
+            project='AMMI-RL-2022',
             config=configs
         )
 

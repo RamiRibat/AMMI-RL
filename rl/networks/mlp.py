@@ -25,21 +25,16 @@ class MLPNet(nn.Module):
         # random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
         net_arch = net_configs['arch']
-        op_activation = eval('nn.Identity')() # net_config['output_activation']
-        activation = eval('nn.' + net_configs['activation'])()
-        # if net_configs['activation'] == 'PReLU':
-        #     n_parameters = net_configs['n_parameters']
-        #     activation = eval('nn.' + net_configs['activation'])(num_parameters=n_parameters)
-        # else:
-        #     activation = eval('nn.' + net_configs['activation'])()
+        activation = 'nn.' + net_configs['activation']
+        op_activation = 'nn.Identity' # net_config['output_activation']
 
         if len(net_arch) > 0:
-            layers = [Linear(ip_dim, net_arch[0]), activation]
+            layers = [Linear(ip_dim, net_arch[0]), eval(activation)()]
             for l in range(len(net_arch)-1):
-                layers.extend([Linear(net_arch[l], net_arch[l+1]), activation])
+                layers.extend([Linear(net_arch[l], net_arch[l+1]), eval(activation)()])
             if op_dim > 0:
                 last_dim = net_arch[-1]
-                layers.extend([Linear(last_dim, op_dim), op_activation])
+                layers.extend([Linear(last_dim, op_dim), eval(op_activation)()])
         else:
             raise 'No network arch!'
 

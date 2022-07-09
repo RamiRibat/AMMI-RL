@@ -25,13 +25,6 @@ def init_weights_(l):
 		nn.init.xavier_uniform_(l.weight, 1.0)
 		nn.init.uniform_(l.bias, 0.0)
 
-# init4
-def init_weights_4(l):
-    if isinstance(l, nn.Linear):
-        nn.init.xavier_uniform_(l.weight, 1.0)
-        nn.init.uniform_(l.bias, 0.1)
-
-
 
 def init_weights_B(l, std=np.sqrt(2), bias=0.0): # init1
 # def init_weights_(l, std=1.0, bias=0.0): # init2
@@ -56,15 +49,29 @@ class PPOPolicy(nn.Module):
 		net_arch = net_configs['arch']
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
+		# hid1 = 64
+		hid1 = 128
+		# hid1 = 256
+
+		# hid2 = 64
+		hid2 = 128
+		# hid2 = 256
+
+		# self.mean = nn.Sequential(
+		#     layer_init(nn.Linear(obs_dim, hid1)),
+		#     nn.Tanh(),
+		#     layer_init(nn.Linear(hid1, hid2)),
+		#     nn.Tanh(),
+		#     layer_init(nn.Linear(hid2, act_dim), std=0.01), # PPO-E: Major improvemet!
+		# 	nn.Identity()
+		# )
+		# self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
 
 		self.mean = MLPNet(obs_dim, act_dim, net_configs)
-		# self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False) # org
-		self.log_std = nn.Parameter(0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False) # (MF/MB)-PPO
-		# self.log_std = nn.Parameter(T.ones(act_dim, dtype=T.float32), requires_grad=False) # MBPPO-ReLU-21
+		self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
 		# self.apply(init_weights_)
 
 		print('PPOPolicy: ', self)
-		print('PPOPolicy.log_std: ', self.log_std, '\n')
 
 		self.act_dim = act_dim
 
@@ -75,8 +82,8 @@ class PPOPolicy(nn.Module):
 
 		self.to(device)
 
-		self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5) # PPO-E
-		# self.optimizer = eval(optimizer)(self.parameters(), lr)
+		# self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5) # PPO-E
+		self.optimizer = eval(optimizer)(self.parameters(), lr)
 
 
 	def forward(self, obs, act=None,
@@ -115,6 +122,48 @@ class PPOPolicy(nn.Module):
 		return act, log_probs, entropy
 
 
+	def forward_new(self, obs, act=None,
+                on_policy=True,
+				reparameterize=False, # Default: True
+				deterministic=False, # Default: False
+				return_log_pi=True, # Default: False
+				return_entropy=True, # Default: False
+				):
+
+		if isinstance(obs, T.Tensor):
+			obs = obs.to(self.device)
+		else:
+			obs = obs
+
+		mean = self.mean(obs)
+		log_std = self.log_std
+		# log_std = T.clamp(self.log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
+		std = T.exp(log_std)
+
+		probs = Normal(mean, std)
+
+		log_prob = None
+		entropy = None
+
+		if act is None:
+			act = probs.sample()
+		if return_log_pi:
+			act_tanh = T.tanh(act)
+			log_prob = probs.log_prob(act)
+			log_prob -= T.log( self.act_scale * (1 - act_tanh.pow(2)) + epsilon )
+			log_prob = log_prob.sum(-1, keepdim=True)
+		if return_entropy:
+			entropy = probs.entropy().sum(-1, keepdims=True)
+
+		if deterministic:
+			act = mean
+
+		act = T.tanh(act)
+		act = (act * self.act_scale) + self.act_bias
+
+		return act, log_prob, entropy
+
+
 	# def to(self, device):
 	# 	self.obs_bias = self.obs_bias.to(device)
 	# 	self.obs_scale = self.obs_scale.to(device)
@@ -143,7 +192,7 @@ class StochasticPolicy(nn.Module):
 		self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
 		self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
-		# self.apply(init_weights_)
+		self.apply(init_weights_)
 
 		self.obs_bias   = T.zeros(obs_dim)
 		self.obs_scale  = T.ones(obs_dim)
@@ -187,7 +236,7 @@ class StochasticPolicy(nn.Module):
 
 
 	def forward(self, obs, act=None,
-			    on_policy=False,
+			    on_policy=True,
 				reparameterize=True, # Default: True
 				deterministic=False, # Default: False
 				return_log_pi=False, # Default: False

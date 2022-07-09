@@ -107,8 +107,8 @@ class MBPO(MBRL, SAC):
         batch_size_m = self.configs['world_model']['network']['batch_size'] # bs_m
         wm_epochs = self.configs['algorithm']['learning']['grad_WM_steps']
 
-        # o, t = self.learn_env.reset(), 0
-        o, Z, el, t = self.learn_env.reset(), 0, 0, 0
+        o, t = self.learn_env.reset(), 0
+        # o, Z, el, t = self.learn_env.reset(), 0, 0, 0
         # o, Z, el, t = self.initialize_learning(NT, Ni)
 
         logs = dict()
@@ -142,7 +142,7 @@ class MBPO(MBRL, SAC):
 
             nt = 0
             # o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
-            # Z, el = 0, 0
+            Z, el, = 0, 0
             ZList, elList = [0], [0]
             ZListImag, elListImag = [0, 0], [0, 0]
             AvgZ, AvgEL = 0, 0
@@ -209,7 +209,8 @@ class MBPO(MBRL, SAC):
                     # AlphaList = [self.alpha]*G_sac
                     for g in range(1, GSAC+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
-                        print(f'[ Epoch {n} | Training AC ] Env Steps: {nt+1} | AC Grads: {g}/{GSAC} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)} | x{round(AvgZ/AvgEL, 2)}'+(" "*10), end='\r')
+                        print(f'[ Epoch {n} | Training AC ] Env Steps: {nt+1} | AC Grads: {g}/{GSAC} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}'+(" "*10), end='\r')
+                        # print(f'[ Epoch {n}   Training Actor-Critic ] Env Steps: {nt+1} | AC Grads: {g} | Return: {round(Z, 2)}'+(" "*10), end='\r')
                         ## Sample a batch B_sac
                         B_sac = self.sac_batch()
                         ## Train networks using batch B_sac
@@ -333,7 +334,6 @@ class MBPO(MBRL, SAC):
             A = self.actor_critic.get_action(O) # Stochastic action | No reparameterization
 
             O_next, R, D, _ = self.fake_world.step(O, A) # ip: Tensor, op: Tensor
-            # print('O_next: ', O_next)
             # O_next, R, D, _ = self.fake_world.step_np(O, A) # ip: Tensor, op: Numpy
 
             # self.model_repl_buffer.store_batch(O.numpy(), A, R, O_next, D) # ip: Numpy
@@ -427,6 +427,9 @@ class MBPO(MBRL, SAC):
         else:
             B = B_real
         return B
+
+
+
 
 
     # def _reward_fn(self, env_name, obs, act):
@@ -534,7 +537,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Exp-01"
+    group_name = f"{env_name}-{alg_name}-X"
     # group_name = f"{env_name}-{alg_name}-GCP-0"
     exp_prefix = f"seed:{seed}"
 
@@ -543,7 +546,6 @@ def main(exp_prefix, config, seed, device, wb):
             name=exp_prefix,
             group=group_name,
             # project='test',
-            # project='AMMI-RL-2022',
             project=f'AMMI-RL-{env_name}',
             config=configs
         )

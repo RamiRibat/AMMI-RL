@@ -15,7 +15,7 @@ configurations = {
         'model-based': True,
         'on-policy': False,
         'learning': {
-            'epochs': 500, # N epochs
+            'epochs': 200, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 5, # Ni epochs = 5000 exploration steps
             'expl_epochs': 0, # Nx epochs
@@ -74,43 +74,51 @@ configurations = {
         }
     },
 
-
-    'actor': {
+    'actor': { # No init
         'type': 'gaussianpolicy',
-        'action_noise': None,
+        'action_noise': None, # Optional
         'alpha': 0.2, # Temprature/Entropy #@#
-        'automatic_entropy': False,
-        'target_entropy': 'auto',
+        'automatic_entropy': False, # trainer_kwargs
+        'target_entropy': "auto",
         'network': {
-            'arch': [128, 128],
-            # 'arch': [256, 256],
-            # 'arch': [256, 128, 64],
+            # 'arch': [128, 128],
             # 'activation': 'Tanh',
-            'activation': 'PReLU',
+            'arch': [256, 256],
+            # 'arch': [256, 128, 64],
+            'activation': 'ReLU',
+            'init_weights': 3e-3,
+            'init_biases': 0,
             'output_activation': 'nn.Identity',
-            'optimizer': "Adam",
-            'lr': 3e-4,
+            'optimizer': "Adam", #@#
+            'lr': 3e-4, #@#
+            'wd': 1e-5,
+            'dropout': None,
+            'batch_size': 256,
+            # 'device': "auto",
         }
     },
 
-
-    'critic': {
+    'critic': { # Init
         'type': 'sofQ',
         'number': 2,
+        # 'gamma': 0.99,
         'gamma': 0.99,
-        # 'gamma': 0.995,
         'tau': 5e-3,
         'network': {
-            'arch': [128, 128],
             # 'arch': [256, 128],
-            # 'arch': [256, 256],
+            'arch': [256, 256],
             # 'arch': [256, 128, 64],
-            # 'activation': 'Tanh',
-            'activation': 'PReLU',
-            'output_activation': 'nn.Identity',
+            'activation': 'ReLU',
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'optimizer': "Adam",
-            # 'lr': 1e-3, # Conv at Ep:?
-            'lr': 3e-4, # Conv at Ep:340 | ReLU-16
+            'init_weights': 3e-3,
+            'init_biases': 0,
+            'output_activation': 'nn.Identity',
+            'wd': 1e-5,
+            'dropout': None,
+            # 'batch_size': 256,
+            # 'device': "auto",
         }
     },
 
