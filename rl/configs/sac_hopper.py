@@ -48,6 +48,7 @@ configurations = {
             # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
+            # 'n_parameters': 2,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'lr': 3e-4,
@@ -61,12 +62,13 @@ configurations = {
         # 'gamma': 0.995,
         'tau': 5e-3,
         'network': {
-            'arch': [128, 128],
+            # 'arch': [128, 128],
             # 'arch': [256, 128],
-            # 'arch': [256, 256],
+            'arch': [256, 256],
             # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
+            # 'n_parameters': 1,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             # 'lr': 1e-3, # Conv at Ep:?

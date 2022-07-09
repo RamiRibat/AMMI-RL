@@ -56,36 +56,6 @@ class PPOPolicy(nn.Module):
 		net_arch = net_configs['arch']
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
-		# hid1 = 64
-		hid1 = 128
-		# hid1 = 256
-
-		# hid2 = 64
-		hid2 = 128
-		# hid2 = 256
-
-		# self.mean = nn.Sequential(
-		#     layer_init(nn.Linear(obs_dim, hid1), std=1),
-		#     # nn.Tanh(),
-            # nn.ReLU(),
-		#     layer_init(nn.Linear(hid1, hid2), std=0.1),
-		#     # nn.Tanh(),
-        #     nn.ReLU(),
-		#     layer_init(nn.Linear(hid2, act_dim), std=0.01), # PPO-E: Major improvemet!
-		# 	nn.Identity()
-		# )
-		# self.mean = nn.Sequential(
-        #     nn.Linear(obs_dim, hid1),
-        #     # nn.Tanh(),
-        #     nn.ReLU(),
-        #     nn.Linear(hid1, hid2),
-        #     # nn.Tanh(),
-        #     nn.ReLU(),
-        #     nn.Linear(hid2, act_dim),
-        #     nn.Identity()
-        # )
-		# self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
-		# self.apply(init_weights_)
 
 		self.mean = MLPNet(obs_dim, act_dim, net_configs)
 		# self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False) # org
@@ -105,8 +75,8 @@ class PPOPolicy(nn.Module):
 
 		self.to(device)
 
-		# self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5) # PPO-E
-		self.optimizer = eval(optimizer)(self.parameters(), lr)
+		self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5) # PPO-E
+		# self.optimizer = eval(optimizer)(self.parameters(), lr)
 
 
 	def forward(self, obs, act=None,
