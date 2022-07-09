@@ -29,7 +29,7 @@ configurations = {
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
-            'grad_AC_steps': 15, # ACG: ac grad, 40
+            'grad_AC_steps': 10, # ACG: ac grad, 40
             'grad_PPO_steps': 50, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
@@ -116,8 +116,8 @@ configurations = {
             # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            'lr': 1e-3,
-            # 'lr': 3e-4,
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
             'max_grad_norm': 0.5,
