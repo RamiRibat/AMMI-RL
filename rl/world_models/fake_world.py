@@ -156,8 +156,7 @@ class FakeWorld:
     def train_fake_world(self, buffer): # Work on!
         # Get all samples from environment
         # data = buffer.return_all_stack_np() # Numpy
-        # data = buffer.return_all_stack() # Torch
-        data = buffer.data_for_WM_stack()
+        data = buffer.return_all_stack() # Torch
         state, action, reward, next_state, done = data.values()
         delta_state = next_state - state
 
