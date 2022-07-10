@@ -43,9 +43,9 @@ class MBRL:
         self._seed_env(self.learn_env)
         assert isinstance (self.learn_env.action_space, Box), "Works only with continuous action space"
 
-        if True:
-            self.traj_env = gym.make(name)
-            self._seed_env(self.traj_env)
+        # if True:
+        #     self.traj_env = gym.make(name)
+        #     self._seed_env(self.traj_env)
 
         if evaluate:
             # Ininialize Evaluation environment
@@ -92,7 +92,7 @@ class MBRL:
 
         # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
 
-        self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(4) ]
+        # self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(4) ]
 
 
     def init_model_traj_buffer(self):
