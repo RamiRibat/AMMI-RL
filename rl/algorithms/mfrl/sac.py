@@ -542,8 +542,8 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Mac-1"
-    # group_name = f"{env_name}-{alg_name}-GCP-C"
+    group_name = f"{env_name}-{alg_name}-Mac-A"
+    # group_name = f"{env_name}-{alg_name}-GCP-A"
     exp_prefix = f"seed:{seed}"
 
     if wb:
