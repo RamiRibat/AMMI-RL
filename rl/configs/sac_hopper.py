@@ -14,7 +14,7 @@ configurations = {
         'model-based': False,
         'on-policy': False,
         'learning': {
-            'epochs': 1000, # N epochs
+            'epochs': 2000, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 1, # Ni epochs
             'expl_epochs': 10, # Nx epochs
@@ -43,11 +43,15 @@ configurations = {
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {
-            'arch': [256,256],
-            'activation': 'ReLU',
+            'arch': [128, 128],
+            # 'arch': [256, 256],
+            # 'arch': [256, 128, 64],
+            # 'activation': 'Tanh',
+            'activation': 'PReLU',
+            # 'n_parameters': 2,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 3e-4
+            'lr': 3e-4,
         }
     },
 
@@ -55,20 +59,29 @@ configurations = {
         'type': 'sofQ',
         'number': 2,
         'gamma': 0.99,
+        # 'gamma': 0.995,
         'tau': 5e-3,
         'network': {
-            'arch': [256,256],
-            'activation': 'ReLU',
+            # 'arch': [128, 128],
+            # 'arch': [256, 128],
+            'arch': [256, 256],
+            # 'arch': [256, 128, 64],
+            # 'activation': 'Tanh',
+            'activation': 'PReLU',
+            # 'n_parameters': 1,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 3e-4
+            # 'lr': 1e-3, # Conv at Ep:?
+            'lr': 3e-4, # Conv at Ep:340 | ReLU-16
         }
     },
 
     'data': {
         'buffer_type': 'simple',
         'buffer_size': int(1e6),
-        'batch_size': 256
+        # 'batch_size': 128,
+        'batch_size': 256,
+        # 'batch_size': 512
     },
 
     'experiment': {

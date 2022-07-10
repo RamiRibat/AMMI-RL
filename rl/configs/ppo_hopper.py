@@ -14,14 +14,14 @@ configurations = {
         'model-based': False,
         'on-policy': True,
         'learning': {
-            'epochs': 500, # N epochs
-            'epoch_steps': 2048, # NT steps/epoch
+            'epochs': 200, # N epochs
+            'epoch_steps': 10000, # NT steps/epoch
             'init_epochs': 0, # Ni epochs
             'expl_epochs': 0, # Nx epochs
 
-            'env_steps' : 2048, # E: interact E times then train
+            'env_steps' : 10000, # E: interact E times then train
             'train_AC_freq': 1, # F: frequency of AC training
-            'grad_AC_steps': 10, # ACG: ac grad
+            'grad_AC_steps': 100, # ACG: ac grad
 
             'policy_update_interval': 1,
                     },
@@ -35,47 +35,63 @@ configurations = {
         }
     },
 
-    'actor': {
+    'actor': { # No init
         'type': 'ppopolicy',
+        'constrained': False,
         'action_noise': None,
-        'clip_eps': 0.2,
+        'clip_eps': 0.25,
         'kl_targ': 0.02,
+        'max_dev': 0.15,
         'entropy_coef': 0.0,
         'network': {
-            'arch': [64, 64],
-            'activation': 'Tanh',
+            # 'arch': [64, 64],
+            # 'arch': [128, 64],
+            'arch': [128, 128],
+            # 'arch': [256, 128],
+            # 'arch': [256, 256],
+            # 'arch': [256, 128, 64],
+            # 'arch': [512, 256, 128],
+            # 'arch': [512, 512],
+            # 'activation': 'Tanh',
+            'activation': 'PReLU',
+            # 'n_parameters': 2,
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
     },
 
-    'critic': {
+    'critic': { # Init
         'type': 'V',
         'number': 1,
-        'gamma': 0.99,
-        'lam': 0.95,
+        # 'gamma': 0.995, # Stable performance
+        # 'gae_lam': 0.99, # Stable performance
+        'gamma': 0.99, # ReLU-12
+        'gae_lam': 0.95, # ReLU-12
         'network': {
-            'arch': [64, 64],
-            'activation': 'Tanh',
+            # 'arch': [64, 64],
+            # 'arch': [128, 64],
+            'arch': [128, 128],
+            # 'arch': [256, 128],
+            # 'arch': [256, 256],
+            # 'arch': [256, 128, 64],
+            # 'activation': 'Tanh',
+            'activation': 'PReLU',
+            # 'n_parameters': 1,
+            'lr': 1e-3,
+            # 'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'optimizer': "Adam",
-            'lr': 3e-4,
             'max_grad_norm': 0.5,
         }
     },
 
     'data': {
         'buffer_type': 'simple',
-        'buffer_size': int(2048),
-        'batch_size': 2048,
-        'n_mini_batches': 32,
-        'mini_batch_size': 64,
-        # 'buffer_size': int(4000),
-        # 'batch_size': 4000,
-        # 'n_mini_batches': 62,
-        # 'mini_batch_size': 64,
+        'buffer_size': int(1e4),
+        'batch_size': int(1e4),
     },
 
     'experiment': {

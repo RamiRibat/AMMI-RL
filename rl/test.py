@@ -1,31 +1,18 @@
-# rollout_batch_size = 100000
-# epoch_length = 1000
-# model_train_freq = 250
-# model_retain_epochs = 1
-#
-# rollout_length = 1
-#
-# rollouts_per_epoch = rollout_batch_size * epoch_length / model_train_freq
-# print('rollouts_per_epoch: ', rollouts_per_epoch)
-# model_steps_per_epoch = int(rollout_length * rollouts_per_epoch)
-# print('model_steps_per_epoch: ', model_steps_per_epoch)
-# new_pool_size = model_retain_epochs * model_steps_per_epoch
-# print('new_pool_size: ', new_pool_size)
-
-
-
 import numpy as np
 
-# batch =  [(1,2,3), (4,5,6)]
-#
-# a, b, c = map(np.stack, zip(*batch))
-#
-# print('a', a)
+batch_size = 20
 
-obs = np.array([1, 4])
+mini_batch_size = 5
 
-# obs_ = list(obs)
+b_inx = np.arange(batch_size)
+print('b_inx: ', b_inx)
 
-obs_stack = np.stack(obs)
+np.random.shuffle(b_inx)
+print('b_inx: ', b_inx)
 
-print('obs stack: ', obs_stack)
+for start in range(0, batch_size, mini_batch_size):
+    end = start + mini_batch_size
+    mb_inx = b_inx[start:end]
+    print('mb_inx: ', mb_inx)
+
+    
