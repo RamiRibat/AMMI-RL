@@ -348,7 +348,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-XII"
+    group_name = f"{env_name}-{alg_name}-X"
     exp_prefix = f"seed:{seed}"
 
     if wb:
@@ -357,7 +357,7 @@ def main(exp_prefix, config, seed, device, wb):
             name=exp_prefix,
             group=group_name,
             # project='test',
-            project='AMMI-RL-2022',
+            project=f'AMMI-RL-{env_name}',
             config=configs
         )
 
