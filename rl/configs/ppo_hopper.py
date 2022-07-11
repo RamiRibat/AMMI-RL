@@ -37,6 +37,7 @@ configurations = {
 
     'actor': { # No init
         'type': 'ppopolicy',
+        # 'init_log_std': 0.5,
         'constrained': False,
         'action_noise': None,
         'clip_eps': 0.25,
@@ -44,11 +45,11 @@ configurations = {
         'max_dev': 0.15,
         'entropy_coef': 0.0,
         'network': {
+            'init_log_std': 1,
             # 'arch': [64, 64],
             # 'arch': [128, 64],
-            'arch': [128, 128],
-            # 'arch': [256, 128],
-            # 'arch': [256, 256],
+            # 'arch': [128, 128],
+            'arch': [256, 256],
             # 'arch': [256, 128, 64],
             # 'arch': [512, 256, 128],
             # 'arch': [512, 512],
@@ -58,6 +59,7 @@ configurations = {
             # 'lr': 1e-3,
             'lr': 3e-4,
             'output_activation': 'nn.Identity',
+            'initialize_weights': True,
             'optimizer': "Adam",
             'max_grad_norm': 0.5,
         }
@@ -73,8 +75,8 @@ configurations = {
         'network': {
             # 'arch': [64, 64],
             # 'arch': [128, 64],
-            'arch': [128, 128],
-            # 'arch': [256, 128],
+            # 'arch': [128, 128],
+            'arch': [256, 128],
             # 'arch': [256, 256],
             # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
@@ -83,6 +85,7 @@ configurations = {
             'lr': 1e-3,
             # 'lr': 3e-4,
             'output_activation': 'nn.Identity',
+            'initialize_weights': True,
             'optimizer': "Adam",
             'max_grad_norm': 0.5,
         }

@@ -57,7 +57,6 @@ configurations = {
         'oq_model_train_freq': 250,#250, # Mf
         'model_retain_epochs': 1,
         'oq_rollout_schedule': [20, 150, 1, 15], # original
-        # 'rollout_schedule': [10, 150, 1, 50],
         'network': {
             'arch': [200, 200, 200, 200], #@#
             'init_weights': 3e-3,
@@ -82,13 +81,12 @@ configurations = {
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {
-            'arch': [128, 128],
-            # 'arch': [256, 256],
-            # 'arch': [256, 128, 64],
+            # 'arch': [128, 128],
+            'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
             'output_activation': 'nn.Identity',
-            'initialize_weights': False,
+            'initialize_weights': True,
             'optimizer': "Adam",
             'lr': 3e-4,
         }
@@ -102,15 +100,14 @@ configurations = {
         # 'gamma': 0.995,
         'tau': 5e-3,
         'network': {
-            'arch': [128, 128],
+            # 'arch': [128, 128],
             # 'arch': [256, 128],
-            # 'arch': [256, 256],
-            # 'arch': [256, 128, 64],
+            'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
             'output_activation': 'nn.Identity',
+            'initialize_weights': True,
             'optimizer': "Adam",
-            'initialize_weights': False,
             # 'lr': 1e-3, # Conv at Ep:?
             'lr': 3e-4, # Conv at Ep:340 | ReLU-16
         }

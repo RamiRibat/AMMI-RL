@@ -90,12 +90,13 @@ configurations = {
         'entropy_coef': 0.0,
         # 'normz_step_size': 0.01,
         'network': {
-            'arch': [128, 128],
-            # 'arch': [256, 256],
-            # 'arch': [256, 128, 64],
+            'init_log_std': 1,
+            # 'arch': [128, 128],
+            'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
             'output_activation': 'nn.Identity',
+            'initialize_weights': True,
             'optimizer': "Adam",
             # 'lr': 1e-3,
             'lr': 3e-4,
@@ -111,14 +112,14 @@ configurations = {
         'gamma': 0.99, # ReLU-12
         'gae_lam': 0.95, # ReLU-12
         'network': {
-            'arch': [128, 128],
-            # 'arch': [256, 256],
-            # 'arch': [256, 128, 64],
+            # 'arch': [128, 128],
+            'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
             # 'lr': 1e-3,
             'lr': 3e-4,
             'output_activation': 'nn.Identity',
+            'initialize_weights': True,
             'optimizer': "Adam",
             'max_grad_norm': 0.5,
         }

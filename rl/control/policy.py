@@ -56,12 +56,16 @@ class PPOPolicy(nn.Module):
 		net_arch = net_configs['arch']
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
+		init_log_std = net_configs['init_log_std']
 
 		self.mean = MLPNet(obs_dim, act_dim, net_configs)
 		# self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False) # org
-		self.log_std = nn.Parameter(0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False) # (MF/MB)-PPO
+		# self.log_std = nn.Parameter(0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False) # (MF/MB)-PPO
 		# self.log_std = nn.Parameter(T.ones(act_dim, dtype=T.float32), requires_grad=False) # MBPPO-ReLU-21
-		# self.apply(init_weights_)
+		self.log_std = nn.Parameter(init_log_std * T.ones(act_dim, dtype=T.float32), requires_grad=False) # (MF/MB)-PPO
+		if net_configs['initialize_weights']:
+			print('Apply Initialization')
+			self.apply(init_weights_)
 
 		print('PPOPolicy: ', self)
 		print('PPOPolicy.log_std: ', self.log_std, '\n')

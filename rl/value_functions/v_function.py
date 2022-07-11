@@ -63,10 +63,12 @@ class VFunction(nn.Module):
 	    self.device = device
 
 	    self.v = MLPNet(obs_dim, 1, net_configs)
-	    # self.apply(init_weights_4)
+	    if net_configs['initialize_weights']:
+        	print('Apply Initialization')
+        	self.apply(init_weights_)
 
 	    # self.v = nn.Sequential(
-		# 	layer_init(nn.Linear(obs_dim, hid)),
+			# layer_init(nn.Linear(obs_dim, hid)),
 		# 	nn.Tanh(),
 		# 	layer_init(nn.Linear(hid, hid)),
 		# 	nn.Tanh(),

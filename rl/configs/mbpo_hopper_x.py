@@ -57,7 +57,6 @@ configurations = {
         'oq_model_train_freq': 250,#250, # Mf
         'model_retain_epochs': 1,
         'oq_rollout_schedule': [20, 150, 1, 15], # original
-        # 'rollout_schedule': [10, 150, 1, 50],
         'network': {
             'arch': [200, 200, 200, 200], #@#
             'init_weights': 3e-3,
@@ -84,7 +83,6 @@ configurations = {
         'network': {
             # 'arch': [128, 128],
             'arch': [256, 256],
-            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
             'output_activation': 'nn.Identity',
@@ -105,7 +103,6 @@ configurations = {
             # 'arch': [128, 128],
             # 'arch': [256, 128],
             'arch': [256, 256],
-            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
             'output_activation': 'nn.Identity',

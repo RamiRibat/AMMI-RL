@@ -85,7 +85,7 @@ def init_weights_(m): # source: https://github.com/Xingyu-Lin/mbpo_pytorch/model
     if isinstance(m, LinearEnsemble):
         input_dim = m.in_features
         # truncated_normal_init(m.weight, std=1 / (2 * np.sqrt(input_dim)))
-        truncated_normal_init( m.weight, std=1 / ( 2 * T.sqrt( T.tensor(input_dim) ) ) )
+        truncated_normal_init( m.weight, std= 1 / ( 2 * T.sqrt( T.tensor(input_dim) ) ) )
         m.bias.data.fill_(0.0)
 
 
