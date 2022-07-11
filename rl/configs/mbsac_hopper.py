@@ -11,7 +11,7 @@ configurations = {
         },
 
     'algorithm': {
-        'name': 'MBPO',
+        'name': 'MBSAC',
         'model-based': True,
         'on-policy': False,
         'learning': {
