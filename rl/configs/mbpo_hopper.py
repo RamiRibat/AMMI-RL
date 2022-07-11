@@ -121,7 +121,7 @@ configurations = {
         'model_buffer_size': int(1e7),
         'real_ratio': 0.05,
         'model_val_ratio': 0.2,
-        'oq_rollout_batch_size': 1e5,
+        'oq_rollout_batch_size': int(1e5),
         'model_batch_size': 256,
         'batch_size': 256,
     },
