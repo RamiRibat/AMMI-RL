@@ -22,7 +22,7 @@ configurations = {
         'model-based': True,
         'on-policy': True,
         'learning': {
-            'epochs': 500, # N epochs
+            'epochs': 200, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 5, # Ni-- PAL: 5 | MAL: 10
             'expl_epochs': 5, # Nx-- PAL: 5 | MAL: 10
@@ -55,15 +55,18 @@ configurations = {
 
     'world_model': {
         'type': 'PE',
-        'num_ensembles': 4,
-        # 'num_elites': 5,
-        # 'sample_type': 'Random',
+        'num_ensembles': 7,
+        'num_elites': 5,
+        # 'num_ensembles': 4,
+        # 'num_elites': 4,
+        'sample_type': 'Random',
         'learn_reward': True,
-        # 'model_train_freq': 250,
-        # 'model_retain_epochs': 1,
-        # 'rollout_schedule': [20, 100, 1, 15],
+        'model_train_freq': 250,
+        'model_retain_epochs': 1,
+        'rollout_schedule': [20, 100, 1, 15],
         'network': {
-            'arch': [512, 512],
+            # 'arch': [512, 512],
+            'arch': [200, 200, 200, 200],
             'init_weights': 3e-3,
             'init_biases': 0,
             'activation': 'ReLU',
@@ -77,26 +80,23 @@ configurations = {
         }
     },
 
-
-    'actor': { # No init
+    'actor': {
         'type': 'ppopolicy',
         'constrained': False,
         'action_noise': None,
         'clip_eps': 0.25,
-        'kl_targ': 0.02,
-        'max_dev': 0.1,
+        'kl_targ': 0.02, # 0.03
+        'max_dev': 0.15,
         'entropy_coef': 0.0,
+        # 'normz_step_size': 0.01,
         'network': {
-            'log_std_grad': False,
             'init_log_std': 1,
-            # 'arch': [64, 64],
             # 'arch': [128, 128],
             'arch': [256, 256],
-            # 'arch': [512, 512],
             # 'activation': 'Tanh',
-            'activation': 'PReLU',
             # 'lr': 1e-3,
             'lr': 3e-4,
+            'activation': 'PReLU',
             'output_activation': 'nn.Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
@@ -104,21 +104,20 @@ configurations = {
         }
     },
 
-    'critic': { # Init
+    'critic': {
         'type': 'V',
         'number': 1,
-        # 'gamma': 0.995, # Stable performance
-        # 'gae_lam': 0.99, # Stable performance
-        'gamma': 0.99,
-        'gae_lam': 0.95,
+        # 'gamma': 0.995, # Discount factor - γ
+        # 'lam': 0.99, # GAE - λ
+        'gamma': 0.99, # ReLU-12
+        'gae_lam': 0.95, # ReLU-12
         'network': {
-            # 'arch': [64, 64],
-            'arch': [128, 128],
-            # 'arch': [256, 256],
+            # 'arch': [128, 128],
+            'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            'lr': 1e-3,
-            # 'lr': 3e-4,
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
@@ -134,6 +133,7 @@ configurations = {
         'init_obs_size': 250,
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
         'ov_model_buffer_size': int(2e4),
+        # 'ov_model_buffer_size': int(2e5),
         'device': "auto",
     },
 

@@ -62,13 +62,11 @@ class PPOPolicy(nn.Module):
 		# self.log_std = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False) # org
 		# self.log_std = nn.Parameter(0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False) # (MF/MB)-PPO
 		# self.log_std = nn.Parameter(T.ones(act_dim, dtype=T.float32), requires_grad=False) # MBPPO-ReLU-21
-		self.log_std = nn.Parameter(init_log_std * T.ones(act_dim, dtype=T.float32), requires_grad=False) # (MF/MB)-PPO
+		self.log_std = nn.Parameter(init_log_std * T.ones(act_dim, dtype=T.float32),
+                                    requires_grad=net_configs['log_std_grad']) # (MF/MB)-PPO
 		if net_configs['initialize_weights']:
 			print('Apply Initialization')
 			self.apply(init_weights_)
-
-		print('PPOPolicy: ', self)
-		print('PPOPolicy.log_std: ', self.log_std, '\n')
 
 		self.act_dim = act_dim
 
@@ -79,8 +77,11 @@ class PPOPolicy(nn.Module):
 
 		self.to(device)
 
-		self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5) # PPO-E
-		# self.optimizer = eval(optimizer)(self.parameters(), lr)
+		self.optimizer = eval(optimizer)(self.parameters(), lr)
+		# self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5) # PPO-V
+
+		print('PPO-Policy: ', self)
+		print('PPO-Policy.log_std: ', self.log_std, '\n')
 
 
 	def forward(self, obs, act=None,
@@ -161,6 +162,9 @@ class StochasticPolicy(nn.Module):
 		self.to(device)
 
 		self.optimizer = eval(optimizer)(self.parameters(), lr)
+		# self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5)
+
+		print('SAC-Policy: ', self)
 
 
 	def pi_mean_std(self, obs):

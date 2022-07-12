@@ -37,13 +37,14 @@ configurations = {
 
     'actor': { # No init
         'type': 'ppopolicy',
-        'constrained': True,
+        'constrained': False,
         'action_noise': None,
         'clip_eps': 0.25,
         'kl_targ': 0.02,
-        'max_dev': 0.125,
+        'max_dev': 0.1,
         'entropy_coef': 0.0,
         'network': {
+            'log_std_grad': False,
             'init_log_std': 1,
             # 'arch': [64, 64],
             # 'arch': [128, 128],
@@ -65,16 +66,16 @@ configurations = {
         'number': 1,
         # 'gamma': 0.995, # Stable performance
         # 'gae_lam': 0.99, # Stable performance
-        'gamma': 0.99, # ReLU-12
-        'gae_lam': 0.95, # ReLU-12
+        'gamma': 0.99,
+        'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
-            # 'arch': [128, 128],
-            'arch': [256, 256],
+            'arch': [128, 128],
+            # 'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            # 'lr': 1e-3,
-            'lr': 3e-4,
+            'lr': 1e-3,
+            # 'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'initialize_weights': True,
             'optimizer': "Adam",

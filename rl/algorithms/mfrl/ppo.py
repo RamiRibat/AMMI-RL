@@ -454,7 +454,7 @@ class PPO(MFRL):
 
         self.actor_critic.critic.optimizer.zero_grad()
         Jv.backward()
-        nn.utils.clip_grad_norm_(self.actor_critic.critic.parameters(), max_grad_norm) # PPO-D
+        # nn.utils.clip_grad_norm_(self.actor_critic.critic.parameters(), max_grad_norm) # PPO-D
         self.actor_critic.critic.optimizer.step()
 
         return Jv
@@ -504,7 +504,7 @@ class PPO(MFRL):
             self.stop_pi = False
             self.actor_critic.actor.optimizer.zero_grad()
             Jpi.backward()
-            nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm) # PPO-D
+            # nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm) # PPO-D
             self.actor_critic.actor.optimizer.step()
 
         PiInfo['KL'] = approx_kl_old
@@ -535,7 +535,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Exp-C" # H < -2.7
+    group_name = f"{env_name}-{alg_name}" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:

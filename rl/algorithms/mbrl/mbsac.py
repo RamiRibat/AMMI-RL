@@ -15,6 +15,7 @@ import torch.nn.functional as F
 
 from rl.algorithms.mbrl.mbrl import MBRL
 from rl.algorithms.mfrl.sac import SAC
+from rl.world_models.model import EnsembleDynamicsModel
 from rl.world_models.fake_world import FakeWorld
 import rl.environments.mbpo.static as mbpo_static
 # from rl.data.dataset import RLDataModule
@@ -67,7 +68,7 @@ class MBSAC(MBRL, SAC):
         self._build()
 
 
-    ## build MBSAC components: (env, D, AC, alpha)
+    ## build MBPO components: (env, D, AC, alpha)
     def _build(self):
         super(MBSAC, self)._build()
         self._set_sac()
@@ -79,8 +80,19 @@ class MBSAC(MBRL, SAC):
         SAC._build_sac(self)
 
 
+    def _set_oq_world_model(self):
+        device = self._device_
+        num_ensembles = self.configs['world_model']['num_ensembles']
+        num_elites = self.configs['world_model']['num_elites']
+        net_arch = self.configs['world_model']['network']['arch']
+        self.oq_world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
+                                                    self.obs_dim, self.act_dim, 1,
+                                                    net_arch[0], use_decay=True, device=device)
+
+
     ## FakeEnv
     def _set_fake_world(self):
+        self._set_oq_world_model()
         env_name = self.configs['environment']['name']
         device = self._device_
         if self.configs['environment']['name'][:4] == 'pddm':
@@ -88,8 +100,8 @@ class MBSAC(MBRL, SAC):
         else:
         	static_fns = mbpo_static[env_name[:-3].lower()]
 
-        # self.fake_world = FakeWorld(self.world_model, static_fns, env_name, self.learn_env, self.configs, device)
-        self.fake_world = FakeWorld(self.world_model)
+        # self.fake_world = FakeWorld(self.oq_world_model, static_fns, env_name, self.learn_env, self.configs, device)
+        self.fake_world = FakeWorld(self.oq_world_model)
 
 
     def learn(self):
@@ -202,8 +214,8 @@ class MBSAC(MBRL, SAC):
                         self.reallocate_oq_model_buffer(n)
 
                         # Generate M k-steps imaginary rollouts for SAC traingin
-                        self.rollout_world_model(n) # GCP-E
-                        # ZListImag, elListImag = self.rollout_world_modelII(n) # Mac/GCP-B
+                        self.rollout_oq_world_model(n) # GCP-E
+                        # ZListImag, elListImag = self.rollout_oq_world_modelII(n) # Mac/GCP-B
 
                     # JQList, JPiList = [], []
                     # AlphaList = [self.alpha]*G_sac
@@ -315,7 +327,7 @@ class MBSAC(MBRL, SAC):
         self.eval_env.close()
 
 
-    def rollout_world_model(self, n):
+    def rollout_oq_world_model(self, n):
         # ZListImag, elListImag = [0], [0]
 
         K = self.set_oq_rollout_length(n)
@@ -353,7 +365,7 @@ class MBSAC(MBRL, SAC):
         # return ZListImag, elListImag
 
 
-    def rollout_world_modelII(self, n):
+    def rollout_oq_world_modelII(self, n):
         ZListImag, elListImag = [0], [0]
 
         K = self.set_oq_rollout_length(n)

@@ -15,7 +15,7 @@ import torch.nn.functional as F
 
 from rl.algorithms.mbrl.mbrl import MBRL
 from rl.algorithms.mfrl.ppo import PPO
-from rl.world_models.fake_world import FakeWorld
+from rl.dynamics.world_model import WorldModel
 import rl.environments.mbpo.static as mbpo_static
 # from rl.data.dataset import RLDataModule
 
@@ -126,7 +126,7 @@ class MBPPO(MBRL, PPO):
     def _build(self):
         super(MBPPO, self)._build()
         self._set_ppo()
-        self._set_fake_world()
+        self._set_ov_world_model()
         self.init_model_traj_buffer()
 
 
@@ -135,16 +135,13 @@ class MBPPO(MBRL, PPO):
         PPO._build_ppo(self)
 
 
-    ## FakeEnv
-    def _set_fake_world(self):
-        env_name = self.configs['environment']['name']
+    def _set_ov_world_model(self):
         device = self._device_
-        if self.configs['environment']['name'][:4] == 'pddm':
-        	static_fns = None
-        else:
-        	static_fns = mbpo_static[env_name[:-3].lower()]
+        num_ensembles = self.configs['world_model']['num_ensembles']
+        num_elites = self.configs['world_model']['num_elites']
+        net_arch = self.configs['world_model']['network']['arch']
 
-        self.fake_world = FakeWorld(self.world_model)
+        self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(num_ensembles) ]
 
 
     def learn(self):
@@ -897,7 +894,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Exp-B" # Local
+    group_name = f"{env_name}-{alg_name}" # Local
     # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 

@@ -8,8 +8,8 @@ from rl.data.buffer import TrajBuffer, ReplayBuffer
 # from rl.data.buffer import DataBuffer
 from rl.data.dataset import RLDataModule
 # from rl.world_models.world_model import WorldModel
-from rl.world_models.model import EnsembleDynamicsModel
-from rl.dynamics.world_model import WorldModel
+# from rl.world_models.model import EnsembleDynamicsModel
+# from rl.dynamics.world_model import WorldModel
 
 
 
@@ -31,7 +31,7 @@ class MBRL:
     def _build(self):
         self._set_env()
         self._set_env_buffer()
-        self._set_world_model()
+        # self._set_world_model()
 
 
     def _set_env(self):
@@ -80,19 +80,20 @@ class MBRL:
             self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
 
-    def _set_world_model(self):
-        device = self._device_
-        num_ensembles = self.configs['world_model']['num_ensembles']
-        num_elites = self.configs['world_model']['num_elites']
-        net_arch = self.configs['world_model']['network']['arch']
-        # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
-        self.world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
-                                                 self.obs_dim, self.act_dim, 1,
-                                                 net_arch[0], use_decay=True, device=device)
+    # def _set_world_model(self):
+    #     device = self._device_
+    #     num_ensembles = self.configs['world_model']['num_ensembles']
+    #     num_elites = self.configs['world_model']['num_elites']
+    #     net_arch = self.configs['world_model']['network']['arch']
+    #     # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
+    #     self.world_model = EnsembleDynamicsModel(num_ensembles, num_elites,
+    #                                              self.obs_dim, self.act_dim, 1,
+    #                                              net_arch[0], use_decay=True, device=device)
+    #
+    #     # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
+    #
+    #     self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(4) ]
 
-        # self.world_model = WorldModel(self.obs_dim, self.act_dim, self.rew_dim, self.configs, self.seed, device)
-
-        self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(4) ]
 
 
     def init_model_traj_buffer(self):
