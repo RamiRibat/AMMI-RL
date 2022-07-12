@@ -24,7 +24,7 @@ Algorithms we are re-implementing/plannning to re-implement:
 ## Generalized Hyperparameters
 We aim to finetune our implementations to work with a generalized set of hyperparametrs across different algorithms. We are working with the following hyperparameters in the mean time:
 
-| ☑️ | Network | Arch | Act | LR | MFOV | MFOQ | MBOV | MBOQ | Notes |
+| ☑️ | Network | Arch | Act | LRate | MFOV | MFOQ | MBOV | MBOQ | Notes |
 | --- | --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
 | | Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 | Works best with xav. init |
 | | Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
