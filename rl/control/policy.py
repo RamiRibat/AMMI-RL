@@ -351,10 +351,10 @@ class OVOQPolicy(nn.Module):
 
 		return prob, log_prob, entropy
 
-	#
-	# def to(self, device):
-	# 	self.obs_bias = self.obs_bias.to(device)
-	# 	self.obs_scale = self.obs_scale.to(device)
-	# 	self.act_bias = self.act_bias.to(device)
-	# 	self.act_scale = self.act_scale.to(device)
-	# 	return super(OVOQPolicy, self).to(device)
+	
+	def to(self, device):
+		self.obs_bias = self.obs_bias.to(device)
+		self.obs_scale = self.obs_scale.to(device)
+		self.act_bias = self.act_bias.to(device)
+		self.act_scale = self.act_scale.to(device)
+		return super(OVOQPolicy, self).to(device)
