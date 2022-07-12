@@ -456,7 +456,7 @@ class MOVOQ(MBRL, OVOQ):
                     print(f'[ Epoch {n} | {color.RED}AV {g} | V-Model Rollout{color.END} ] nτ = {nτ+1} | M = {m+1}/{len(self.ov_world_model)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}', end='\r')
                     with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
 
-                    o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
+                    o_next = model.forward(o, a).detach().cpu() # ip: Tensor, op: Tensor
                     r = model.reward(o, a).detach()
                     d = self._termination_fn("Hopper-v2", o, a, o_next)
                     d = T.tensor(d, dtype=T.bool)

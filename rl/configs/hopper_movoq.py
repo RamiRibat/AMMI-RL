@@ -121,12 +121,12 @@ configurations = {
         'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
-            # 'arch': [128, 128],
-            'arch': [256, 256],
+            'arch': [128, 128],
+            # 'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            # 'lr': 1e-3,
-            'lr': 3e-4,
+            'lr': 1e-3,
+            # 'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
@@ -168,7 +168,7 @@ configurations = {
         'oq_model_batch_size': 256,
         'oq_batch_size': 256,
 
-        'device': "auto",
+        # 'device': "auto",
     },
 
 
