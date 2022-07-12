@@ -386,6 +386,8 @@ class OVOQ:
         Jπ(φ) =
         """
         PiInfo = dict()
+        
+        constrained = self.configs['actor']['constrained']
 
         clip_eps = self.configs['actor']['clip_eps']
         entropy_coef = self.configs['actor']['entropy_coef']
