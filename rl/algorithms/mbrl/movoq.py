@@ -319,7 +319,7 @@ class MOVOQ(MBRL, OVOQ):
             logs['training/ovoq/actor/Jpi_oq          '] = np.mean(JPiQList)
             logs['training/ovoq/actor/HV              '] = np.mean(HVList)
             logs['training/ovoq/actor/HQ              '] = np.mean(HQList)
-            logs['training/ovoq/actor/ov-KL           '] = np.mean(KLList)
+            # logs['training/ovoq/actor/ov-KL           '] = np.mean(KLList) #
             logs['training/ovoq/actor/ov-deviation    '] = np.mean(DevList)
             logs['training/ovoq/actor/ppo-grads       '] = ppo_grads
             logs['training/ovoq/actor/sac-grads       '] = sac_grads

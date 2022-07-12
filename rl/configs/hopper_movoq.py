@@ -32,10 +32,10 @@ configurations = {
             'expl_epochs': 5, # Random Actions + Learning
 
             'env_steps' : 1,
-            'grad_MV_steps': 25,
-            'grad_OV_steps': 10,
-            'grad_PPO_steps': 50,
-            'grad_OQ_SAC_steps': 20,
+            'grad_MV_steps': 2,
+            'grad_OV_steps': 1,
+            'grad_PPO_steps': 5,
+            'grad_OQ_SAC_steps': 2,
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
