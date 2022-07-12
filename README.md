@@ -6,34 +6,36 @@ This project was initiated in the RL course Fall 2021 at **The African Master's 
 ## Algorithms
 Algorithms we are re-implementing/plannning to re-implement:
 
-| Algorithms | Model | Value | On Policy | MPC | Paper | Progress |
+| Algorithms | Model | Value | On Policy | MPC | Reference | Progress |
 | --- | --- | --- | --- | --- | --- | :---: |
 | VPG | False | V(GAE) | True | False | [NeurIPS](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) | 🟢 |
 | NPG | False | V(GAE) | True | False | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🔴 |
 | PPO | False | V(GAE) | True | False | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
 | SAC | False | 2xQ | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
 | PETS | True | None | None | True | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
-| MB-Game | True | V | True | False | [Arxiv](https://arxiv.org/abs/2004.07804) | 🟡 |
-| MBPO | True | 2xQ | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
-| MoPAC | True | 2xQ | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟡 |
-| MPC-SAC | True | V/2xQ | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
+| MB-PPO | True | V(GAE) | True | False | Similar~[Arxiv](https://arxiv.org/abs/2004.07804) | 🟢 |
+| MB-SAC | True | 2xQ | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
+| MOVOQ | True | V(GAE)/2xQ | Dual | False | None | 🟡 |
+| MoPAC | True | 2xQ | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟣 |
+| MPC-SAC | True | V(GAE)/2xQ | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
 
 🟢 Done || 🟡 Now || 🟣 Next || 🔴 No plan
 
 ## Generalized Hyperparameters
 We aim to finetune our implementations to work with a generalized set of hyperparametrs across different algorithms. We are working with the following hyperparameters in the mean time:
 
-| Network | Arch | Act | LR | MFOV | MFOQ | MBOV | MBOQ | Notes |
-| --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
-| Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 | Works best with xav. init |
-| Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
-| **Policy** | [256,128,64] | ReLU | 3e-4 | 🟩 | 🟨 | 🟦 | 🟦 | |
-| V | [2x128] | Tanh | 1e-3 | 🟩 | ⬜️ | 🟩 | ⬜️ | Works best with xav. init |
-| **V** | [256,128,64] | ReLU | 3e-4 | 🟩 | ⬜️ | 🟦 | ⬜️ | Works best with orth. init |
-| **Q** | [2x256] | ReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
-| Q | [256,128,64] | ReLU | 3e-4 | ⬜️ | 🟨 | ⬜️ | ⬜️ | Works best with orth. init |
-| V-Model | [2x512] | ReLU | 1e-3 | ⬜️ | ⬜️ | 🟩 | 🟥 | Long rollouts deterministic ME |
-| Q-Model | [4x200] | Swish | 3e-4 | ⬜️ | ⬜️ | 🟥 | 🟩 | Short rollouts probabilistic ME |
+| ☑️ | Network | Arch | Act | LR | MFOV | MFOQ | MBOV | MBOQ | Notes |
+| --- | --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
+| | Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 | Works best with xav. init |
+| | Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
+| | Policy | [256,128,64] | ReLU | 3e-4 | 🟩 | 🟨 | 🟦 | 🟦 | |
+| ✅ | Policy | [2x256] | PReLU | 3e-4 | 🟩 | 🟩 | 🟦 | 🟦 | Works best with orth. init |
+| | V | [2x128] | Tanh | 1e-3 | 🟩 | ⬜️ | 🟩 | ⬜️ | Works best with xav. init |
+| ✅ | V | [2x128] | PReLU | 1e-3 | 🟩 | ⬜️ | 🟦 | ⬜️ | Works best with orth. init |
+| | Q | [2x256] | ReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
+| ✅ | Q | [2x256] | PReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟦 | Works best with orth. init |
+| ✅ | V-Model | [2x512] | ReLU | 1e-3 | ⬜️ | ⬜️ | 🟩 | 🟥 | Long rollouts deterministic ME |
+| ✅ | Q-Model | [4x200] | Swish | 3e-4 | ⬜️ | ⬜️ | 🟥 | 🟩 | Short rollouts probabilistic ME |
 
 🟩 Best || 🟨 Good || 🟥 Bad || 🟦 In progress
 
@@ -154,9 +156,10 @@ python evaluate_agent.py -env Walker2d-v2 -alg SAC -seed 1 -EE 5
 
 
 ## Acknowledgement
-This repo was inspired by many great repos, mostly the following ones:
-- [SpinningUp](https://github.com/openai/spinningup)
-- [Stabel Baselines](https://github.com/hill-a/stable-baselines)
+This repo was inspired by many great repos, mostly the following ones (not necessarily in order):
 - [RLKit](https://github.com/rail-berkeley/rlkit)
 - [CleanRL](https://github.com/vwxyzjn/cleanrl)
+- [SpinningUp](https://github.com/openai/spinningup)
+- [MBPO-PyTorch](https://github.com/Xingyu-Lin/mbpo_pytorch)
+- [Stabel Baselines](https://github.com/hill-a/stable-baselines)
 - [Youtube-Code-Repository](https://github.com/philtabor/Youtube-Code-Repository)
