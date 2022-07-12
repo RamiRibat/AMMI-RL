@@ -675,6 +675,7 @@ class MBPPO(MBRL, PPO):
 
                     Z += float(r)
                     el += 1
+                    # print('r: ', r)
                     self.model_traj_buffer.store(o, a, r, o_next, v, log_pi, el)
                     o = o_next
 

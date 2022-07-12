@@ -71,10 +71,10 @@ class MBRL:
 
     def _set_env_buffer(self):
         max_size = self.configs['data']['buffer_size']
-        num_traj = max_size//20
-        horizon = 1000
         device = self._device_
         if self.configs['algorithm']['on-policy']:
+            num_traj = max_size//10
+            horizon = 1000
             self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
         else:
             self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
