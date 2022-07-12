@@ -28,7 +28,6 @@ We aim to finetune our implementations to work with a generalized set of hyperpa
 | --- | --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
 | | Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 | Works best with xav. init |
 | | Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
-| | Policy | [256,128,64] | ReLU | 3e-4 | 🟩 | 🟨 | 🟦 | 🟦 | |
 | ✅ | Policy | [2x256] | PReLU | 3e-4 | 🟩 | 🟩 | 🟦 | 🟦 | Works best with orth. init |
 | | V | [2x128] | Tanh | 1e-3 | 🟩 | ⬜️ | 🟩 | ⬜️ | Works best with xav. init |
 | ✅ | V | [2x128] | PReLU | 1e-3 | 🟩 | ⬜️ | 🟦 | ⬜️ | Works best with orth. init |
