@@ -138,7 +138,7 @@ class MBPPO(MBRL, PPO):
     def _set_ov_world_model(self):
         device = self._device_
         num_ensembles = self.configs['world_model']['num_ensembles']
-        num_elites = self.configs['world_model']['num_elites']
+        # num_elites = self.configs['world_model']['num_elites']
         net_arch = self.configs['world_model']['network']['arch']
 
         self.models = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(num_ensembles) ]
