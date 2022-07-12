@@ -229,7 +229,7 @@ class MBPPO(MBRL, PPO):
                     model_fit_batch = self.buffer.sample_batch(batch_size=model_fit_bs, device=self._device_)
                     s, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
                     if n == Ni+1:
-                        samples_to_collect = min(Ni*1000, self.buffer.total_size())
+                        samples_to_collect = min((Ni+1)*1000, self.buffer.total_size())
                     else:
                         samples_to_collect = 1000
 
@@ -668,7 +668,7 @@ class MBPPO(MBRL, PPO):
                     # d = self._termination_fn("Hopper-v2", o, a, o_next)
                     # d = T.tensor(d, dtype=T.bool)
 
-                    o_next = model.forward(o, a).detach().detach().cpu() # ip: Tensor, op: Tensor
+                    o_next = model.forward(o, a).detach().cpu() # ip: Tensor, op: Tensor
                     r = model.reward(o, a).detach()
                     d = self._termination_fn("Hopper-v2", o, a, o_next)
                     d = T.tensor(d, dtype=T.bool)
@@ -710,74 +710,6 @@ class MBPPO(MBRL, PPO):
     	# EZ, ES, EL = self.evaluate()
         #
     	# print(color.RED+f'[ Epoch {n} | AC {g} ] Inner Evaluation | Z={round(np.mean(EZ), 2)}±{round(np.std(EZ), 2)} | L={round(np.mean(EL), 2)}±{round(np.std(EL), 2)} | x{round(np.mean(EZ)/np.mean(EL), 2)}'+color.END+(' ')*40+'\n')
-
-    	return ZList, elList
-
-
-
-
-    def rollout_world_model_trajectories_test(self, g, n):
-    	# 07. Sample st uniformly from Denv
-    	device = self._device_
-    	# Nτ = 50
-    	Nτ = 250
-    	K = 1000
-    	# K = min(25*n, 1000)
-
-    	O = O_init = self.buffer.sample_init_obs_batch(Nτ)
-    	O_Nτ = len(O_init)
-
-        # 08. Perform k-step model rollout starting from st using policy πφ; add to Dmodel
-    	k_end_total = 0
-    	ZList, elList = [0], [0]
-    	AvgZ, AvgEL = 0, 0
-
-    	for nτ, oi in enumerate(O_init): # Generate trajectories
-            for m, model in enumerate(self.models):
-                o, Z, el = oi, 0, 0
-                for k in range(1, K+1): # Generate rollouts
-                    print(f'[ Epoch {n} | AC {g} ] Model Rollout: nτ = {nτ+1} | M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}', end='\r')
-                    # print('\no: ', o)
-                    # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
-                    with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
-
-                    o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
-                    r = model.reward(o, a).detach()
-                    d = self._termination_fn("Hopper-v2", o, a, o_next)
-                    d = T.tensor(d, dtype=T.bool)
-
-                    Z += float(r)
-                    el += 1
-                    self.model_traj_buffer.store(o, a, r, o_next, v, log_pi, el)
-                    o = o_next
-
-                    currZ = Z
-                    AvgZ = (sum(ZList)+currZ)/(len(ZList))
-                    currEL = el
-                    AvgEL = (sum(elList)+currEL)/(len(elList))
-
-                    if d or (el == K):
-                        break
-
-                if el == K:
-                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
-                else:
-                    v = T.Tensor([0.0])
-                self.model_traj_buffer.finish_path(el, v)
-
-                k_end_total += k
-
-                lastZ = currZ
-                ZList.append(lastZ)
-                AvgZ = sum(ZList)/(len(ZList)-1)
-                lastEL = currEL
-                elList.append(lastEL)
-                AvgEL = sum(elList)/(len(elList)-1)
-
-            if self.model_traj_buffer.total_size() >= self.configs['data']['ov_model_buffer_size']:
-                # print(f'[ Epoch {n} | AC {g} ] Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*40)
-                break
-    	print(f'[ Epoch {n} | AC {g} ] Breaking img rollouts | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*30)
 
     	return ZList, elList
 
@@ -895,7 +827,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}" # Local
+    group_name = f"{env_name}-{alg_name}-Exp-E" # Local
     # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 

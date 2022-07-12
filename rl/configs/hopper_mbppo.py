@@ -24,8 +24,8 @@ configurations = {
         'learning': {
             'epochs': 500, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
-            'init_epochs': 5, # Ni-- PAL: 5 | MAL: 10
-            'expl_epochs': 5, # Nx-- PAL: 5 | MAL: 10
+            'init_epochs': 2, # Ni-- PAL: 5 | MAL: 10
+            'expl_epochs': 2, # Nx-- PAL: 5 | MAL: 10
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
