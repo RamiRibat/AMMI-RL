@@ -185,15 +185,15 @@ class MOVOQ(MBRL, OVOQ):
             AvgZ, AvgEL = 0, 0
             ppo_grads, sac_grads = 0, 0
 
-            # if n > Niq:
-            #     on_policy = False if (n%2==0) else True
-            #     OP = 'on-policy' if on_policy else 'off-policy'
-            # else:
-            #     on_policy = True
-            #     OP = 'on-policy'
+            if n > Niq:
+                on_policy = False if (n%2==0) else True
+                OP = 'on-policy' if on_policy else 'off-policy'
+            else:
+                on_policy = True
+                OP = 'on-policy'
 
-            on_policy = False
-            OP = 'off-policy'
+            # on_policy = False
+            # OP = 'off-policy'
 
             learn_start_real = time.time()
             while nt < NT: # full epoch
@@ -634,7 +634,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-off"
+    group_name = f"{env_name}-{alg_name}"
     # group_name = f"{env_name}-{alg_name}-GCP-A"
     # group_name = f"{env_name}-{alg_name}-OQ-GCP-A"
     # group_name = f"{env_name}-{alg_name}-OV-GCP-A"

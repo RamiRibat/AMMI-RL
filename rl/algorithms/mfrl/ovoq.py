@@ -408,7 +408,7 @@ class OVOQ:
             Jpg = - ( T.min(ratio * U, clipped_ratio * U) ).mean(axis=0)
             Jentropy = - entropy_coef * entropy.mean()
             Jpi = Jpg + Jentropy
-            if (deviation > max_dev):
+            if (constrained) and (deviation > max_dev):
                 stop_pi = True
             else:
                 stop_pi = False

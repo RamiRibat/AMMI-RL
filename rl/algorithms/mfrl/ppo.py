@@ -360,7 +360,7 @@ class PPO(MFRL):
             logs['training/ppo/actor/Jpi              '] = np.mean(JPiList)
             logs['training/ppo/actor/grads            '] = ppo_grads
             logs['training/ppo/actor/H                '] = np.mean(HList)
-            logs['training/ppo/actor/KL               '] = np.mean(KLList)
+            logs['training/ppo/actor/KL               '] = np.mean(KLList) #
             logs['training/ppo/actor/deviation        '] = np.mean(DevList)
             logs['training/ppo/actor/log_pi           '] = PiInfo['log_pi']
 

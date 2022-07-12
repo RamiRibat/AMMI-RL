@@ -25,11 +25,11 @@ configurations = {
         'learning': {
             'epochs': 500, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
-            'ov_init_epochs': 5, # Random Actions + No Learning
+            'ov_init_epochs': 2, # Random Actions + No Learning
             # 'ov_init_epochs': 1000, # Random Actions + No Learning
             # 'oq_init_epochs': 5, # Random Actions + No Learning
             'oq_init_epochs': 5, # Random Actions + No Learning
-            'expl_epochs': 5, # Random Actions + Learning
+            'expl_epochs': 2, # Random Actions + Learning
 
             'env_steps' : 1,
             'grad_MV_steps': 25,
