@@ -250,26 +250,17 @@ class OVOQPolicy(nn.Module):
 		net_arch = net_configs['arch']
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
-
-		# We'll have a disturbed Initialization from log_std_q and log_std_v
-		# hid = 128
-		# self.mean_and_log_std_net = nn.Sequential(
-		#     layer_init(nn.Linear(obs_dim, hid)),
-		#     nn.Tanh(),
-		#     layer_init(nn.Linear(hid, hid)),
-		#     nn.Tanh()
-		# )
-		# self.mean = layer_init(nn.Linear(hid, act_dim), std=0.01)
-		# self.log_std_q = layer_init(nn.Linear(hid, act_dim))
-		# self.log_std_v = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
-
+		init_log_std = net_configs['init_log_std_v']
 
         # My suggestions:
 		self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
 		self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		self.log_std_q = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
-		self.log_std_v = nn.Parameter(-0.5 * T.ones(act_dim, dtype=T.float32), requires_grad=False)
-		# self.apply(init_weights_)
+		self.log_std_v = nn.Parameter(init_log_std * T.ones(act_dim, dtype=T.float32),
+                                      requires_grad=net_configs['log_std_grad']) # (MF/MB)-PPO
+		if net_configs['initialize_weights']:
+			print('Apply Initialization')
+			self.apply(init_weights_)
 
 
 		self.act_dim = act_dim
@@ -281,7 +272,9 @@ class OVOQPolicy(nn.Module):
 
 		self.to(device)
 
-		self.optimizer = eval(optimizer)(self.parameters(), lr, eps=1e-5)
+		self.optimizer = eval(optimizer)(self.parameters(), lr)
+
+		print('OVOQ-Policy: ', self)
 
 
 	def forward(self, obs, act=None,

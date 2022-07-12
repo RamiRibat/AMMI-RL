@@ -82,6 +82,8 @@ class SoftQFunction(nn.Module):
 
         self.optimizer = eval(optimizer)(self.parameters(), lr)
 
+        print('QFunction: ', self)
+
 
     def forward(self, o, a):
         q_inputs = T.cat([o, a], dim=-1)

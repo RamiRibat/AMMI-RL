@@ -229,7 +229,7 @@ class MBPPO(MBRL, PPO):
                     model_fit_batch = self.buffer.sample_batch(batch_size=model_fit_bs, device=self._device_)
                     s, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
                     if n == Ni+1:
-                        samples_to_collect = min(4000, self.buffer.total_size())
+                        samples_to_collect = min(Ni*1000, self.buffer.total_size())
                     else:
                         samples_to_collect = 1000
 
@@ -707,9 +707,9 @@ class MBPPO(MBRL, PPO):
                 break
     	print(f'[ Epoch {n} | AC {g} ] RollBuffer={self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | L={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*35)
 
-    	EZ, ES, EL = self.evaluate()
-
-    	print(color.RED+f'[ Epoch {n} | AC {g} ] Inner Evaluation | Z={round(np.mean(EZ), 2)}±{round(np.std(EZ), 2)} | L={round(np.mean(EL), 2)}±{round(np.std(EL), 2)} | x{round(np.mean(EZ)/np.mean(EL), 2)}'+color.END+(' ')*40+'\n')
+    	# EZ, ES, EL = self.evaluate()
+        #
+    	# print(color.RED+f'[ Epoch {n} | AC {g} ] Inner Evaluation | Z={round(np.mean(EZ), 2)}±{round(np.std(EZ), 2)} | L={round(np.mean(EL), 2)}±{round(np.std(EL), 2)} | x{round(np.mean(EZ)/np.mean(EL), 2)}'+color.END+(' ')*40+'\n')
 
     	return ZList, elList
 

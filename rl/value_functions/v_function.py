@@ -75,12 +75,11 @@ class VFunction(nn.Module):
 		# 	layer_init(nn.Linear(hid, 1), std=1.0)
 		# 				)
 
-	    print('V-function: ', self)
-
 	    self.to(device)
 
 	    self.optimizer = eval(optimizer)(self.parameters(), lr)
 
+	    print('VFunction: ', self)
 
     def forward(self, o):
         if isinstance(o, T.Tensor):
