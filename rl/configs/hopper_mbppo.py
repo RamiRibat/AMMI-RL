@@ -22,10 +22,10 @@ configurations = {
         'model-based': True,
         'on-policy': True,
         'learning': {
-            'epochs': 500, # N epochs
+            'epochs': 200, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
-            'init_epochs': 5, # Ni-- PAL: 5 | MAL: 10
-            'expl_epochs': 5, # Nx-- PAL: 5 | MAL: 10
+            'init_epochs': 2, # Ni-- PAL: 5 | MAL: 10
+            'expl_epochs': 2, # Nx-- PAL: 5 | MAL: 10
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
@@ -113,12 +113,12 @@ configurations = {
         'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
-            # 'arch': [128, 128],
-            'arch': [256, 256],
+            'arch': [128, 128],
+            # 'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            # 'lr': 1e-3,
-            'lr': 3e-4,
+            'lr': 1e-3,
+            # 'lr': 3e-4,
             'output_activation': 'nn.Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
