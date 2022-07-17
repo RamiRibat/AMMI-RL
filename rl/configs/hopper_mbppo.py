@@ -88,7 +88,7 @@ configurations = {
         'entropy_coef': 0.0,
         'network': {
             'log_std_grad': False,
-            'init_log_std_v': 1,
+            'init_log_std': 1,
             # 'arch': [64, 64],
             # 'arch': [128, 128],
             'arch': [256, 256],
