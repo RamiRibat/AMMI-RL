@@ -196,7 +196,7 @@ class MBPPO(MBRL, PPO):
                 # Interaction steps
                 for e in range(1, E+1):
                     # o, Z, el, t = self.internact(n, o, Z, el, t)
-                    o, Z, el, t = self.internact_opB(n, o, Z, el, t)
+                    o, Z, el, t = self.internact_opB(n, o, Z, el, t, return_pre_pi=False)
                     # o, Z, el, t = self.internactII(n, o, Z, el, t)
 
                     if el > 0:
@@ -827,7 +827,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-3" # Local
+    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-4" # Local
     # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 

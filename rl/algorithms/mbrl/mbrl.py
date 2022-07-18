@@ -213,11 +213,11 @@ class MBRL:
         return o, d, Z, el, t
 
 
-    def internact_opB(self, n, o, Z, el, t):
+    def internact_opB(self, n, o, Z, el, t, return_pre_pi=False):
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
 
-        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), return_pre_pi=False)
         o_next, r, d, _ = self.learn_env.step(a)
         Z += r
         el += 1

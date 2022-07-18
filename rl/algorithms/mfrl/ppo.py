@@ -167,13 +167,14 @@ class ActorCritic: # Done
                     reparameterize=False,
                     deterministic=False,
                     return_log_pi=True,
-                    return_entropy=True):
+                    return_entropy=True,
+                    return_pre_pi=True):
         action, log_pi, entropy = self.actor(o, a, on_policy,
                                              reparameterize,
                                              deterministic,
                                              return_log_pi,
                                              return_entropy,
-                                             return_pre_pi=True
+                                             return_pre_pi
                                              )
         return action.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
 
@@ -183,7 +184,8 @@ class ActorCritic: # Done
                        reparameterize=False,
                        deterministic=False,
                        return_log_pi=True,
-                       return_entropy=True):
+                       return_entropy=True,
+                       return_pre_pi=True):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
         with T.no_grad(): a, log_pi, entropy = self.actor(o, a, on_policy,
@@ -191,7 +193,7 @@ class ActorCritic: # Done
                                                           deterministic,
                                                           return_log_pi,
                                                           return_entropy,
-                                                          return_pre_pi=True
+                                                          return_pre_pi
                                                           )
         return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
 
