@@ -70,12 +70,16 @@ class MBRL:
 
 
     def _set_env_buffer(self):
+        obs_dim, act_dim = self.obs_dim, self.act_dim
         max_size = self.configs['data']['buffer_size']
         device = self._device_
+        seed = self.seed
         if self.configs['algorithm']['on-policy']:
             num_traj = max_size//10
             horizon = 1000
-            self.buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, self.seed, device)
+            gamma = self.configs['critic']['gamma']
+            gae_lam = self.configs['critic']['gae_lam']
+            self.buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device, gamma, gae_lam)
         else:
             self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
 
@@ -98,15 +102,16 @@ class MBRL:
 
     def init_model_traj_buffer(self):
         # print('Initialize Model Buffer..')
-        seed = self.seed
+        obs_dim, act_dim = self.obs_dim, self.act_dim
+        max_size = self.configs['data']['ov_model_buffer_size']
         device = self._device_
-
+        seed = self.seed
         if self.configs['algorithm']['on-policy']:
-            max_size = self.configs['data']['ov_model_buffer_size']
-            num_traj = max_size//20
-            # num_traj = max_size//15
+            num_traj = max_size//10
             horizon = 1000
-            self.model_traj_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size, seed, device)
+            gamma = self.configs['critic']['gamma']
+            gae_lam = self.configs['critic']['gae_lam']
+            self.model_traj_buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device, gamma, gae_lam)
 
 
     def reallocate_oq_model_buffer(self, n):

@@ -24,7 +24,7 @@ from torch.distributions.normal import Normal
 nn = T.nn
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy
+from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy, Policy
 # from rl.control.policy import NPGPolicy
 from rl.value_functions.v_function import VFunction
 
@@ -76,10 +76,10 @@ class ActorCritic: # Done
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        return PPOPolicy(
-            self.obs_dim, self.act_dim,
-            self.act_up_lim, self.act_low_lim,
-            net_configs, self._device_, self.seed)
+        # return PPOPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
         # return StochasticPolicy(
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
@@ -88,6 +88,10 @@ class ActorCritic: # Done
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
+        return Policy(
+            self.obs_dim, self.act_dim,
+            self.act_up_lim, self.act_low_lim,
+            net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -184,7 +188,9 @@ class ActorCritic: # Done
                                                           reparameterize,
                                                           deterministic,
                                                           return_log_pi,
-                                                          return_entropy)
+                                                          return_entropy,
+                                                          return_pre_pi=True
+                                                          )
         return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
 
 
@@ -306,6 +312,8 @@ class PPO(MFRL):
                     print('t: ', t, end='\r')
                     # o, d, Z, el, t = self.internact_op(n, o, d, Z, el, t)
                     o, Z, el, t = self.internact_opB(n, o, Z, el, t)
+                    # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=True)
+                    # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=False)
                     # print(f'Steps: e={e} | el={el} || size={self.buffer.total_size()}')
 
                     if el > 0:
@@ -374,7 +382,8 @@ class PPO(MFRL):
             logs['learning/real/rollout_length        '] = np.mean(elList[1:])
 
             eval_start_real = time.time()
-            EZ, ES, EL = self.evaluate_op()
+            # EZ, ES, EL = self.evaluate_op()
+            EZ, ES, EL = self.evaluate(on_policy=True)
             #
             # logs['time/evaluation                '] = time.time() - eval_start_real
             #
@@ -476,10 +485,23 @@ class PPO(MFRL):
 
         observations, actions, _, _, _, _, _, advantages, log_pis_old = batch.values()
 
-        _, log_pi, entropy = self.actor_critic.get_pi(observations, actions)
+        _, log_pi, entropy = self.actor_critic.get_pi(observations, actions, on_policy=True, reparameterize=False)
         logratio = log_pi - log_pis_old
+        # ratio = logratio.exp()
+        ratio = T.exp(logratio)
 
-        ratio = logratio.exp()
+        # print('log_pis_old: ', log_pis_old[:10])
+        # print('log_pi: ', log_pi[:10])
+        # # print('pi: ', pi.mean())
+        # print('logratio: ', logratio[:10])
+        # print(color.RED+f'ratio: {ratio[:10]}'+color.END)
+
+        # print('log_pis_old: ', log_pis_old.mean())
+        # print('log_pi: ', log_pi.mean())
+        # print('logratio: ', logratio.mean())
+        # print(color.RED+f'ratio: {ratio[:10]}'+color.END)
+        # print(color.GREEN+f'ratioA: {(T.exp(logratio)).mean()}'+color.END)
+        # print(color.BLUE+f'ratioB: {T.exp(logratio.mean())}'+color.END)
 
         with T.no_grad():
             # calculate approx_kl http://joschu.net/blog/kl-approx.html
@@ -490,15 +512,12 @@ class PPO(MFRL):
         clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
         Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
         # Jpg = - ( ratio * advantages ).mean(axis=0)
-        # Jpi = - ( ratio * advantages + entropy_coef * entropy ).mean(axis=0)
 
-        # Jpg = - (ratio * advantages).mean(axis=0)
+        # Jentropy = -log_pi.mean()
+        Jpi = Jpg #+ Jentropy
 
-        Jentropy = - entropy_coef * entropy.mean()
-        Jpi = Jpg + Jentropy
-
-        # if (constrained) and (deviation > max_dev):
-        if (constrained) and ((deviation > max_dev) and (g > 0.1*G)):
+        if (constrained) and (deviation > max_dev):
+        # if (constrained) and ((deviation > max_dev) and (g > 0.1*G)):
             self.stop_pi = True
         else:
             self.stop_pi = False
@@ -535,7 +554,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}" # H < -2.7
+    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-12" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:

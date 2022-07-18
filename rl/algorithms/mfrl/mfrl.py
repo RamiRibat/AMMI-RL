@@ -60,6 +60,10 @@ class MFRL:
         self._seed_env(self.learn_env)
         assert isinstance (self.learn_env.action_space, Box), "Works only with continuous action space"
 
+        if True:
+            self.traj_env = gym.make(name)
+            self._seed_env(self.traj_env)
+
         if evaluate:
             # Ininialize Evaluation environment
             self.eval_env = gym.make(name)
@@ -172,7 +176,7 @@ class MFRL:
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
 
-        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o))
+        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True)
         o_next, r, d, _ = self.learn_env.step(a)
         Z += r
         el += 1
@@ -218,6 +222,50 @@ class MFRL:
         return o, Z, el, t
 
 
+
+
+    def internact_ovoq(self, n, o, Z, el, t, on_policy=True):
+        max_el = self.configs['environment']['horizon']
+        Nx = self.configs['algorithm']['learning']['expl_epochs']
+
+        if on_policy:
+            # print(f'OnPol: d={d} | el={el}')
+            a, log_pi, v = self.actor_critic.get_a_and_v_np(o, on_policy=on_policy)
+            o_next, r, d, _ = self.traj_env.step(a)
+            Z += r
+            el += 1
+            t += 1
+            self.traj_buffer.store(o, a, r, o_next, v, log_pi, el)
+            o = o_next
+            if d or (el == max_el):
+                if el == max_el:
+                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+                else:
+                    v = T.Tensor([0.0])
+                self.traj_buffer.finish_path(el, v)
+                o, Z, el = self.traj_env.reset(), 0, 0
+        else: # off-policy
+            # with T.no_grad():
+            #     a, _, _ = self.actor_critic.get_a_and_v_np(o, on_policy=on_policy)
+            if n > Nx:
+                a = self.actor_critic.get_action_np(o, on_policy=on_policy)
+                # a, _, _ = self.actor_critic.get_a_and_v_np(o, on_policy=on_policy)
+            else:
+                a = self.learn_env.action_space.sample()
+            o_next, r, d, _ = self.learn_env.step(a)
+            d = False if el == max_el else d
+            self.repl_buffer.store_transition(o, a, r, o_next, d)
+            o = o_next
+            Z += r
+            el +=1
+            t +=1
+            if d or (el == max_el): o, Z, el = self.learn_env.reset(), 0, 0
+
+        return o, Z, el, t
+
+
+
+
     def evaluate_op(self):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
@@ -251,7 +299,7 @@ class MFRL:
         return EZ, ES, EL
 
 
-    def evaluate(self):
+    def evaluate(self, on_policy=True):
         evaluate = self.configs['algorithm']['evaluation']
         if evaluate:
             print('\n[ Evaluation ]')
@@ -267,7 +315,7 @@ class MFRL:
 
                 while not(d or (el == max_el)):
                     # a, _, _ = self.actor_critic.actor(o, deterministic=True)
-                    a = self.actor_critic.get_action_np(o, deterministic=True) # Deterministic action | No reparameterization
+                    a = self.actor_critic.get_action_np(o, on_policy=on_policy, deterministic=True) # Deterministic action | No reparameterization
                     o, r, d, info = self.eval_env.step(a)
                     Z += r
                     if self.configs['environment']['type'] == 'mujoco-pddm-shadowhand': S += info['score']
