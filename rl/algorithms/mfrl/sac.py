@@ -22,7 +22,7 @@ import torch as T
 import torch.nn.functional as F
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import StochasticPolicy, OVOQPolicy
+from rl.control.policy import StochasticPolicy, OVOQPolicy, Policy
 from rl.value_functions.q_function import SoftQFunction
 
 # from rl.utils.logx import EpochLogger
@@ -79,14 +79,18 @@ class ActorCritic: # Done
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        return StochasticPolicy(
-            self.obs_dim, self.act_dim,
-            self.act_up_lim, self.act_low_lim,
-            net_configs, self._device_, self.seed)
+        # return StochasticPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
         # return OVOQPolicy(
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
+        return Policy(
+            self.obs_dim, self.act_dim,
+            self.act_up_lim, self.act_low_lim,
+            net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -330,7 +334,7 @@ class SAC(MFRL):
             logs['learning/real/rollout_length        '] = np.mean(elList[1:])
 
             eval_start_real = time.time()
-            EZ, ES, EL = self.evaluate()
+            EZ, ES, EL = self.evaluate(on_policy=False)
 
             # logs['time/evaluation                     '] = time.time() - eval_start_real
 
@@ -439,15 +443,17 @@ class SAC(MFRL):
         # Bellman backup for Qs
         with T.no_grad():
             # pi_next, log_pi_next, entropy_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
-            pi_next, log_pi_next, entropy_next = self.actor_critic.get_pi(O_next, reparameterize=True, return_log_pi=True)
+            pi_next, log_pi_next, entropy_next = self.actor_critic.get_pi(O_next, on_policy=False, reparameterize=True, return_log_pi=True)
             A_next = pi_next
             # Qs_targ = T.cat( self.actor_critic.critic_target(O_next, A_next), dim=1 )
             Qs_targ = T.cat( self.actor_critic.get_q_target(O_next, A_next), dim=1 )
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
+            # Qs_backup = R + gamma * (1 - D) * (min_Q_targ + self.alpha * entropy_next)
 
         # MSE loss
         Jq = 0.5 * sum([F.mse_loss(Q, Qs_backup) for Q in Qs])
+        # print('Jq=', Jq)
 
         # Gradient Descent
         self.actor_critic.critic.optimizer.zero_grad()
@@ -496,13 +502,18 @@ class SAC(MFRL):
         # Policy Evaluation
         # pi, log_pi, entropy = self.actor_critic.actor(O, return_log_pi=True)
         # Qs_pi = T.cat(self.actor_critic.critic(O, pi), dim=1)
-        pi, log_pi, entropy = self.actor_critic.get_pi(O, reparameterize=True, return_log_pi=True)
+        pi, log_pi, entropy = self.actor_critic.get_pi(O, on_policy=False, reparameterize=True, return_log_pi=True)
         Qs_pi = T.cat(self.actor_critic.get_q(O, pi), dim=1)
         min_Q_pi, _ = T.min(Qs_pi, dim=1, keepdim=True)
 
 
         # Policy Improvement
         Jpi = (self.alpha * log_pi - min_Q_pi).mean()
+        # Jpi = -(self.alpha * entropy + min_Q_pi).mean()
+        # print('pi=', pi)
+        # print('log_pi=', log_pi)
+        # print('min_Q_pi=', min_Q_pi)
+        # print('Jpi=', Jpi)
 
         # Gradient Ascent
         self.actor_critic.actor.optimizer.zero_grad()
@@ -542,7 +553,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Exp-B"
+    group_name = f"{env_name}-{alg_name}-4"
     # group_name = f"{env_name}-{alg_name}-GCP-A-cpu"
     exp_prefix = f"seed:{seed}"
 

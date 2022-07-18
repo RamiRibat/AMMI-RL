@@ -10,20 +10,21 @@ configurations = {
         },
 
     'algorithm': {
-        'name': 'PPO',
+        'name': 'SAC',
         'model-based': False,
-        'on-policy': True,
+        'on-policy': False,
         'learning': {
-            'epochs': 200, # N epochs
-            'epoch_steps': 10000, # NT steps/epoch
-            'init_epochs': 0, # Ni epochs
-            'expl_epochs': 0, # Nx epochs
+            'epochs': 2000, # N epochs
+            'epoch_steps': 1000, # NT steps/epoch
+            'init_epochs': 1, # Ni epochs
+            'expl_epochs': 10, # Nx epochs
 
-            'env_steps' : 10000, # E: interact E times then train
-            'train_AC_freq': 1, # F: frequency of AC training
-            'grad_AC_steps': 100, # ACG: ac grad
+            'env_steps' : 1, # E: interact E times then train
+            'grad_AC_steps': 1, # ACG: ac grad
 
             'policy_update_interval': 1,
+            'alpha_update_interval': 1,
+            'target_update_interval': 1,
                     },
 
         'evaluation': {
@@ -35,58 +36,58 @@ configurations = {
         }
     },
 
-    'actor': { # No init
-        'type': 'ppopolicy',
-        'constrained': False,
+    'actor': {
+        'type': 'Gaussian',
+        'type': 'TanhSquashedGaussian',
         'action_noise': None,
-        'clip_eps': 0.25,
-        'kl_targ': 0.02,
-        'max_dev': 0.1,
-        'entropy_coef': 0.0,
+        'alpha': 0.2, # Temprature/Entropy #@#
+        'automatic_entropy': False,
+        'target_entropy': 'auto',
         'network': {
             'log_std_grad': False,
             'init_log_std': 1,
-            # 'arch': [64, 64],
             # 'arch': [128, 128],
             'arch': [256, 256],
-            # 'arch': [512, 512],
+            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            # 'lr': 1e-3,
-            'lr': 3e-4,
-            'output_activation': 'nn.Identity',
+            # 'n_parameters': 2,
+            # 'op_activation': 'Tanh',
+            'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            'max_grad_norm': 0.5,
+            'lr': 3e-4,
         }
     },
 
-    'critic': { # Init
-        'type': 'V',
-        'number': 1,
-        # 'gamma': 0.995, # Stable performance
-        # 'gae_lam': 0.99, # Stable performance
+    'critic': {
+        'type': 'sofQ',
+        'number': 2,
         'gamma': 0.99,
-        'gae_lam': 0.95,
+        # 'gamma': 0.995,
+        'tau': 5e-3,
         'network': {
-            # 'arch': [64, 64],
-            'arch': [128, 128],
-            # 'arch': [256, 256],
+            # 'arch': [128, 128],
+            # 'arch': [256, 128],
+            'arch': [256, 256],
+            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            'lr': 1e-3,
-            # 'lr': 3e-4,
-            'output_activation': 'nn.Identity',
+            # 'n_parameters': 1,
+            'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            'max_grad_norm': 0.5,
+            # 'lr': 1e-3, # Conv at Ep:?
+            'lr': 3e-4, # Conv at Ep:340 | ReLU-16
         }
     },
 
     'data': {
         'buffer_type': 'simple',
-        'buffer_size': int(1e4),
-        'batch_size': int(1e4),
+        'buffer_size': int(1e6),
+        # 'batch_size': 128,
+        'batch_size': 256,
+        # 'batch_size': 512
     },
 
     'experiment': {
