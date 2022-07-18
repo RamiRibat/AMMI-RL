@@ -25,13 +25,9 @@ class MLPNet(nn.Module):
         # random.seed(seed), np.random.seed(seed), T.manual_seed(seed)
 
         net_arch = net_configs['arch']
-        op_activation = eval('nn.Identity')() # net_config['output_activation']
+        # op_activation = eval('nn.Identity')() # net_config['output_activation']
+        op_activation = eval('nn.' + net_configs['op_activation'])()
         activation = eval('nn.' + net_configs['activation'])()
-        # if net_configs['activation'] == 'PReLU':
-        #     n_parameters = net_configs['n_parameters']
-        #     activation = eval('nn.' + net_configs['activation'])(num_parameters=n_parameters)
-        # else:
-        #     activation = eval('nn.' + net_configs['activation'])()
 
         if len(net_arch) > 0:
             layers = [Linear(ip_dim, net_arch[0]), activation]
