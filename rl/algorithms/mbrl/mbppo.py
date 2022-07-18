@@ -660,7 +660,7 @@ class MBPPO(MBRL, PPO):
                     print(f'[ Epoch {n} | AC {g} ] Model Rollout: nτ = {nτ+1} | M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}', end='\r')
                     # print('\no: ', o)
                     # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
-                    with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o)
+                    with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o, on_policy=True)
 
                     # o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
                     # # print('o_next: ', o_next)

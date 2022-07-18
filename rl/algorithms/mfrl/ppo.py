@@ -172,7 +172,9 @@ class ActorCritic: # Done
                                              reparameterize,
                                              deterministic,
                                              return_log_pi,
-                                             return_entropy)
+                                             return_entropy,
+                                             return_pre_pi=True
+                                             )
         return action.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
 
 

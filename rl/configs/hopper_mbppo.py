@@ -79,7 +79,8 @@ configurations = {
 
 
     'actor': { # No init
-        'type': 'ppopolicy',
+        # 'type': 'Gaussian',
+        'type': 'TanhSquashedGaussian',
         'constrained': False,
         'action_noise': None,
         'clip_eps': 0.25,
