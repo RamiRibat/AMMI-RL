@@ -499,9 +499,7 @@ class Policy(nn.Module):
 		log_prob, entropy = None, None
 
 		if return_log_prob:
-			if act is None:
-				pass
-			else:
+			if act is not None:
 				pre_prob = act
 				prob = T.tanh(act)
 			log_prob = normal_ditribution.log_prob(pre_prob)
