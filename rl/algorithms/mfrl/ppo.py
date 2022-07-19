@@ -111,12 +111,12 @@ class ActorCritic: # Done
                deterministic=False,
                return_log_pi=True,
                return_entropy=True):
-        action, log_pi, entropy = self.actor(o, a, on_policy,
+        _, pi, log_pi, entropy = self.actor(o, a, on_policy,
                                              reparameterize,
                                              deterministic,
                                              return_log_pi,
                                              return_entropy)
-        return action, log_pi, entropy
+        return pi, log_pi, entropy
 
 
     def get_action(self, o, a=None,
@@ -127,7 +127,7 @@ class ActorCritic: # Done
                    return_entropy=True):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): a, _, _ = self.actor(o, a, on_policy,
+        with T.no_grad(): _, a, _, _ = self.actor(o, a, on_policy,
                                                reparameterize,
                                                deterministic,
                                                return_log_pi,
@@ -148,18 +148,18 @@ class ActorCritic: # Done
                                return_entropy).numpy()
 
 
-    def get_pi_and_v(self, o, a=None,
-                    on_policy=True,
-                    reparameterize=False,
-                    deterministic=False,
-                    return_log_pi=True,
-                    return_entropy=True):
-        pi, log_pi, entropy = self.actor(o, a, on_policy,
-                                         reparameterize,
-                                         deterministic,
-                                         return_log_pi,
-                                         return_entropy)
-        return pi, log_pi, entropy, self.critic(o)
+    # def get_pi_and_v(self, o, a=None,
+    #                 on_policy=True,
+    #                 reparameterize=False,
+    #                 deterministic=False,
+    #                 return_log_pi=True,
+    #                 return_entropy=True):
+    #     pi, log_pi, entropy = self.actor(o, a, on_policy,
+    #                                      reparameterize,
+    #                                      deterministic,
+    #                                      return_log_pi,
+    #                                      return_entropy)
+    #     return pi, log_pi, entropy, self.critic(o)
 
 
     def get_a_and_v(self, o, a=None,
@@ -169,14 +169,14 @@ class ActorCritic: # Done
                     return_log_pi=True,
                     return_entropy=True,
                     return_pre_pi=True):
-        action, log_pi, entropy = self.actor(o, a, on_policy,
+        pre_a, a, log_pi, entropy = self.actor(o, a, on_policy,
                                              reparameterize,
                                              deterministic,
                                              return_log_pi,
                                              return_entropy,
                                              return_pre_pi
                                              )
-        return action.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
+        return pre_a.cpu(), a.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
 
 
     def get_a_and_v_np(self, o, a=None,
@@ -188,14 +188,14 @@ class ActorCritic: # Done
                        return_pre_pi=True):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): a, log_pi, entropy = self.actor(o, a, on_policy,
+        with T.no_grad(): pre_a, a, log_pi, entropy = self.actor(o, a, on_policy,
                                                           reparameterize,
                                                           deterministic,
                                                           return_log_pi,
                                                           return_entropy,
                                                           return_pre_pi
                                                           )
-        return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
+        return pre_a.cpu().numpy(), a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
 
 
 
@@ -460,7 +460,7 @@ class PPO(MFRL):
         """
         max_grad_norm = kl_targ = self.configs['critic']['network']['max_grad_norm']
 
-        observations, _, _, _, _, returns, _, _, _ = batch.values()
+        observations, _, _, _, _, _, returns, _, _, _ = batch.values()
         v = self.actor_critic.get_v(observations)
 
         Jv = 0.5 * ( (v - returns) ** 2 ).mean(axis=0)
@@ -487,18 +487,12 @@ class PPO(MFRL):
 
         PiInfo = dict()
 
-        observations, actions, _, _, _, _, _, advantages, log_pis_old = batch.values()
+        O, pre_A, A, _, _, _, _, _, U, log_Pi_old = batch.values()
 
-        _, log_pi, entropy = self.actor_critic.get_pi(observations, actions, on_policy=True, reparameterize=False)
-        logratio = log_pi - log_pis_old
+        _, log_Pi, entropy = self.actor_critic.get_pi(O, pre_A, on_policy=True, reparameterize=False)
+        logratio = log_Pi - log_Pi_old
         # ratio = logratio.exp()
         ratio = T.exp(logratio)
-
-        # print('log_pis_old: ', log_pis_old[:10])
-        # print('log_pi: ', log_pi[:10])
-        # # print('pi: ', pi.mean())
-        # print('logratio: ', logratio[:10])
-        # print(color.RED+f'ratio: {ratio[:10]}'+color.END)
 
         # print('log_pis_old: ', log_pis_old.mean())
         # print('log_pi: ', log_pi.mean())
@@ -514,7 +508,7 @@ class PPO(MFRL):
             deviation = ((ratio - 1).abs()).mean()
 
         clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
-        Jpg = - ( T.min(ratio * advantages, clipped_ratio * advantages) ).mean(axis=0)
+        Jpg = - ( T.min(ratio * U, clipped_ratio * U) ).mean(axis=0)
         # Jpg = - ( ratio * advantages ).mean(axis=0)
 
         # Jentropy = -log_pi.mean()
@@ -535,7 +529,7 @@ class PPO(MFRL):
         PiInfo['entropy'] = entropy.mean().item()
         PiInfo['ratio'] = ratio.mean().item()
         PiInfo['deviation'] = deviation.item()
-        PiInfo['log_pi'] = log_pi.mean().item()
+        PiInfo['log_pi'] = log_Pi.mean().item()
         PiInfo['stop_pi'] = self.stop_pi
 
         return Jpi, approx_kl_old, PiInfo#, stop_pi
@@ -558,7 +552,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-12" # H < -2.7
+    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-13" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:

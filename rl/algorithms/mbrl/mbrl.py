@@ -217,12 +217,12 @@ class MBRL:
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
 
-        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), return_pre_pi=False)
+        with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
         o_next, r, d, _ = self.learn_env.step(a)
         Z += r
         el += 1
         t += 1
-        self.buffer.store(o, a, r, o_next, v, log_pi, el)
+        self.buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
         o = o_next
         if d or (el == max_el):
             if el == max_el:
@@ -230,6 +230,8 @@ class MBRL:
             else:
                 v = T.Tensor([0.0])
             self.buffer.finish_path(el, v)
+
+            # print(f'termination: t={t} | el={el} | total_size={self.buffer.total_size()}')
             o, Z, el = self.learn_env.reset(), 0, 0
 
         return o, Z, el, t

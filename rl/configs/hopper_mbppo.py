@@ -54,14 +54,9 @@ configurations = {
 
 
     'world_model': {
-        'type': 'PE',
+        'type': 'DE',
         'num_ensembles': 4,
-        # 'num_elites': 5,
-        # 'sample_type': 'Random',
         'learn_reward': True,
-        # 'model_train_freq': 250,
-        # 'model_retain_epochs': 1,
-        # 'rollout_schedule': [20, 100, 1, 15],
         'network': {
             'arch': [512, 512],
             'init_weights': 3e-3,
@@ -115,12 +110,12 @@ configurations = {
         'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
-            # 'arch': [128, 128],
-            'arch': [256, 256],
+            'arch': [128, 128],
+            # 'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            # 'lr': 1e-3,
-            'lr': 3e-4,
+            'lr': 1e-3,
+            # 'lr': 3e-4,
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",

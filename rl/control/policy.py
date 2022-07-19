@@ -445,19 +445,21 @@ class Policy(nn.Module):
 		log_pi, entropy = None, None
 
 		if deterministic:
+			pre_pi = None
 			with T.no_grad(): pi = T.tanh(mean)
 		else:
-			pi, log_pi, entropy = self.pi_prob(act,
+			pre_pi, pi, log_pi, entropy = self.pi_prob(act,
                                                mean, std,
                                                on_policy,
                                                reparameterize,
                                                return_log_pi,
                                                return_entropy=True,
                                                return_pre_prob=return_pre_pi)
+			pre_pi = (pre_pi * self.act_scale) + self.act_bias
 
 		pi = (pi * self.act_scale) + self.act_bias
 
-		return pi, log_pi, entropy
+		return pre_pi, pi, log_pi, entropy
 
 
 	def pi_mean_std(self, obs, on_policy=True):
@@ -500,17 +502,18 @@ class Policy(nn.Module):
 
 		if return_log_prob:
 			if act is not None:
-				pre_prob = act
-				prob = T.tanh(act)
+				pre_prob, prob = act, T.tanh(act)
 			log_prob = normal_ditribution.log_prob(pre_prob)
 			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(axis=-1, keepdim=True)
 		if return_entropy:
 			entropy = normal_ditribution.entropy().sum(axis=-1, keepdims=True)
 
-		if return_pre_prob: prob = pre_prob # PPO: save pre_prob because we need both pre_prob&prob to get log_prob
+		# if return_pre_prob:
+		# 	print('return_pre_prob\n')
+		# 	prob = pre_prob # PPO: save pre_prob because we need both pre_prob&prob to get log_prob
 
-		return prob, log_prob, entropy
+		return pre_prob, prob, log_prob, entropy
 
 
 	def to(self, device):
