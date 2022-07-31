@@ -558,8 +558,8 @@ def main(exp_prefix, config, seed, device, wb):
             name=exp_prefix,
             group=group_name,
             # project='test',
-            project='AMMI-RL-2022',
-            # project=f'AMMI-RL-{env_name}',
+            # project='AMMI-RL-2022',
+            project=f'AMMI-RL-{env_name}',
             config=configs
         )
 
