@@ -116,7 +116,7 @@ class ActorCritic: # Done
                return_log_pi=True,
                return_entropy=True):
         # Update AC
-        action, log_pi, entropy = self.actor(o, a, on_policy,
+        _, action, log_pi, entropy = self.actor(o, a, on_policy,
                                              reparameterize,
                                              deterministic,
                                              return_log_pi,
@@ -131,7 +131,7 @@ class ActorCritic: # Done
                    return_entropy=False):
         o = T.Tensor(o)
         if a: a = T.Tensor(a)
-        with T.no_grad(): a, _, _ = self.actor(o, a, on_policy,
+        with T.no_grad(): _, a, _, _ = self.actor(o, a, on_policy,
                                                reparameterize,
                                                deterministic,
                                                return_log_pi,
@@ -159,7 +159,7 @@ class ActorCritic: # Done
                     deterministic=False,
                     return_log_pi=True,
                     return_entropy=True):
-        pi, log_pi, entropy = self.actor(o, a, on_policy,
+        _, pi, log_pi, entropy = self.actor(o, a, on_policy,
                                          reparameterize,
                                          deterministic,
                                          return_log_pi,
@@ -268,16 +268,16 @@ class SAC(MFRL):
                     print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
                     oldJs = [0, 0, 0]
                     JQList, JAlphaList, JPiList = [], [], []
-                    HList, LogPiList = [], []
+                    HList, LogPiList, AlphaList = [], [], []
                 elif n > Ni:
                     print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
                     JQList, JAlphaList, JPiList = [], [], []
-                    HList, LogPiList = [], []
+                    HList, LogPiList, AlphaList = [], [], []
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
                     oldJs = [0, 0, 0]
-                    JQList, JAlphaList, JPiList = [0], [self.alpha], [0]
-                    HList, LogPiList = [0], [0]
+                    JQList, JAlphaList, JPiList = [0], [0], [0]
+                    HList, LogPiList, AlphaList = [0], [0], [self.alpha]
 
             nt = 0
             ZList, elList = [0], [0]
@@ -323,6 +323,7 @@ class SAC(MFRL):
             logs['training/sac/critic/Jq              '] = np.mean(JQList)
             logs['training/sac/actor/Jpi              '] = np.mean(JPiList)
             logs['training/sac/actor/H                '] = np.mean(HList)
+            logs['training/sac/actor/STD              '] = self.actor_critic.actor.std_value.clone().mean().item()
             if self.configs['actor']['automatic_entropy']:
                 logs['training/sac/actor/Jalpha           '] = np.mean(JAlphaList)
                 logs['training/sac/actor/alpha            '] = np.mean(AlphaList)
@@ -412,6 +413,7 @@ class SAC(MFRL):
         Jq = self.updateQ(batch, oldJs[0])
         Jq = Jq.item()
         Jalpha = self.updateAlpha(batch, oldJs[1])# if (g % AUI == 0) else oldJs[1]
+        if self.configs['actor']['automatic_entropy']: Jalpha = Jalpha.item()
         Jpi, PiInfo = self.updatePi(batch, oldJs[2])# if (g % PUI == 0) else oldJs[2]
         Jpi = Jpi.item()
 
@@ -437,19 +439,16 @@ class SAC(MFRL):
         D = batch['terminals']
 
         # Calculate two Q-functions
-        # Qs = self.actor_critic.critic(O, A)
         Qs = self.actor_critic.get_q(O, A)
 
         # Bellman backup for Qs
         with T.no_grad():
-            # pi_next, log_pi_next, entropy_next = self.actor_critic.actor(O_next, reparameterize=True, return_log_pi=True)
             pi_next, log_pi_next, entropy_next = self.actor_critic.get_pi(O_next, on_policy=False, reparameterize=True, return_log_pi=True)
+            # pi_next, log_pi_next, entropy_next = self.actor_critic.get_pi(O_next, on_policy=False, reparameterize=False, return_log_pi=True)
             A_next = pi_next
-            # Qs_targ = T.cat( self.actor_critic.critic_target(O_next, A_next), dim=1 )
             Qs_targ = T.cat( self.actor_critic.get_q_target(O_next, A_next), dim=1 )
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
-            # Qs_backup = R + gamma * (1 - D) * (min_Q_targ + self.alpha * entropy_next)
 
         # MSE loss
         Jq = 0.5 * sum([F.mse_loss(Q, Qs_backup) for Q in Qs])
@@ -500,20 +499,16 @@ class SAC(MFRL):
         O = batch['observations']
 
         # Policy Evaluation
-        # pi, log_pi, entropy = self.actor_critic.actor(O, return_log_pi=True)
-        # Qs_pi = T.cat(self.actor_critic.critic(O, pi), dim=1)
         pi, log_pi, entropy = self.actor_critic.get_pi(O, on_policy=False, reparameterize=True, return_log_pi=True)
+        # pi, log_pi, entropy = self.actor_critic.get_pi(O, on_policy=False, reparameterize=False, return_log_pi=True)
         Qs_pi = T.cat(self.actor_critic.get_q(O, pi), dim=1)
         min_Q_pi, _ = T.min(Qs_pi, dim=1, keepdim=True)
 
 
         # Policy Improvement
         Jpi = (self.alpha * log_pi - min_Q_pi).mean()
-        # Jpi = -(self.alpha * entropy + min_Q_pi).mean()
         # print('pi=', pi)
         # print('log_pi=', log_pi)
-        # print('min_Q_pi=', min_Q_pi)
-        # print('Jpi=', Jpi)
 
         # Gradient Ascent
         self.actor_critic.actor.optimizer.zero_grad()
@@ -553,7 +548,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-4"
+    group_name = f"{env_name}-{alg_name}-V2-13"
     # group_name = f"{env_name}-{alg_name}-GCP-A-cpu"
     exp_prefix = f"seed:{seed}"
 
@@ -563,8 +558,8 @@ def main(exp_prefix, config, seed, device, wb):
             name=exp_prefix,
             group=group_name,
             # project='test',
-            # project='AMMI-RL-2022',
-            project=f'AMMI-RL-{env_name}',
+            project='AMMI-RL-2022',
+            # project=f'AMMI-RL-{env_name}',
             config=configs
         )
 

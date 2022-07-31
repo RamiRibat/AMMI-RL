@@ -40,12 +40,15 @@ configurations = {
         'type': 'Gaussian',
         'type': 'TanhSquashedGaussian',
         'action_noise': None,
-        'alpha': 0.2, # Temprature/Entropy #@#
+        'alpha': .2, # Temprature/Entropy #@#
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {
-            'log_std_grad': False,
-            'init_log_std': 1,
+            'std_grad': False,
+            # 'init_std': 3.,
+            # 'min_std': 1e-6,
+            # 'log_std_grad': False,
+            # 'init_log_std': 1,
             # 'arch': [128, 128],
             'arch': [256, 256],
             # 'arch': [256, 128, 64],
@@ -68,7 +71,6 @@ configurations = {
         'tau': 5e-3,
         'network': {
             # 'arch': [128, 128],
-            # 'arch': [256, 128],
             'arch': [256, 256],
             # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',

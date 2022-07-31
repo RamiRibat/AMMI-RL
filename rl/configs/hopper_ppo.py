@@ -36,8 +36,8 @@ configurations = {
     },
 
     'actor': { # No init
-        # 'type': 'Gaussian',
-        'type': 'TanhSquashedGaussian',
+        'type': 'Gaussian',
+        # 'type': 'TanhSquashedGaussian',
         'constrained': False,
         'action_noise': None,
         'clip_eps': 0.25,
@@ -45,8 +45,11 @@ configurations = {
         'max_dev': 0.5,
         'entropy_coef': 0.0,
         'network': {
-            'log_std_grad': False,
-            'init_log_std': 1,
+            'std_grad': False,
+            # 'init_std': 3.,
+            # 'min_std': 1e-6,
+            # 'log_std_grad': False,
+            # 'init_log_std': 1,
             # 'arch': [64, 64],
             # 'arch': [128, 128],
             'arch': [256, 256],
@@ -65,10 +68,10 @@ configurations = {
     'critic': { # Init
         'type': 'V',
         'number': 1,
-        # 'gamma': 0.995, # Stable performance
-        # 'gae_lam': 0.99, # Stable performance
-        'gamma': 0.99,
-        'gae_lam': 0.95,
+        'gamma': 0.995, # Stable performance
+        'gae_lam': 0.99, # Stable performance
+        # 'gamma': 0.99,
+        # 'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
             'arch': [128, 128],

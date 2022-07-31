@@ -172,6 +172,16 @@ class MOVOQ(MBRL, OVOQ):
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [0], [], [0], [], [], [0]
                         HVList, HQList, DevList = [], [0], []
                     oldJs = [0, 0, 0, 0]
+                elif n > Niq:
+                    if n > Niv:
+                        print(f'\n[ Epoch {n}   Exploration + Learning (OV+OQ) ]'+(' '*50))
+                        JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [], [], [], [], [], []
+                        HVList, HQList, DevList = [], [], []
+                    else:
+                        print(f'\n[ Epoch {n}   Exploration + Learning (OQ) ]'+(' '*50))
+                        JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [], [0], [], [0], [0], []
+                        HVList, HQList, DevList = [0], [], [0]
+                    oldJs = [0, 0, 0, 0]
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
                     JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [0], [0], [0], [0], [0], [0]
@@ -185,15 +195,15 @@ class MOVOQ(MBRL, OVOQ):
             AvgZ, AvgEL = 0, 0
             ppo_grads, sac_grads = 0, 0
 
-            if n > Niq:
-                on_policy = False if (n%2==0) else True
-                OP = 'on-policy' if on_policy else 'off-policy'
-            else:
-                on_policy = True
-                OP = 'on-policy'
+            # if n > Niq:
+            #     on_policy = False if (n%2==0) else True
+            #     OP = 'on-policy' if on_policy else 'off-policy'
+            # else:
+            #     on_policy = True
+            #     OP = 'on-policy'
 
-            # on_policy = False
-            # OP = 'off-policy'
+            on_policy = False
+            OP = 'off-policy'
 
             learn_start_real = time.time()
             while nt < NT: # full epoch
@@ -257,8 +267,6 @@ class MOVOQ(MBRL, OVOQ):
                 print(f'\n\n[ Epoch {n} | {color.RED}Training V-World Model{color.END} ]'+(' '*50))
                 grad_MV_steps = self.configs['algorithm']['learning']['grad_MV_steps']
 
-                # ov_ho_mean = self.fake_world.train_fake_world(self.buffer)
-
                 model_fit_bs = min(self.configs['data']['recent_buffer_size'], self.buffer.total_size())
                 model_fit_batch = self.buffer.sample_batch(batch_size=model_fit_bs, recent=model_fit_bs, device=self._device_)
                 s, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
@@ -269,7 +277,6 @@ class MOVOQ(MBRL, OVOQ):
 
                 LossGen = []
                 for i, model in enumerate(self.ov_world_model):
-                    # print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
                     loss_general = model.compute_loss(s[-samples_to_collect:],
                                                       a[-samples_to_collect:],
                                                       sp[-samples_to_collect:]) # generalization error
@@ -277,7 +284,7 @@ class MOVOQ(MBRL, OVOQ):
                     reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=grad_MV_steps)
                 LossGen.append(loss_general)
                 hov_mean = np.mean(LossGen)
-                JHOVList.append(hov_mean) # ho: holdout
+                JHOVList.append(hov_mean)
 
                 # PPO >>>>
                 for gv in range(1, GV+1):
@@ -289,7 +296,7 @@ class MOVOQ(MBRL, OVOQ):
                     kl, dev = 0, 0
                     stop_pi = False
                     for gg in range(1, GPPO+1): # 101
-                        print(f"[ Epoch {n} | {color.RED}Training AV{color.END} ] GV: {gv}/{GV} | ac: {gg}/{GPPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*25), end='\r')
+                        print(f"[ Epoch {n} | {color.RED}Training AV{color.END} ] GV: {gv}/{GV} | ac: {gg}/{GPPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*40), end='\r')
                         batch = self.model_traj_buffer.sample_batch(batch_size=ppo_batch_size, device=self._device_)
                         Jv, _, _, Jpi, PiInfo = self.trainAC(gv, batch, oldJs, on_policy=True)
                         oldJs = [Jv, 0, 0, Jpi]
@@ -490,8 +497,9 @@ class MOVOQ(MBRL, OVOQ):
                 AvgEL = sum(elList)/(len(elList)-1)
 
             if self.model_traj_buffer.total_size() >= self.configs['data']['ov_model_buffer_size']:
-                print(f'Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*85)
+                # print(f'Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*85)
                 break
+        print(f'[ Epoch {n} | AC {g} ] RollBuffer={self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | L={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*35)
 
     	return ZList, elList
 
@@ -634,7 +642,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}"
+    group_name = f"{env_name}-{alg_name}-Mac-2"
     # group_name = f"{env_name}-{alg_name}-GCP-A"
     # group_name = f"{env_name}-{alg_name}-OQ-GCP-A"
     # group_name = f"{env_name}-{alg_name}-OV-GCP-A"

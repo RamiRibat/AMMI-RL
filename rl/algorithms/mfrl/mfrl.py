@@ -229,13 +229,12 @@ class MFRL:
         Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         if on_policy:
-            # print(f'OnPol: d={d} | el={el}')
-            a, log_pi, v = self.actor_critic.get_a_and_v_np(o, on_policy=on_policy)
+            pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
             o_next, r, d, _ = self.traj_env.step(a)
             Z += r
             el += 1
             t += 1
-            self.traj_buffer.store(o, a, r, o_next, v, log_pi, el)
+            self.traj_buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
             o = o_next
             if d or (el == max_el):
                 if el == max_el:
@@ -245,11 +244,8 @@ class MFRL:
                 self.traj_buffer.finish_path(el, v)
                 o, Z, el = self.traj_env.reset(), 0, 0
         else: # off-policy
-            # with T.no_grad():
-            #     a, _, _ = self.actor_critic.get_a_and_v_np(o, on_policy=on_policy)
             if n > Nx:
-                a = self.actor_critic.get_action_np(o, on_policy=on_policy)
-                # a, _, _ = self.actor_critic.get_a_and_v_np(o, on_policy=on_policy)
+                a = self.actor_critic.get_action_np(o)
             else:
                 a = self.learn_env.action_space.sample()
             o_next, r, d, _ = self.learn_env.step(a)
@@ -264,6 +260,47 @@ class MFRL:
         return o, Z, el, t
 
 
+    def internact_ovoq_x(self, n, o, Z, el, t):
+        Nt = self.configs['algorithm']['learning']['epoch_steps']
+        max_el = self.configs['environment']['horizon']
+
+        with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+        o_next, r, d, _ = self.learn_env.step(a)
+        Z += r
+        el += 1
+        t += 1
+        self.buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
+        o = o_next
+        if d or (el == max_el):
+            if el == max_el:
+                with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+            else:
+                v = T.Tensor([0.0])
+            self.buffer.finish_path(el, v)
+
+            # print(f'termination: t={t} | el={el} | total_size={self.buffer.total_size()}')
+            o, Z, el = self.learn_env.reset(), 0, 0
+
+
+        if n > Nx:
+            # a = self.actor_critic.get_action_np(o) # Stochastic action | No reparameterization # Deterministic action | No reparameterization
+            with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+        else:
+            a = self.learn_env.action_space.sample()
+
+        o_next, r, d, _ = self.learn_env.step(a)
+        d = False if el == max_el else d # Ignore artificial termination
+
+        self.buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
+
+        o = o_next
+        Z += r
+        el +=1
+        t +=1
+
+        if d or (el == max_el): o, Z, el = self.learn_env.reset(), 0, 0
+
+        return o, Z, el, t
 
 
     def evaluate_op(self):

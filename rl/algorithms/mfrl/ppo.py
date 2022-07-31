@@ -372,6 +372,7 @@ class PPO(MFRL):
             logs['training/ppo/actor/Jpi              '] = np.mean(JPiList)
             logs['training/ppo/actor/grads            '] = ppo_grads
             logs['training/ppo/actor/H                '] = np.mean(HList)
+            logs['training/ppo/actor/STD              '] = self.actor_critic.actor.std_value.clone().mean().item()
             logs['training/ppo/actor/KL               '] = np.mean(KLList) #
             logs['training/ppo/actor/deviation        '] = np.mean(DevList)
             logs['training/ppo/actor/log_pi           '] = PiInfo['log_pi']
@@ -489,7 +490,7 @@ class PPO(MFRL):
 
         O, pre_A, A, _, _, _, _, _, U, log_Pi_old = batch.values()
 
-        _, log_Pi, entropy = self.actor_critic.get_pi(O, pre_A, on_policy=True, reparameterize=False)
+        _, log_Pi, entropy = self.actor_critic.get_pi(O, pre_A, on_policy=True, reparameterize=True)
         logratio = log_Pi - log_Pi_old
         # ratio = logratio.exp()
         ratio = T.exp(logratio)
@@ -497,8 +498,8 @@ class PPO(MFRL):
         # print('log_pis_old: ', log_pis_old.mean())
         # print('log_pi: ', log_pi.mean())
         # print('logratio: ', logratio.mean())
-        # print(color.RED+f'ratio: {ratio[:10]}'+color.END)
-        # print(color.GREEN+f'ratioA: {(T.exp(logratio)).mean()}'+color.END)
+        # print(color.RED+f'ratio: {ratio.mean()}'+color.END)
+        # print(color.GREEN+f'\nratioA: {(T.exp(logratio)).mean()}'+color.END)
         # print(color.BLUE+f'ratioB: {T.exp(logratio.mean())}'+color.END)
 
         with T.no_grad():
@@ -508,10 +509,13 @@ class PPO(MFRL):
             deviation = ((ratio - 1).abs()).mean()
 
         clipped_ratio = T.clamp(ratio, 1-clip_eps, 1+clip_eps)
-        Jpg = - ( T.min(ratio * U, clipped_ratio * U) ).mean(axis=0)
-        # Jpg = - ( ratio * advantages ).mean(axis=0)
+        Jpg = -( T.min(ratio * U, clipped_ratio * U) ).mean(axis=0)
+        # Jpg = ( - T.min(ratio * U, clipped_ratio * U) ).mean(axis=0)
 
-        # Jentropy = -log_pi.mean()
+        # Jentropy = 0.0*log_Pi.mean()
+        # Jwd = 0.0 * T.sum(T.square(self.actor_critic.actor.log_std.weight)) / 2.
+
+
         Jpi = Jpg #+ Jentropy
 
         if (constrained) and (deviation > max_dev):
@@ -552,7 +556,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-13" # H < -2.7
+    group_name = f"{env_name}-{alg_name}-V2-15" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:
