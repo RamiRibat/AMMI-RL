@@ -351,6 +351,7 @@ class MBPPO(MBRL, PPO):
             logs['training/ppo/actor/H                '] = np.mean(HList)
             logs['training/ppo/actor/KL               '] = np.mean(KLList)
             logs['training/ppo/actor/deviation        '] = np.mean(DevList)
+            logs['training/ppo/actor/STD              '] = self.actor_critic.actor.std_value.clone().mean().item()
             # logs['training/ppo/actor/log_pi            '] = PiInfo['log_pi']
 
             logs['data/env_buffer_size                '] = self.buffer.total_size()
@@ -827,7 +828,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-V2-21" # Local
+    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-V2-22" # Local
     # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 
