@@ -241,7 +241,7 @@ class MBPPO(MBRL, PPO):
                                                           sp[-samples_to_collect:]) # generalization error
                         dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=25)
                         reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=25)
-                    LossGen.append(loss_general)
+                        LossGen.append(loss_general)
                     ho_mean = np.mean(LossGen)
 
                     # self.init_model_traj_buffer()
@@ -828,7 +828,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-V2-26" # Local
+    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-V2-27" # Local
     # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 
