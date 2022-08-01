@@ -556,7 +556,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-V2-43" # H < -2.7
+    group_name = f"{env_name}-{alg_name}-V2-45" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:
