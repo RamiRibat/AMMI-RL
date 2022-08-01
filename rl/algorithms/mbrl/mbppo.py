@@ -280,14 +280,14 @@ class MBPPO(MBRL, PPO):
                     # PPO V2 >>>>
                     # f = lambda n: 20-2*(round(n+4.5, -1)-10)/10
                     # f = lambda n: 15 - ((round((n-2)/3, 0))-4)
-                    if n <= 10:
-                        G_AC = 5
-                        # G_PPO = 100
-                    elif n <= 20:
-                        G_AC = 10
-                        # G_PPO = 75
-                    else:
-                        G_AC = 15
+                    # if n <= 10:
+                    #     G_AC = 5
+                    #     # G_PPO = 100
+                    # elif n <= 20:
+                    #     G_AC = 10
+                    #     # G_PPO = 75
+                    # else:
+                    #     G_AC = 15
                         # G_PPO = 50
                     # G_PPO = int(750//G_AC)
                     # print(f'G_AC={G_AC} | G_PPO={G_PPO}')
@@ -824,7 +824,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-V2-28" # Local
+    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-V2-30" # Local
     # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 
