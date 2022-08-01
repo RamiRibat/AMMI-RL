@@ -280,12 +280,15 @@ class MBPPO(MBRL, PPO):
                     # PPO V2 >>>>
                     # f = lambda n: 20-2*(round(n+4.5, -1)-10)/10
                     # f = lambda n: 15 - ((round((n-2)/3, 0))-4)
-                    # if n <= 20:
-                    #     G_AC = 15
-                    # elif n <= 40:
-                    #     G_AC = 10
-                    # else:
-                    #     G_AC = 5
+                    if n <= 10:
+                        G_AC = 5
+                        # G_PPO = 100
+                    elif n <= 20:
+                        G_AC = 10
+                        # G_PPO = 75
+                    else:
+                        G_AC = 15
+                        # G_PPO = 50
                     # G_PPO = int(750//G_AC)
                     # print(f'G_AC={G_AC} | G_PPO={G_PPO}')
 
@@ -319,13 +322,6 @@ class MBPPO(MBRL, PPO):
                             if not self.stop_pi:
                                 ppo_grads += 1
                             stop_pi = PiInfo['stop_pi']
-
-                        # ac_grads += 1
-                        # if (np.std(ZListImag[1:]) > (np.mean(ZListImag[1:])/3)) and (np.std(ZListImag[1:])>100):
-                        #     print(f'Breaking AC loop at {g}'+(' ')*80)
-                        #     break
-                        # self.actor_critic.actor.log_std -= 0.05*T.ones(self.act_dim)
-                        # self.buffer.gae_lambda += 2e-4
                     # PPO-P <<<<
 
                 nt += E
@@ -828,7 +824,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-V2-27" # Local
+    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-V2-28" # Local
     # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 
