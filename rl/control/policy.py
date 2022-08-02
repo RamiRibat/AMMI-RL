@@ -956,6 +956,7 @@ class Policy(nn.Module): # E
 
 		if net_configs['initialize_weights']:
 			print('Apply Initialization')
+			# self.apply(init_weights_)
 			self.apply(init_weights_iii)
 
 		self.act_dim = act_dim
@@ -994,8 +995,8 @@ class Policy(nn.Module): # E
 
 		if deterministic:
 			pre_pi = None
-			# with T.no_grad(): pi = mean
-			with T.no_grad(): pi = T.tanh(mean)
+			with T.no_grad(): pi = mean
+			# with T.no_grad(): pi = T.tanh(mean)
 		else:
 			pre_pi, pi, log_pi, entropy = self.pi_prob(act,
                                                mean, std,
@@ -1022,7 +1023,9 @@ class Policy(nn.Module): # E
 		# log_std_a = T.clamp(log_std_a, min=LOG_STD_MIN, max=LOG_STD_MAX)
 		# std_a = T.exp(log_std_a)
 		std_b = self.std_b
+		# std = std_a
 		std = 0.3*std_a + 0.7*std_b
+		# std = 0.5*std_a + 0.5*std_b
 		self.std_value = std
 
 		return mean, std
@@ -1043,16 +1046,16 @@ class Policy(nn.Module): # E
 		else:
 			sample = normal_ditribution.sample()
 
-		# pre_prob, prob = sample, sample
-		pre_prob, prob = sample, T.tanh(sample)
+		pre_prob, prob = sample, sample
+		# pre_prob, prob = sample, T.tanh(sample)
 
 		log_prob, entropy = None, None
 
 		if return_log_prob:
-			# if act is not None: pre_prob, prob = act, act
-			if act is not None: pre_prob, prob = act, T.tanh(act)
+			if act is not None: pre_prob, prob = act, act
+			# if act is not None: pre_prob, prob = act, T.tanh(act)
 			log_prob = normal_ditribution.log_prob(pre_prob)
-			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
+			# log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(axis=-1, keepdim=True)
 
 		if return_entropy:
