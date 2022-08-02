@@ -949,15 +949,15 @@ class Policy(nn.Module): # E
 		self.mean_and_std_bb = MLPNet(obs_dim, 0, net_configs)
 		self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		# self.log_std_a = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
-		self.std_a = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
+		# self.std_a = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
 		self.std_b = nn.Parameter(2.75 * T.ones(act_dim, dtype=T.float32),
                                   requires_grad=net_configs['std_grad'])
 		self.std_value = T.tensor([0.])
 
 		if net_configs['initialize_weights']:
 			print('Apply Initialization')
-			# self.apply(init_weights_)
-			self.apply(init_weights_iii)
+			self.apply(init_weights_)
+			# self.apply(init_weights_iii)
 
 		self.act_dim = act_dim
 
@@ -1017,8 +1017,8 @@ class Policy(nn.Module): # E
 
 		net_out = self.mean_and_std_bb(obs)
 		mean = self.mean(net_out)
-		std_a = self.std_a(net_out)
-		std_a = T.clamp(std_a, min=1e-6, max=7)
+		# std_a = self.std_a(net_out)
+		# std_a = T.clamp(std_a, min=1e-6, max=7)
 		# log_std_a = self.log_std_a(net_out)
 		# log_std_a = T.clamp(log_std_a, min=LOG_STD_MIN, max=LOG_STD_MAX)
 		# std_a = T.exp(log_std_a)
