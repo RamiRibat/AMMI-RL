@@ -950,7 +950,7 @@ class Policy(nn.Module): # E
 		self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		# self.log_std_a = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
 		self.std_a = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
-		self.std_b = nn.Parameter(4. * T.ones(act_dim, dtype=T.float32),
+		self.std_b = nn.Parameter(2.75 * T.ones(act_dim, dtype=T.float32),
                                   requires_grad=net_configs['std_grad'])
 		self.std_value = T.tensor([0.])
 
@@ -1024,7 +1024,8 @@ class Policy(nn.Module): # E
 		# std_a = T.exp(log_std_a)
 		std_b = self.std_b
 		# std = std_a
-		std = 0.3*std_a + 0.7*std_b
+		std = std_b
+		# std = 0.3*std_a + 0.7*std_b
 		# std = 0.5*std_a + 0.5*std_b
 		self.std_value = std
 
