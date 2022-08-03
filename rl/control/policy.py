@@ -392,7 +392,7 @@ class Policy(nn.Module):
 		net_arch = net_configs['arch']
 		optimizer = 'T.optim.' + net_configs['optimizer']
 		lr = net_configs['lr']
-		# init_log_std = net_configs['init_log_std']
+		init_log_std = net_configs['init_log_std']
 
         # My suggestions:
 		# self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
@@ -404,10 +404,10 @@ class Policy(nn.Module):
 		# self.log_std = nn.Linear(obs_dim, act_dim) # Last layer of Actor std
 		# self.log_std = nn.Parameter(1. * T.ones(act_dim, dtype=T.float32),
         #                               requires_grad=False)
-		self.std = nn.Parameter(2.75 * T.ones(act_dim, dtype=T.float32),
-                                      requires_grad=net_configs['std_grad'])
-		# self.log_std = nn.Parameter(init_log_std * T.ones(act_dim, dtype=T.float32),
-        #                               requires_grad=net_configs['log_std_grad']) # (MF/MB)-PPO
+		# self.std = nn.Parameter(2.75 * T.ones(act_dim, dtype=T.float32),
+        #                               requires_grad=net_configs['std_grad'])
+		self.log_std = nn.Parameter(init_log_std * T.ones(act_dim, dtype=T.float32),
+                                      requires_grad=net_configs['log_std_grad']) # (MF/MB)-PPO
 		self.std_value = T.tensor([0.])
 
 		if net_configs['initialize_weights']:
@@ -475,16 +475,17 @@ class Policy(nn.Module):
 		# log_std = T.clamp(log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
 		# std = T.exp(log_std)
 
-		# mean = self.mean(obs)
-		# log_std = self.log_std
-		# std = T.exp(log_std)
-
 		mean = self.mean(obs)
-		# if not on_policy:
-		# 	self.std.requires_grad = False
-		# else:
-		# 	self.std.requires_grad = True
-		std = self.std
+		log_std = self.log_std
+		std = T.exp(log_std)
+
+		# mean = self.mean(obs)
+		# # if not on_policy:
+		# # 	self.std.requires_grad = False
+		# # else:
+		# # 	self.std.requires_grad = True
+		# std = self.std
+
 		self.std_value = std
 
 		return mean, std

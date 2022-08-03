@@ -84,9 +84,9 @@ configurations = {
         'max_dev': 0.2,
         'entropy_coef': 0.0,
         'network': {
-            'std_grad': False,
-            # 'log_std_grad': False,
-            # 'init_log_std': 1,
+            # 'std_grad': False,
+            'log_std_grad': False,
+            'init_log_std': 1,
             # 'arch': [64, 64],
             # 'arch': [128, 128],
             'arch': [256, 256],
