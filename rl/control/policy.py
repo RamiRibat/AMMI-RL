@@ -380,7 +380,7 @@ class OVOQPolicy(nn.Module):
 
 
 
-class PolicyA(nn.Module):
+class Policy(nn.Module):
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
@@ -448,7 +448,8 @@ class PolicyA(nn.Module):
 
 		if deterministic:
 			pre_pi = None
-			with T.no_grad(): pi = T.tanh(mean)
+			with T.no_grad(): pi = mean
+			# with T.no_grad(): pi = T.tanh(mean)
 		else:
 			pre_pi, pi, log_pi, entropy = self.pi_prob(act,
                                                mean, std,
@@ -502,14 +503,16 @@ class PolicyA(nn.Module):
 		else:
 			sample = normal_ditribution.sample()
 
-		pre_prob, prob = sample, T.tanh(sample)
+		pre_prob, prob = sample, sample
+		# pre_prob, prob = sample, T.tanh(sample)
 
 		log_prob, entropy = None, None
 
 		if return_log_prob:
-			if act is not None: pre_prob, prob = act, T.tanh(act)
+			if act is not None: pre_prob, prob = act, act
+			# if act is not None: pre_prob, prob = act, T.tanh(act)
 			log_prob = normal_ditribution.log_prob(pre_prob)
-			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
+			# log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(axis=-1, keepdim=True)
 
 		if return_entropy:
@@ -930,7 +933,7 @@ class PolicyD(nn.Module): # D
 
 
 
-class Policy(nn.Module): # E
+class PolicyE(nn.Module): # E
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
