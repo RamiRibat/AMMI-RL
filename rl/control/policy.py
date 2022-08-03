@@ -408,6 +408,7 @@ class Policy(nn.Module):
                                       requires_grad=net_configs['std_grad'])
 		# self.log_std = nn.Parameter(init_log_std * T.ones(act_dim, dtype=T.float32),
         #                               requires_grad=net_configs['log_std_grad']) # (MF/MB)-PPO
+		self.std_value = T.tensor([0.])
 
 		if net_configs['initialize_weights']:
 			print('Apply Initialization')
@@ -484,6 +485,7 @@ class Policy(nn.Module):
 		# else:
 		# 	self.std.requires_grad = True
 		std = self.std
+		self.std_value = std
 
 		return mean, std
 
