@@ -70,6 +70,8 @@ class PPOPolicy(nn.Module):
 			print('Apply Initialization')
 			self.apply(init_weights_)
 
+		self.std_value = T.tensor([0.])
+
 		self.act_dim = act_dim
 
 		self.obs_bias   = T.zeros(obs_dim)
@@ -92,6 +94,7 @@ class PPOPolicy(nn.Module):
 				deterministic=False, # Default: False
 				return_log_pi=True, # Default: False
 				return_entropy=True, # Default: False
+                return_pre_pi=False,
 				):
 
 		if isinstance(obs, T.Tensor):
@@ -103,6 +106,7 @@ class PPOPolicy(nn.Module):
 		log_std = self.log_std
 		# log_std = T.clamp(self.log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
 		std = T.exp(log_std)
+		self.std_value = std
 
 		probs = Normal(mean, std)
 
