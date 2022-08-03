@@ -111,19 +111,23 @@ class PPOPolicy(nn.Module):
 
 		if act is None:
 			act = probs.sample()
+			pre_act = act
 			# act = T.tanh(act)
 			# print(f'act={act} | tanh(act)={T.tanh(act)}')
 		if return_log_pi:
-			log_probs = probs.log_prob(act).sum(axis=-1, keepdims=True)
+			# log_probs = probs.log_prob(act).sum(axis=-1, keepdims=True)
+			log_probs = probs.log_prob(pre_act).sum(axis=-1, keepdims=True)
 		if return_entropy:
 			entropy = probs.entropy().sum(-1, keepdims=True)
 
 		if deterministic:
 			act = mean
+			pre_act = act
 			# act = T.tanh(act)
 			# print(f'act={act} | tanh(act)={T.tanh(act)}')
 
-		return act, log_probs, entropy
+		# return act, log_probs, entropy
+		return pre_act, act, log_probs, entropy
 
 
 	# def to(self, device):
@@ -437,10 +441,14 @@ class Policy(nn.Module):
                 return_pre_pi=False,
 				):
 
+		# if isinstance(obs, T.Tensor):
+		# 	obs = (obs.to(self.device) - self.obs_bias) / (self.obs_scale + epsilon)
+		# else:
+		# 	obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
 		if isinstance(obs, T.Tensor):
-			obs = (obs.to(self.device) - self.obs_bias) / (self.obs_scale + epsilon)
+			obs = obs.to(self.device)
 		else:
-			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
+			obs = obs
 
 		mean, std = self.pi_mean_std(obs, on_policy)
 		# print(f'mean={mean}')
