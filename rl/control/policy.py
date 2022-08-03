@@ -459,9 +459,9 @@ class Policy(nn.Module):
                                                return_log_pi,
                                                return_entropy=True,
                                                return_pre_prob=return_pre_pi)
-			pre_pi = (pre_pi * self.act_scale) + self.act_bias
+			# pre_pi = (pre_pi * self.act_scale) + self.act_bias
 
-		pi = (pi * self.act_scale) + self.act_bias
+		# pi = (pi * self.act_scale) + self.act_bias
 
 		return pre_pi, pi, log_pi, entropy
 
