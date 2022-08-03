@@ -118,6 +118,8 @@ class PPOPolicy(nn.Module):
 			pre_act = act
 			# act = T.tanh(act)
 			# print(f'act={act} | tanh(act)={T.tanh(act)}')
+		else:
+			pre_act = act
 		if return_log_pi:
 			# log_probs = probs.log_prob(act).sum(axis=-1, keepdims=True)
 			log_probs = probs.log_prob(pre_act).sum(axis=-1, keepdims=True)
