@@ -464,15 +464,15 @@ class Policy(nn.Module):
                 return_pre_pi=False,
 				):
 
-		# if isinstance(obs, T.Tensor):
-		# 	obs = (obs.to(self.device) - self.obs_bias) / (self.obs_scale + epsilon)
-		# else:
-		# 	obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
-
 		if isinstance(obs, T.Tensor):
-			obs = obs.to(self.device)
+			obs = (obs.to(self.device) - self.obs_bias) / (self.obs_scale + epsilon)
 		else:
-			obs = obs
+			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
+
+		# if isinstance(obs, T.Tensor):
+		# 	obs = obs.to(self.device)
+		# else:
+		# 	obs = obs
 
 		mean, std = self.pi_mean_std(obs, on_policy)
 		# print(f'mean={mean}')
@@ -480,10 +480,9 @@ class Policy(nn.Module):
 		log_pi, entropy = None, None
 
 		if deterministic:
-			pre_pi = mean#None
-			pi = mean
+			pre_pi = None
 			# with T.no_grad(): pi = mean
-			# with T.no_grad(): pi = T.tanh(mean)
+			with T.no_grad(): pi = T.tanh(mean)
 		else:
 			pre_pi, pi, log_pi, entropy = self.pi_prob(act,
                                                mean, std,
@@ -492,9 +491,9 @@ class Policy(nn.Module):
                                                return_log_pi,
                                                return_entropy=True,
                                                return_pre_prob=return_pre_pi)
-			# pre_pi = (pre_pi * self.act_scale) + self.act_bias
+			pre_pi = (pre_pi * self.act_scale) + self.act_bias
 
-		# pi = (pi * self.act_scale) + self.act_bias
+		pi = (pi * self.act_scale) + self.act_bias
 
 		return pre_pi, pi, log_pi, entropy
 
@@ -539,16 +538,16 @@ class Policy(nn.Module):
 		else:
 			sample = normal_ditribution.sample()
 
-		pre_prob, prob = sample, sample
-		# pre_prob, prob = sample, T.tanh(sample)
+		# pre_prob, prob = sample, sample
+		pre_prob, prob = sample, T.tanh(sample)
 
 		log_prob, entropy = None, None
 
 		if return_log_prob:
-			if act is not None: pre_prob, prob = act, act
-			# if act is not None: pre_prob, prob = act, T.tanh(act)
+			# if act is not None: pre_prob, prob = act, act
+			if act is not None: pre_prob, prob = act, T.tanh(act)
 			log_prob = normal_ditribution.log_prob(pre_prob)
-			# log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
+			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(axis=-1, keepdim=True)
 
 		if return_entropy:
