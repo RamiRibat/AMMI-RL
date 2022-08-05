@@ -481,8 +481,8 @@ class Policy(nn.Module):
 
 		if deterministic:
 			pre_pi = None
-			# with T.no_grad(): pi = mean
-			with T.no_grad(): pi = T.tanh(mean)
+			with T.no_grad(): pi = mean
+			# with T.no_grad(): pi = T.tanh(mean)
 		else:
 			pre_pi, pi, log_pi, entropy = self.pi_prob(act,
                                                mean, std,
