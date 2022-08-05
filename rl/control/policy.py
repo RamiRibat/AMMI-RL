@@ -481,8 +481,8 @@ class Policy(nn.Module):
 
 		if deterministic:
 			pre_pi = None
-			with T.no_grad(): pi = mean
-			# with T.no_grad(): pi = T.tanh(mean)
+			# with T.no_grad(): pi = mean
+			with T.no_grad(): pi = T.tanh(mean)
 		else:
 			pre_pi, pi, log_pi, entropy = self.pi_prob(act,
                                                mean, std,
@@ -557,17 +557,17 @@ class Policy(nn.Module):
 				sample = normal_ditribution.rsample()
 			else:
 				sample = normal_ditribution.sample()
-			pre_prob, prob = sample, sample
-			# pre_prob, prob = sample, T.tanh(sample)
+			# pre_prob, prob = sample, sample
+			pre_prob, prob = sample, T.tanh(sample)
 		else:
-			pre_prob, prob = act, act
-			# pre_prob, prob = act, T.tanh(act)
+			# pre_prob, prob = act, act
+			pre_prob, prob = act, T.tanh(act)
 
 		log_prob, entropy = None, None
 
 		if return_log_prob:
 			log_prob = normal_ditribution.log_prob(pre_prob)
-			# log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
+			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(axis=-1, keepdim=True)
 
 		if return_entropy:
