@@ -199,6 +199,143 @@ class ActorCritic: # Done
 
 
 
+class ActorCriticB: # Done
+    """
+    Actor-Critic
+        An entity contains both the actor (policy) that acts on the environment,
+        and a critic (V-function) that evaluate that state given a policy.
+    """
+    def __init__(self,
+                 obs_dim, act_dim,
+                 act_up_lim, act_low_lim,
+                 configs, seed, device
+                 ) -> None:
+        print('Initialize AC!')
+        # super(ActorCritic, self).__init__()
+        self.obs_dim, self.act_dim = obs_dim, act_dim
+        self.act_up_lim, self.act_low_lim = act_up_lim, act_low_lim
+        self.configs, self.seed = configs, seed
+        self._device_ = device
+
+        self.actor, self.critic = None, None
+        self._build()
+
+
+    def _build(self):
+        self.actor = self._set_actor()
+        self.critic = self._set_critic()
+
+
+    def _set_actor(self):
+        net_configs = self.configs['actor']['network']
+        return PPOPolicy(
+            self.obs_dim, self.act_dim,
+            self.act_up_lim, self.act_low_lim,
+            net_configs, self._device_, self.seed)
+        # return StochasticPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
+        # return OVOQPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
+        # return Policy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
+
+
+    def _set_critic(self):
+        net_configs = self.configs['critic']['network']
+        return VFunction(
+            self.obs_dim, self.act_dim,
+            net_configs, self._device_, self.seed)
+
+
+    def get_v(self, o):
+        return self.critic(o)
+
+
+    def get_pi(self, o, a=None,
+               on_policy=True,
+               reparameterize=False,
+               deterministic=False,
+               return_log_pi=True,
+               return_entropy=True):
+        pi, log_pi, entropy = self.actor(o, a, on_policy,
+                                             reparameterize,
+                                             deterministic,
+                                             return_log_pi,
+                                             return_entropy)
+        return pi, log_pi, entropy
+
+
+    def get_action(self, o, a=None,
+                   on_policy=True,
+                   reparameterize=False,
+                   deterministic=False,
+                   return_log_pi=True,
+                   return_entropy=True):
+        o = T.Tensor(o)
+        if a: a = T.Tensor(a)
+        with T.no_grad(): a, _, _ = self.actor(o, a, on_policy,
+                                               reparameterize,
+                                               deterministic,
+                                               return_log_pi,
+                                               return_entropy)
+        return a.cpu()
+
+
+    def get_action_np(self, o, a=None,
+                      on_policy=True,
+                      reparameterize=False,
+                      deterministic=False,
+                      return_log_pi=True,
+                      return_entropy=True):
+        return self.get_action(o, a, on_policy,
+                               reparameterize,
+                               deterministic,
+                               return_log_pi,
+                               return_entropy).numpy()
+
+
+    def get_a_and_v(self, o, a=None,
+                    on_policy=True,
+                    reparameterize=False,
+                    deterministic=False,
+                    return_log_pi=True,
+                    return_entropy=True,
+                    return_pre_pi=True):
+        a, log_pi, entropy = self.actor(o, a, on_policy,
+                                             reparameterize,
+                                             deterministic,
+                                             return_log_pi,
+                                             return_entropy,
+                                             return_pre_pi
+                                             )
+        return a.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
+
+
+    def get_a_and_v_np(self, o, a=None,
+                       on_policy=True,
+                       reparameterize=False,
+                       deterministic=False,
+                       return_log_pi=True,
+                       return_entropy=True,
+                       return_pre_pi=True):
+        o = T.Tensor(o)
+        if a: a = T.Tensor(a)
+        with T.no_grad(): a, log_pi, entropy = self.actor(o, a, on_policy,
+                                                          reparameterize,
+                                                          deterministic,
+                                                          return_log_pi,
+                                                          return_entropy,
+                                                          return_pre_pi
+                                                          )
+        return a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
+
+
 
 
 class PPO(MFRL):
@@ -240,7 +377,7 @@ class PPO(MFRL):
 
 
     def _set_actor_critic(self):
-        self.actor_critic = ActorCritic(
+        self.actor_critic = ActorCriticB(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             self.configs, self.seed, self._device_)
@@ -461,7 +598,8 @@ class PPO(MFRL):
         """
         max_grad_norm = kl_targ = self.configs['critic']['network']['max_grad_norm']
 
-        observations, _, _, _, _, _, returns, _, _, _ = batch.values()
+        observations, _, _, _, _, returns, _, _, _ = batch.values()
+        # observations, _, _, _, _, _, returns, _, _, _ = batch.values() # w/ pre_A
         v = self.actor_critic.get_v(observations)
 
         Jv = 0.5 * ( (v - returns) ** 2 ).mean(axis=0)
@@ -488,9 +626,11 @@ class PPO(MFRL):
 
         PiInfo = dict()
 
-        O, pre_A, A, _, _, _, _, _, U, log_Pi_old = batch.values()
+        O, A, _, _, _, _, _, U, log_Pi_old = batch.values()
+        # O, pre_A, A, _, _, _, _, _, U, log_Pi_old = batch.values() # w/ pre_A
 
-        _, log_Pi, entropy = self.actor_critic.get_pi(O, pre_A, on_policy=True, reparameterize=True)
+        _, log_Pi, entropy = self.actor_critic.get_pi(O, A, on_policy=True, reparameterize=True)
+        # _, log_Pi, entropy = self.actor_critic.get_pi(O, pre_A, on_policy=True, reparameterize=True)
         logratio = log_Pi - log_Pi_old
         # ratio = logratio.exp()
         ratio = T.exp(logratio)
@@ -556,7 +696,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-V2-53" # H < -2.7
+    group_name = f"{env_name}-{alg_name}-20" # H < -2.7
     exp_prefix = f"seed:{seed}"
 
     if wb:

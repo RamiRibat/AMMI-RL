@@ -132,8 +132,8 @@ class PPOPolicy(nn.Module):
 			# act = T.tanh(act)
 			# print(f'act={act} | tanh(act)={T.tanh(act)}')
 
-		# return act, log_probs, entropy
-		return pre_act, act, log_probs, entropy
+		return act, log_probs, entropy
+		# return pre_act, act, log_probs, entropy
 
 
 	# def to(self, device):

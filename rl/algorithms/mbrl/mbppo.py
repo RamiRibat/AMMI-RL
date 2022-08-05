@@ -227,7 +227,8 @@ class MBPPO(MBRL, PPO):
 
                     model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
                     model_fit_batch = self.buffer.sample_batch(batch_size=model_fit_bs, device=self._device_)
-                    s, _, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
+                    s, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
+                    # s, _, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
                     if n == Ni+1:
                         samples_to_collect = min((Ni+1)*1000, self.buffer.total_size())
                     else:
@@ -657,7 +658,8 @@ class MBPPO(MBRL, PPO):
                     print(f'[ Epoch {n} | AC {g} ] Model Rollout: nτ = {nτ+1} | M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)}', end='\r')
                     # print('\no: ', o)
                     # print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
-                    with T.no_grad(): pre_a, a, log_pi, _, v = self.actor_critic.get_a_and_v(o, on_policy=True, return_pre_pi=True)
+                    with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o, on_policy=True, return_pre_pi=True)
+                    # with T.no_grad(): pre_a, a, log_pi, _, v = self.actor_critic.get_a_and_v(o, on_policy=True, return_pre_pi=True)
 
                     # o_next = model.forward(o, a).detach() # ip: Tensor, op: Tensor
                     # # print('o_next: ', o_next)
@@ -673,7 +675,8 @@ class MBPPO(MBRL, PPO):
                     Z += float(r)
                     el += 1
                     # print('r: ', r)
-                    self.model_traj_buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
+                    self.model_traj_buffer.store(o, a, r, o_next, v, log_pi, el)
+                    # self.model_traj_buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
                     o = o_next
 
                     currZ = Z
@@ -824,7 +827,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-16" # Local
+    group_name = f"{env_name}-{alg_name}-17" # Local
     # group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
     exp_prefix = f"seed:{seed}"
 

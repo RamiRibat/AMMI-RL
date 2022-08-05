@@ -45,8 +45,10 @@ configurations = {
         'max_dev': 0.5,
         'entropy_coef': 0.0,
         'network': {
-            'std_grad': False,
+            # 'std_grad': True,
+            'log_std_grad': False,
             # 'init_std': 3.,
+            'init_log_std': 1.,
             # 'min_std': 1e-6,
             # 'log_std_grad': False,
             # 'init_log_std': 1,
@@ -61,17 +63,17 @@ configurations = {
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            'max_grad_norm': 0.5,
+            'max_grad_norm': 0.25,
         }
     },
 
     'critic': { # Init
         'type': 'V',
         'number': 1,
-        'gamma': 0.995, # Stable performance
-        'gae_lam': 0.99, # Stable performance
-        # 'gamma': 0.99,
-        # 'gae_lam': 0.95,
+        # 'gamma': 0.995, # Stable performance
+        # 'gae_lam': 0.99, # Stable performance
+        'gamma': 0.99,
+        'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
             'arch': [128, 128],
