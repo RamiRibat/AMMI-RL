@@ -38,14 +38,16 @@ configurations = {
 
     'actor': {
         'type': 'Gaussian',
-        'type': 'TanhSquashedGaussian',
+        # 'type': 'TanhSquashedGaussian',
         'action_noise': None,
         'alpha': .2, # Temprature/Entropy #@#
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {
-            'std_grad': False,
+            # 'std_grad': False,
+            'log_std_grad': False,
             # 'init_std': 3.,
+            'init_log_std': 1.,
             # 'min_std': 1e-6,
             # 'log_std_grad': False,
             # 'init_log_std': 1,

@@ -46,7 +46,7 @@ configurations = {
         'entropy_coef': 0.0,
         'network': {
             # 'std_grad': True,
-            'log_std_grad': False,
+            'log_std_grad': True,
             # 'init_std': 3.,
             'init_log_std': 1.,
             # 'min_std': 1e-6,

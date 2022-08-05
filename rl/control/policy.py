@@ -476,6 +476,7 @@ class Policy(nn.Module):
 
 		mean, std = self.pi_mean_std(obs, on_policy)
 		# print(f'mean={mean}')
+		# print(f'std={std}')
 
 		log_pi, entropy = None, None
 
