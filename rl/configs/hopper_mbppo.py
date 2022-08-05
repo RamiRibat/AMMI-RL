@@ -105,18 +105,18 @@ configurations = {
     'critic': { # Init
         'type': 'V',
         'number': 1,
-        # 'gamma': 0.995, # Stable performance
-        # 'gae_lam': 0.99, # Stable performance
-        'gamma': 0.99,
-        'gae_lam': 0.95,
+        'gamma': 0.995, # Stable performance
+        'gae_lam': 0.99, # Stable performance
+        # 'gamma': 0.99,
+        # 'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
-            'arch': [128, 128],
-            # 'arch': [256, 256],
+            # 'arch': [128, 128],
+            'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            'lr': 1e-3,
-            # 'lr': 3e-4,
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",

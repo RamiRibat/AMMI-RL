@@ -533,21 +533,41 @@ class Policy(nn.Module):
 
 		normal_ditribution = Normal(mean, std)
 
-		if reparameterize:
-			sample = normal_ditribution.rsample()
-		else:
-			sample = normal_ditribution.sample()
+		# if reparameterize:
+		# 	sample = normal_ditribution.rsample()
+		# else:
+		# 	sample = normal_ditribution.sample()
+		#
+		# # pre_prob, prob = sample, sample
+		# pre_prob, prob = sample, T.tanh(sample)
+		#
+		# log_prob, entropy = None, None
+		#
+		# if return_log_prob:
+		# 	# if act is not None: pre_prob, prob = act, act
+		# 	if act is not None: pre_prob, prob = act, T.tanh(act)
+		# 	log_prob = normal_ditribution.log_prob(pre_prob)
+		# 	log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
+		# 	log_prob = log_prob.sum(axis=-1, keepdim=True)
 
-		# pre_prob, prob = sample, sample
-		pre_prob, prob = sample, T.tanh(sample)
+
+
+		if act is None:
+			if reparameterize:
+				sample = normal_ditribution.rsample()
+			else:
+				sample = normal_ditribution.sample()
+			pre_prob, prob = sample, sample
+			# pre_prob, prob = sample, T.tanh(sample)
+		else:
+			pre_prob, prob = act, act
+			# pre_prob, prob = act, T.tanh(act)
 
 		log_prob, entropy = None, None
 
 		if return_log_prob:
-			# if act is not None: pre_prob, prob = act, act
-			if act is not None: pre_prob, prob = act, T.tanh(act)
 			log_prob = normal_ditribution.log_prob(pre_prob)
-			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
+			# log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(axis=-1, keepdim=True)
 
 		if return_entropy:
