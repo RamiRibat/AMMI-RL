@@ -105,10 +105,10 @@ configurations = {
     'critic': { # Init
         'type': 'V',
         'number': 1,
-        # 'gamma': 0.995, # Stable performance
-        # 'gae_lam': 0.99, # Stable performance
-        'gamma': 0.99,
-        'gae_lam': 0.95,
+        'gamma': 0.995, # Stable performance
+        'gae_lam': 0.99, # Stable performance
+        # 'gamma': 0.99,
+        # 'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
             # 'arch': [128, 128],
