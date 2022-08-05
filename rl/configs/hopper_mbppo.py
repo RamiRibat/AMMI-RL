@@ -98,7 +98,7 @@ configurations = {
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            'max_grad_norm': 0.25,
+            'max_grad_norm': 0.5,
         }
     },
 

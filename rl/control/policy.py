@@ -14,16 +14,16 @@ LOG_STD_MIN = -20
 
 epsilon = 1e-8
 
-# init1
-def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-    T.nn.init.orthogonal_(layer.weight, std)
-    T.nn.init.constant_(layer.bias, bias_const)
-    return layer
-
-def layer_init2(layer, std=0.0, bias_const=0.0):
-    T.nn.init.xavier_uniform_(layer.weight, std)
-    T.nn.init.uniform_(layer.bias, bias_const)
-    return layer
+# # init1
+# def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+#     T.nn.init.orthogonal_(layer.weight, std)
+#     T.nn.init.constant_(layer.bias, bias_const)
+#     return layer
+#
+# def layer_init2(layer, std=0.0, bias_const=0.0):
+#     T.nn.init.xavier_uniform_(layer.weight, std)
+#     T.nn.init.uniform_(layer.bias, bias_const)
+#     return layer
 
 # init2
 def init_weights_(l):
@@ -113,27 +113,44 @@ class PPOPolicy(nn.Module):
 		log_probs = None
 		entropy = None
 
-		if act is None:
-			act = probs.sample()
-			pre_act = act
+		# if act is None:
+		# 	pre_act = probs.sample()
+		# 	act = pre_act
+		# 	# act = T.tanh(act)
+		# 	# print(f'act={act} | tanh(act)={T.tanh(act)}')
+		# else:
+		# 	pre_act = act
+		# 	# act = T.tanh(act)
+		# if return_log_pi:
+		# 	# log_probs = probs.log_prob(act).sum(axis=-1, keepdims=True)
+		# 	log_probs = probs.log_prob(pre_act).sum(axis=-1, keepdims=True)
+		# if return_entropy:
+		# 	entropy = probs.entropy().sum(-1, keepdims=True)
+
+		if deterministic:
+			pi = mean
+			pre_pi = pi
 			# act = T.tanh(act)
 			# print(f'act={act} | tanh(act)={T.tanh(act)}')
 		else:
-			pre_act = act
-		if return_log_pi:
-			# log_probs = probs.log_prob(act).sum(axis=-1, keepdims=True)
-			log_probs = probs.log_prob(pre_act).sum(axis=-1, keepdims=True)
-		if return_entropy:
-			entropy = probs.entropy().sum(-1, keepdims=True)
+			# if act is None:
+			pre_pi = probs.sample()
+			pi = pre_pi
+        	# act = T.tanh(act)
+        	# print(f'act={act} | tanh(act)={T.tanh(act)}')
+			if act is not None:
+				pre_pi = act
+				pi = pre_pi
+            	# act = T.tanh(act)
+            	# print(f'act={act} | tanh(act)={T.tanh(act)}')
+			if return_log_pi:
+            	# log_probs = probs.log_prob(pi).sum(axis=-1, keepdims=True)
+				log_probs = probs.log_prob(pre_pi).sum(axis=-1, keepdims=True)
+			if return_entropy:
+				entropy = probs.entropy().sum(-1, keepdims=True)
 
-		if deterministic:
-			act = mean
-			pre_act = act
-			# act = T.tanh(act)
-			# print(f'act={act} | tanh(act)={T.tanh(act)}')
-
-		return act, log_probs, entropy
-		# return pre_act, act, log_probs, entropy
+		# return act, log_probs, entropy
+		return pre_pi, pi, log_probs, entropy
 
 
 	# def to(self, device):
@@ -451,6 +468,7 @@ class Policy(nn.Module):
 		# 	obs = (obs.to(self.device) - self.obs_bias) / (self.obs_scale + epsilon)
 		# else:
 		# 	obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
+
 		if isinstance(obs, T.Tensor):
 			obs = obs.to(self.device)
 		else:
@@ -462,8 +480,9 @@ class Policy(nn.Module):
 		log_pi, entropy = None, None
 
 		if deterministic:
-			pre_pi = None
-			with T.no_grad(): pi = mean
+			pre_pi = mean#None
+			pi = mean
+			# with T.no_grad(): pi = mean
 			# with T.no_grad(): pi = T.tanh(mean)
 		else:
 			pre_pi, pi, log_pi, entropy = self.pi_prob(act,

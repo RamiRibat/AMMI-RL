@@ -76,10 +76,10 @@ class ActorCritic: # Done
 
     def _set_actor(self):
         net_configs = self.configs['actor']['network']
-        return PPOPolicy(
-            self.obs_dim, self.act_dim,
-            self.act_up_lim, self.act_low_lim,
-            net_configs, self._device_, self.seed)
+        # return PPOPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
         # return StochasticPolicy(
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
@@ -88,10 +88,10 @@ class ActorCritic: # Done
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
-        # return Policy(
-        #     self.obs_dim, self.act_dim,
-        #     self.act_up_lim, self.act_low_lim,
-        #     net_configs, self._device_, self.seed)
+        return Policy(
+            self.obs_dim, self.act_dim,
+            self.act_up_lim, self.act_low_lim,
+            net_configs, self._device_, self.seed)
 
 
     def _set_critic(self):
@@ -377,7 +377,7 @@ class PPO(MFRL):
 
 
     def _set_actor_critic(self):
-        self.actor_critic = ActorCriticB(
+        self.actor_critic = ActorCritic(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             self.configs, self.seed, self._device_)
@@ -598,8 +598,8 @@ class PPO(MFRL):
         """
         max_grad_norm = kl_targ = self.configs['critic']['network']['max_grad_norm']
 
-        observations, _, _, _, _, returns, _, _, _ = batch.values()
-        # observations, _, _, _, _, _, returns, _, _, _ = batch.values() # w/ pre_A
+        # observations, _, _, _, _, returns, _, _, _ = batch.values()
+        observations, _, _, _, _, _, returns, _, _, _ = batch.values() # w/ pre_A
         v = self.actor_critic.get_v(observations)
 
         Jv = 0.5 * ( (v - returns) ** 2 ).mean(axis=0)
@@ -626,14 +626,14 @@ class PPO(MFRL):
 
         PiInfo = dict()
 
-        O, A, _, _, _, _, _, U, log_Pi_old = batch.values()
-        # O, pre_A, A, _, _, _, _, _, U, log_Pi_old = batch.values() # w/ pre_A
+        # O, A, _, _, _, _, _, U, log_Pi_old = batch.values()
+        O, pre_A, _, _, _, _, _, _, U, log_Pi_old = batch.values() # w/ pre_A
 
-        _, log_Pi, entropy = self.actor_critic.get_pi(O, A, on_policy=True, reparameterize=True)
-        # _, log_Pi, entropy = self.actor_critic.get_pi(O, pre_A, on_policy=True, reparameterize=True)
+        # _, log_Pi, entropy = self.actor_critic.get_pi(O, A, on_policy=True, reparameterize=True)
+        _, log_Pi, entropy = self.actor_critic.get_pi(O, pre_A, on_policy=True, reparameterize=True)
         logratio = log_Pi - log_Pi_old
-        # ratio = logratio.exp()
-        ratio = T.exp(logratio)
+        ratio = logratio.exp()
+        # ratio = T.exp(logratio)
 
         # print('log_pis_old: ', log_pis_old.mean())
         # print('log_pi: ', log_pi.mean())
@@ -655,8 +655,8 @@ class PPO(MFRL):
         # Jentropy = 0.0*log_Pi.mean()
         # Jwd = 0.0 * T.sum(T.square(self.actor_critic.actor.log_std.weight)) / 2.
 
-
-        Jpi = Jpg #+ Jentropy
+        Jentropy = - entropy_coef * entropy.mean()
+        Jpi = Jpg + Jentropy
 
         if (constrained) and (deviation > max_dev):
         # if (constrained) and ((deviation > max_dev) and (g > 0.1*G)):

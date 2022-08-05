@@ -69,21 +69,6 @@ class MBRL:
         env.observation_space.seed(seed)
 
 
-    def _set_env_buffer(self):
-        obs_dim, act_dim = self.obs_dim, self.act_dim
-        max_size = self.configs['data']['buffer_size']
-        device = self._device_
-        seed = self.seed
-        if self.configs['algorithm']['on-policy']:
-            num_traj = max_size//10
-            horizon = 1000
-            gamma = self.configs['critic']['gamma']
-            gae_lam = self.configs['critic']['gae_lam']
-            self.buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device, gamma, gae_lam)
-        else:
-            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
-
-
     # def _set_world_model(self):
     #     device = self._device_
     #     num_ensembles = self.configs['world_model']['num_ensembles']
@@ -100,10 +85,9 @@ class MBRL:
 
 
 
-    def init_model_traj_buffer(self):
-        # print('Initialize Model Buffer..')
+    def _set_env_buffer(self):
         obs_dim, act_dim = self.obs_dim, self.act_dim
-        max_size = self.configs['data']['ov_model_buffer_size']
+        max_size = self.configs['data']['buffer_size']
         device = self._device_
         seed = self.seed
         if self.configs['algorithm']['on-policy']:
@@ -111,6 +95,28 @@ class MBRL:
             horizon = 1000
             gamma = self.configs['critic']['gamma']
             gae_lam = self.configs['critic']['gae_lam']
+            # self.buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device)
+            self.buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device, gamma, gae_lam)
+        else:
+            self.buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size, self.seed, device)
+
+
+    def init_model_traj_buffer(self):
+        # print('Initialize Model Buffer..')
+        obs_dim, act_dim = self.obs_dim, self.act_dim
+        num_ensembles = self.configs['world_model']['num_ensembles']
+        init_obs_size = self.configs['data']['init_obs_size']
+        max_size = self.configs['data']['ov_model_buffer_size']
+        device = self._device_
+        seed = self.seed
+        if self.configs['algorithm']['on-policy']:
+            # num_traj = max_size//10
+            # num_traj = max_size//20
+            num_traj = num_ensembles * init_obs_size
+            horizon = 1000
+            gamma = self.configs['critic']['gamma']
+            gae_lam = self.configs['critic']['gae_lam']
+            # self.model_traj_buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device)
             self.model_traj_buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device, gamma, gae_lam)
 
 
@@ -217,14 +223,14 @@ class MBRL:
         Nt = self.configs['algorithm']['learning']['epoch_steps']
         max_el = self.configs['environment']['horizon']
 
-        with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
-        # with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+        # with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+        with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
         o_next, r, d, _ = self.learn_env.step(a)
         Z += r
         el += 1
         t += 1
-        self.buffer.store(o, a, r, o_next, v, log_pi, el)
-        # self.buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
+        # self.buffer.store(o, a, r, o_next, v, log_pi, el)
+        self.buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
         o = o_next
         if d or (el == max_el):
             if el == max_el:

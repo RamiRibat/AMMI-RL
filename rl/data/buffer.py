@@ -47,7 +47,7 @@ def discount_cumsum(x, discount): # source: https://github.com/openai/spinningup
 
 
 
-class TrajBufferA:
+class TrajBuffer:
     """
     A simple buffer for storing trajectories
     """
@@ -510,7 +510,7 @@ class TrajBufferA:
 
 
 
-class TrajBuffer:
+class TrajBufferB:
     """
     A simple buffer for storing trajectories
     """
@@ -518,7 +518,7 @@ class TrajBuffer:
     def __init__(self, obs_dim, act_dim, horizon, num_traj, max_size, seed, device='cpu', gamma=0.995, gae_lambda=0.99):
         print('Initialize Trajectory Buffer')
         self.obs_buf = T.zeros((num_traj, horizon, obs_dim), dtype=T.float32)
-        # self.pre_act_buf = T.zeros((num_traj, horizon, act_dim), dtype=T.float32)
+        self.pre_act_buf = T.zeros((num_traj, horizon, act_dim), dtype=T.float32)
         self.act_buf = T.zeros((num_traj, horizon, act_dim), dtype=T.float32)
         self.rew_buf = T.zeros((num_traj, horizon+1, 1), dtype=T.float32)
         self.obs_next_buf = T.zeros((num_traj, horizon, obs_dim), dtype=T.float32)
@@ -591,7 +591,6 @@ class TrajBuffer:
         full_size = self.total_size()
 
         self.obs_batch = T.zeros((full_size, self.obs_dim), dtype=T.float32)
-        # self.pre_act_batch = T.zeros((full_size, self.act_dim), dtype=T.float32)
         self.act_batch = T.zeros((full_size, self.act_dim), dtype=T.float32)
         self.rew_batch = T.zeros((full_size, 1), dtype=T.float32)
         self.obs_next_batch = T.zeros((full_size, self.obs_dim), dtype=T.float32)
@@ -605,7 +604,6 @@ class TrajBuffer:
         for traj in range(self.last_traj+1):
             j = int(self.ter_idx[traj])
             self.obs_batch[i:i+j] = self.obs_buf[traj, :j, :]
-            # self.pre_act_batch[i:i+j] = self.pre_act_buf[traj, :j, :]
             self.act_batch[i:i+j] = self.act_buf[traj, :j, :]
             self.rew_batch[i:i+j] = self.rew_buf[traj, :j, :]
             self.obs_next_batch[i:i+j] = self.obs_next_buf[traj, :j, :]
@@ -619,7 +617,6 @@ class TrajBuffer:
 
         if recent:
             self.obs_batch = self.obs_batch[-recent:]
-            # self.pre_act_batch = self.pre_act_batch[-recent:]
             self.act_batch = self.act_batch[-recent:]
             self.rew_batch = self.rew_batch[-recent:]
             self.obs_next_batch = self.obs_next_batch[-recent:]
@@ -631,11 +628,9 @@ class TrajBuffer:
 
 
     def store_transition(self, o, a, r, o_next, d, v, log_pi, e):
-    # def store_transition(self, o, pre_a, a, r, o_next, d, v, log_pi, e):
         assert self.total_size() < self.max_size
 
         self.obs_buf[ self.ptr, e-1, : ] = T.Tensor(o)
-        # self.pre_act_buf[ self.ptr, e-1, : ] = T.Tensor(pre_a)
         self.act_buf[ self.ptr, e-1, : ] = T.Tensor(a)
         self.rew_buf[ self.ptr, e-1, : ] = T.tensor(r)
         self.obs_next_buf[ self.ptr, e-1, : ] = T.Tensor(o_next)
@@ -671,11 +666,10 @@ class TrajBuffer:
 
 
     def store(self, o, a, r, o_next, v, log_pi, e):
-    # def store(self, o, pre_a, a, r, o_next, v, log_pi, e):
         if self.total_size() >= self.max_size:
             self.clean_buffer()
         self.obs_buf[ self.ptr, e-1, : ] = T.Tensor(o)
-        # self.pre_act_buf[ self.ptr, e-1, : ] = T.Tensor(pre_a)
+        self.pre_act_buf[ self.ptr, e-1, : ] = T.Tensor(a)
         self.act_buf[ self.ptr, e-1, : ] = T.Tensor(a)
         self.rew_buf[ self.ptr, e-1, : ] = T.tensor(r)
         self.obs_next_buf[ self.ptr, e-1, : ] = T.Tensor(o_next)
@@ -804,8 +798,7 @@ class TrajBuffer:
             self.adv_batch[idxs] = self.normalize(self.adv_batch[idxs])
 
         batch = dict(observations=self.obs_batch[idxs], # 1
-        			 # pre_actions=self.pre_act_batch[idxs], # 2.1
-        			 actions=self.act_batch[idxs], # 2.2
+        			 actions=self.act_batch[idxs], # 2
                      observations_next=self.obs_next_batch[idxs], # 3
         			 rewards=self.rew_batch[idxs], # 4
                      terminals=self.ter_batch[idxs], # 5
@@ -971,6 +964,8 @@ class TrajBuffer:
         self.ter_idx = T.zeros((self.num_traj, 1), dtype=T.float32)
         self.ptr, self.last_traj = 0, 0
         self.last_z = 0
+
+
 
 
 
