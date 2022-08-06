@@ -596,7 +596,7 @@ class PPO(MFRL):
         """"
         Jv(θ) =
         """
-        max_grad_norm = kl_targ = self.configs['critic']['network']['max_grad_norm']
+        # max_grad_norm = kl_targ = self.configs['critic']['network']['max_grad_norm']
 
         # observations, _, _, _, _, returns, _, _, _ = batch.values()
         observations, _, _, _, _, _, returns, _, _, _ = batch.values() # w/ pre_A
@@ -606,7 +606,8 @@ class PPO(MFRL):
 
         self.actor_critic.critic.optimizer.zero_grad()
         Jv.backward()
-        # nn.utils.clip_grad_norm_(self.actor_critic.critic.parameters(), max_grad_norm) # PPO-D
+        # nn.utils.clip_grad_norm_(self.actor_critic.critic.parameters(),
+        #                          self.configs['critic']['network']['max_grad_norm']) # PPO-D
         self.actor_critic.critic.optimizer.step()
 
         return Jv
@@ -619,7 +620,7 @@ class PPO(MFRL):
         constrained = self.configs['actor']['constrained']
         clip_eps = self.configs['actor']['clip_eps']
         entropy_coef = self.configs['actor']['entropy_coef']
-        max_grad_norm = self.configs['actor']['network']['max_grad_norm']
+        # max_grad_norm = self.configs['actor']['network']['max_grad_norm']
         kl_targ = self.configs['actor']['kl_targ']
         max_dev = self.configs['actor']['max_dev']
         G = self.configs['algorithm']['learning']['grad_AC_steps']
@@ -665,7 +666,8 @@ class PPO(MFRL):
             self.stop_pi = False
             self.actor_critic.actor.optimizer.zero_grad()
             Jpi.backward()
-            nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(), max_grad_norm) # PPO-D
+            nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(),
+                                     self.configs['actor']['network']['max_grad_norm']) # PPO-D
             self.actor_critic.actor.optimizer.step()
 
         PiInfo['KL'] = approx_kl_old
