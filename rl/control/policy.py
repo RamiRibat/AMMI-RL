@@ -439,7 +439,8 @@ class Policy(nn.Module):
 
 		if net_configs['initialize_weights']:
 			print('Apply Initialization')
-			self.apply(init_weights_)
+			# self.apply(init_weights_)
+			self.apply(init_weights_iii)
 
 		self.act_dim = act_dim
 
@@ -468,11 +469,6 @@ class Policy(nn.Module):
 			obs = (obs.to(self.device) - self.obs_bias) / (self.obs_scale + epsilon)
 		else:
 			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
-
-		# if isinstance(obs, T.Tensor):
-		# 	obs = obs.to(self.device)
-		# else:
-		# 	obs = obs
 
 		mean, std = self.pi_mean_std(obs, on_policy)
 		# print(f'mean={mean}')
@@ -583,6 +579,8 @@ class Policy(nn.Module):
 		self.act_bias = self.act_bias.to(device)
 		self.act_scale = self.act_scale.to(device)
 		return super(Policy, self).to(device)
+
+
 
 
 

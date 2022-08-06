@@ -98,7 +98,7 @@ configurations = {
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            'max_grad_norm': 0.5,
+            # 'max_grad_norm': 0.5,
         }
     },
 
@@ -131,7 +131,7 @@ configurations = {
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
         # 'init_obs_size': 250,
         # 'ov_model_buffer_size': int(2e4),
-        'init_obs_size': 25,
+        'init_obs_size': 50,
         'ov_model_buffer_size': int(1e5),
         'device': "auto",
     },
