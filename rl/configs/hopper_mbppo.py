@@ -29,8 +29,10 @@ configurations = {
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
-            'grad_AC_steps': 5, # ACG: ac grad, 40
-            'grad_PPO_steps': 100, # ACG: ac grad, 40
+            # 'grad_AC_steps': 5, # ACG: ac grad, 40
+            # 'grad_PPO_steps': 100, # ACG: ac grad, 40
+            'grad_AC_steps': 10, # ACG: ac grad, 40
+            'grad_PPO_steps': 50, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -98,7 +100,7 @@ configurations = {
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            # 'max_grad_norm': 0.5,
+            'max_grad_norm': 0.5,
         }
     },
 

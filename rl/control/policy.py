@@ -440,7 +440,7 @@ class Policy(nn.Module):
 		if net_configs['initialize_weights']:
 			print('Apply Initialization')
 			# self.apply(init_weights_)
-			self.apply(init_weights_iii)
+			self.apply(init_weights_)
 
 		self.act_dim = act_dim
 
