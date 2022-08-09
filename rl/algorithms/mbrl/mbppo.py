@@ -127,7 +127,7 @@ class MBPPO(MBRL, PPO):
 		super(MBPPO, self)._build()
 		self._set_ppo()
 		self._set_ov_world_model()
-		self.init_model_traj_buffer()
+		# self.init_model_traj_buffer()
 
 
 	## PPO
@@ -298,6 +298,7 @@ class MBPPO(MBRL, PPO):
 					for g in range(1, G_AC+1):
 						# Reset model buffer
 						# self.model_traj_buffer.reset()
+						self.init_model_traj_buffer() # To spare some gpu-memory
 						# # Generate M k-steps imaginary rollouts for PPO training
 						# k_avg, ZListImag, elListImag = self.rollout_real_world(g, n)
 						# k_avg = self.rollout_real_world_trajectories(g, n)
@@ -329,7 +330,8 @@ class MBPPO(MBRL, PPO):
 						model_buffer_ret = T.mean(self.model_traj_buffer.ret_batch).item()
 						model_buffer_size = self.model_traj_buffer.total_size()
 						# self.model_traj_buffer.reset()
-						self.init_model_traj_buffer() # To spare some gpu-memory
+						# self.init_model_traj_buffer() # To spare some gpu-memory
+						del self.model_traj_buffer
 					# PPO-P <<<<
 
 				if n > Ni:
@@ -870,7 +872,7 @@ def main(exp_prefix, config, seed, device, wb):
 	wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
 	DE = configs['world_model']['num_ensembles']
 
-	group_name = f"{env_name}-{alg_name}-43" # Local
+	group_name = f"{env_name}-{alg_name}-44" # Local
 	# group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
 	exp_prefix = f"seed:{seed}"
 
