@@ -40,7 +40,7 @@ def init_weights_ii(l):
 
 def init_weights_iii(l):
 	if isinstance(l, nn.Linear):
-		nn.init.trunc_normal_(l.weight, mean=0.0, std=0.1)
+		nn.init.trunc_normal_(l.weight, mean=0.0, std=0.001)
 		nn.init.constant_(l.bias, 0.0)
 
 
@@ -421,11 +421,12 @@ class Policy(nn.Module):
 		lr = net_configs['lr']
 		init_log_std = net_configs['init_log_std']
 
-        # My suggestions:
-		# self.mean_and_log_std_net = MLPNet(obs_dim, 0, net_configs)
+		# Method A
+		# self.mean_and_log_std_bb = MLPNet(obs_dim, 0, net_configs)
 		# self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		# self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
 
+		# Method B
 		self.mean = MLPNet(obs_dim, act_dim, net_configs)
 		# self.log_std = MLPNet(obs_dim, act_dim, net_configs)
 		# self.log_std = nn.Linear(obs_dim, act_dim) # Last layer of Actor std
@@ -435,12 +436,14 @@ class Policy(nn.Module):
         #                               requires_grad=net_configs['std_grad'])
 		self.log_std = nn.Parameter(init_log_std * T.ones(act_dim, dtype=T.float32),
                                       requires_grad=net_configs['log_std_grad']) # (MF/MB)-PPO
+
 		self.std_value = T.tensor([0.])
 
 		if net_configs['initialize_weights']:
 			print('Apply Initialization')
 			# self.apply(init_weights_)
-			self.apply(init_weights_)
+			self.apply(init_weights_ii)
+			# self.apply(init_weights_iii)
 
 		self.act_dim = act_dim
 
@@ -498,12 +501,14 @@ class Policy(nn.Module):
 	def pi_mean_std(self, obs, on_policy=True):
 		obs = T.as_tensor(obs, dtype=T.float32).to(self.device)
 
-		# net_out = self.mean_and_log_std_net(obs)
+		# Method A
+		# net_out = self.mean_and_log_std_bb(obs)
 		# mean = self.mean(net_out)
 		# log_std = self.log_std(net_out)
 		# log_std = T.clamp(log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
 		# std = T.exp(log_std)
 
+		# Method B
 		mean = self.mean(obs)
 		log_std = self.log_std
 		std = T.exp(log_std)

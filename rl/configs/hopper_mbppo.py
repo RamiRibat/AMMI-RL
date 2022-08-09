@@ -29,10 +29,10 @@ configurations = {
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
-            # 'grad_AC_steps': 5, # ACG: ac grad, 40
-            # 'grad_PPO_steps': 100, # ACG: ac grad, 40
-            'grad_AC_steps': 10, # ACG: ac grad, 40
-            'grad_PPO_steps': 50, # ACG: ac grad, 40
+            'grad_AC_steps': 5, # ACG: ac grad, 40
+            'grad_PPO_steps': 100, # ACG: ac grad, 40
+            # 'grad_AC_steps': 10, # ACG: ac grad, 40
+            # 'grad_PPO_steps': 50, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -100,7 +100,7 @@ configurations = {
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            'max_grad_norm': 0.5,
+            # 'max_grad_norm': 0.5,
         }
     },
 
@@ -109,6 +109,8 @@ configurations = {
         'number': 1,
         'gamma': 0.995, # Stable performance
         'gae_lam': 0.99, # Stable performance
+        # 'gamma': 0.999, # Stable performance
+        # 'gae_lam': 0.97, # Stable performance
         # 'gamma': 0.99,
         # 'gae_lam': 0.95,
         'network': {
@@ -134,7 +136,7 @@ configurations = {
         # 'init_obs_size': 250,
         # 'ov_model_buffer_size': int(2e4),
         'init_obs_size': 50,
-        'ov_model_buffer_size': int(1e5),
+        'ov_model_buffer_size': int(2e5),
         'device': "auto",
     },
 

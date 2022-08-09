@@ -1,5 +1,5 @@
 """
-Inspired by:
+Adapted/Inspired from:
 
     1. MBPO_pytorch: https://github.com/Xingyu-Lin/mbpo_pytorch/model.py
 

@@ -139,8 +139,13 @@ class TrajBuffer:
         self.log_pi_batch = T.zeros((full_size, 1), dtype=T.float32)
 
         i = 0
-        for traj in range(self.last_traj+1):
+        # print('ter_idx: ', self.ter_idx)
+        # print('ter_batch: ', self.ter_batch.shape)
+        for traj in range(self.last_traj):
+        # for traj in range(self.last_traj+1):
+            # print('traj: ', traj)
             j = int(self.ter_idx[traj])
+            # print('j: ', j)
             self.obs_batch[i:i+j] = self.obs_buf[traj, :j, :]
             self.pre_act_batch[i:i+j] = self.pre_act_buf[traj, :j, :]
             self.act_batch[i:i+j] = self.act_buf[traj, :j, :]
@@ -240,14 +245,14 @@ class TrajBuffer:
             self.ptr = 0
 
 
-    def store_batch(self, O, A, R, O_next, V, Log_Pi, e):
-        # print('store_batch!')
+    def store_batch(self, O, pre_A, A, R, O_next, V, Log_Pi, e):
         if self.total_size() >= self.max_size:
             self.clean_buffer()
 
         batch_size = len(O)
 
         self.obs_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(O)
+        self.pre_act_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(pre_A)
         self.act_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(A)
         self.rew_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.tensor(R)
         self.obs_next_buf[ self.ptr:self.ptr+batch_size, e-1, : ] = T.Tensor(O_next)
@@ -281,6 +286,7 @@ class TrajBuffer:
             self.ptr +=batch_size
         else:
             self.ptr = 0
+        # print('last_traj: ', self.last_traj)
 
 
     def store_transition_batch(self, O, A, R, D, V, log_Pi, e):

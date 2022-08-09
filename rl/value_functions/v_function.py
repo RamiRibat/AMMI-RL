@@ -42,6 +42,10 @@ def init_weights_B(l, std=np.sqrt(2), bias=0.0): # init1
 		nn.init.orthogonal_(l.weight, std)
 		nn.init.constant_(l.bias, bias)
 
+def init_weights_iii(l):
+	if isinstance(l, nn.Linear):
+		nn.init.trunc_normal_(l.weight, mean=0.0, std=1e-4)
+		nn.init.constant_(l.bias, 0.0)
 
 
 
@@ -66,6 +70,7 @@ class VFunction(nn.Module):
 	    if net_configs['initialize_weights']:
         	print('Apply Initialization')
         	self.apply(init_weights_)
+        	# self.apply(init_weights_iii)
 
 	    # self.v = nn.Sequential(
 			# layer_init(nn.Linear(obs_dim, hid)),

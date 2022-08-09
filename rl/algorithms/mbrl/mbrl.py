@@ -221,10 +221,19 @@ class MBRL:
 
     def internact_opB(self, n, o, Z, el, t, return_pre_pi=False):
         Nt = self.configs['algorithm']['learning']['epoch_steps']
+        Nx = self.configs['algorithm']['learning']['expl_epochs']
         max_el = self.configs['environment']['horizon']
 
         # with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
-        with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+        # with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+
+        if n > Nx:
+            # with T.no_grad(): a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+            with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+        else:
+            pre_a, a, log_pi = self.learn_env.action_space.sample(), self.learn_env.action_space.sample(), T.Tensor([0.0])
+            with T.no_grad(): v = self.actor_critic.get_v_np(T.Tensor(o))
+
         o_next, r, d, _ = self.learn_env.step(a)
         Z += r
         el += 1

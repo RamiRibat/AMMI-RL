@@ -105,6 +105,10 @@ class ActorCritic: # Done
         return self.critic(o)
 
 
+    def get_v_np(self, o):
+        return self.critic(o).cpu().numpy()
+
+
     def get_pi(self, o, a=None,
                on_policy=True,
                reparameterize=False,
@@ -666,8 +670,8 @@ class PPO(MFRL):
             self.stop_pi = False
             self.actor_critic.actor.optimizer.zero_grad()
             Jpi.backward()
-            nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(),
-                                     self.configs['actor']['network']['max_grad_norm']) # PPO-D
+            # nn.utils.clip_grad_norm_(self.actor_critic.actor.parameters(),
+            #                          self.configs['actor']['network']['max_grad_norm']) # PPO-D
             self.actor_critic.actor.optimizer.step()
 
         PiInfo['KL'] = approx_kl_old
