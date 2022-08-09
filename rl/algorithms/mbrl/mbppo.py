@@ -328,7 +328,8 @@ class MBPPO(MBRL, PPO):
 						model_buffer_val = T.mean(self.model_traj_buffer.val_batch).item()
 						model_buffer_ret = T.mean(self.model_traj_buffer.ret_batch).item()
 						model_buffer_size = self.model_traj_buffer.total_size()
-						self.model_traj_buffer.reset() # To spare some gpu-memory
+						# self.model_traj_buffer.reset()
+						self.init_model_traj_buffer() # To spare some gpu-memory
 					# PPO-P <<<<
 
 				if n > Ni:
