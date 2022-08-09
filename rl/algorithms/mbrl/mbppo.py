@@ -304,6 +304,7 @@ class MBPPO(MBRL, PPO):
 						# k_avg = self.rollout_real_world_trajectories(g, n)
 						# ZListImag, elListImag = self.rollout_world_model_trajectories(g, n)
 						ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batch(g, n)
+						# ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batchII(g, n)
 						ppo_batch_size = int(self.model_traj_buffer.total_size())
 						# batch_size = 10000 #min(int(self.model_traj_buffer.total_size()), 10000)
 						stop_pi = False
@@ -687,6 +688,92 @@ class MBPPO(MBRL, PPO):
 		return ZList, elList
 
 
+	def rollout_world_model_trajectories_batch_old(self, g, n):
+		# 07. Sample st uniformly from Denv
+		device = self._device_
+		Nτ = self.configs['data']['init_obs_size']
+		K = 1000
+
+		O_init = self.buffer.sample_init_obs_batch(Nτ)
+		O_Nτ = len(O_init)
+		D_init = T.zeros((O_Nτ, 1), dtype=T.bool).to(O_init.device)
+
+		Zi, ELi = T.zeros((O_Nτ, 1), dtype=T.float32), T.zeros((O_Nτ, 1), dtype=T.float32)
+		ZList, ELList = T.zeros((O_Nτ, 4), dtype=T.float32), T.zeros((O_Nτ, 4), dtype=T.float32)
+		zeros, ones = T.zeros((O_Nτ, 1)), T.ones((O_Nτ, 1))
+
+		for m, model in enumerate(self.models):
+			el = 0
+			O = O_init.clone()
+
+			O_last = O_init.clone()
+			D_last = D_init.clone()
+
+			Z, EL = Zi.clone(), ELi.clone()
+			Zmean, ELmean = 0, 0
+
+			for k in range(1, K+1): # Generate rollouts
+				print(f'\nk={k}\n')
+				# print(f'[ Epoch {n} | Model Rollout for {color.RED}AC {g}{color.END} ] M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(Zmean, 2)} | AvgEL={round(ELmean, 2)}', end='\r')
+				# print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
+				# with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o, on_policy=True, return_pre_pi=True)
+				with T.no_grad(): pre_A, A, log_Pi, _, V = self.actor_critic.get_a_and_v(O, on_policy=True, return_pre_pi=True)
+
+				O_next = model.forward(O, A).detach().cpu() # ip: Tensor, op: Tensor
+				R = model.reward(O, A).detach().cpu()
+				D = self._termination_fn("Hopper-v2", O, A, O_next)
+				D = T.tensor(D, dtype=T.bool)
+				print(f'D_last(old)=\n{D_last}')
+				print(f'D=\n{D}')
+
+				nonD_last = ~D_last.squeeze(-1)
+
+				Z[nonD_last] += R
+				EL[nonD_last] += ones[nonD_last]
+				D_last[nonD_last] += D # new D_last
+				print(f'Z=\n{Z}')
+				print(f'EL=\n{EL}')
+				print(f'D_last(new)=\n{D_last}')
+				print()
+				el += 1
+
+				Zmean, ELmean = float(Z.mean().numpy()), float(EL.mean().numpy())
+				self.model_traj_buffer.store_batch(O, pre_A, A, R, O_next, V, log_Pi, el)
+
+				nonD = ~D.squeeze(-1)
+				nonD_last = ~D_last.squeeze(-1)
+				O = O_next[nonD] # keep only non-terminated
+				O_last[nonD_last] = O # update only non-terminated
+
+				print(f'[ Epoch {n} | Model Rollout for {color.RED}AC {g}{color.END} ] M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(Zmean, 2)} | AvgEL={round(ELmean, 2)}', end='\r')
+
+				if nonD.sum() == 0:
+					# print(f'\n[ Epoch {n} Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}'+(' ')*50)
+					break
+
+			if k == K:
+				with T.no_grad(): V = self.actor_critic.get_v(T.Tensor(O_last)).cpu()
+			else:
+				V = T.zeros((O_Nτ, 1))
+
+			self.model_traj_buffer.finish_path_batch(EL, V)
+
+			ZList[:,m] = Z.reshape(-1)
+			ELList[:,m] = EL.reshape(-1)
+
+			if self.model_traj_buffer.total_size() >= self.configs['data']['ov_model_buffer_size']:
+				# print(f'[ Epoch {n} | AC {g} ] Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*40)
+				break
+
+		ZMEAN, ZSTD = float(ZList.mean().numpy()), float(ZList.std().numpy())
+		ELMEAN, ELSTD = float(ELList.mean().numpy()), float(ELList.std().numpy())
+
+		print(f'[ Epoch {n} | {color.RED}AC {g}{color.END} ] RollBuffer={self.model_traj_buffer.total_size()} | Z={round(ZMEAN, 2)}±{round(ZSTD, 2)} | L={round(ELMEAN, 2)}±{round(ELSTD, 2)} | x{round(ZMEAN/ELMEAN, 2)}'+(' ')*35)
+
+		return ZMEAN, ZSTD, ELMEAN, ELSTD
+
+
+
 	def rollout_world_model_trajectories_batch(self, g, n):
 		# 07. Sample st uniformly from Denv
 		device = self._device_
@@ -699,10 +786,9 @@ class MBPPO(MBRL, PPO):
 
 		Zi, ELi = T.zeros((O_Nτ, 1), dtype=T.float32), T.zeros((O_Nτ, 1), dtype=T.float32)
 		ZList, ELList = T.zeros((O_Nτ, 4), dtype=T.float32), T.zeros((O_Nτ, 4), dtype=T.float32)
-		ones = T.ones((O_Nτ, 1))
+		zeros, ones = T.zeros((O_Nτ, 1), dtype=T.float32), T.ones((O_Nτ, 1), dtype=T.float32)
+		O_zeros = T.zeros((O_Nτ, self.obs_dim), dtype=T.float32)
 
-		# print('\n')
-		# Note: Remove old O
 		for m, model in enumerate(self.models):
 			el = 0
 			O = O_init.clone()
@@ -714,24 +800,31 @@ class MBPPO(MBRL, PPO):
 			Zmean, ELmean = 0, 0
 
 			for k in range(1, K+1): # Generate rollouts
-				# print(f'[ Epoch {n} | Model Rollout for {color.RED}AC {g}{color.END} ] M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(Zmean, 2)} | AvgEL={round(ELmean, 2)}', end='\r')
-				# print('\no: ', o)
-				# print(f'[ Epoch {n} ] AC Training Grads: {g} || Model Rollout: nτ = {nτ} | k = {k} | Buffer size = {self.model_traj_buffer.total_size()}'+(' '*10))
-				# with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o, on_policy=True, return_pre_pi=True)
+				# print(f'\nk={k}\n')
 				with T.no_grad(): pre_A, A, log_Pi, _, V = self.actor_critic.get_a_and_v(O, on_policy=True, return_pre_pi=True)
-
 
 				O_next = model.forward(O, A).detach().cpu() # ip: Tensor, op: Tensor
 				R = model.reward(O, A).detach().cpu()
 				D = self._termination_fn("Hopper-v2", O, A, O_next)
-				D = T.tensor(D, dtype=T.bool)
+				D = T.tensor(D, dtype=T.bool).squeeze(-1)
+				D_last = D_last.squeeze(-1)
+				# print(f'O=\n{O}')
+				# print(f'D_last(old)=\n{D_last}')
 				# print(f'D=\n{D}')
 
 				nonD_last = ~D_last.squeeze(-1)
 
-				Z[nonD_last] += R
+				O_next[D_last] = O_zeros[D_last] # del fake O to proceed only with non-terminated
+
+				O_last[nonD_last] = O_next[nonD_last] # update only non-terminated
+				D_last[nonD_last] += D[nonD_last] # new D_last
+
+				Z[nonD_last] += R[nonD_last]
 				EL[nonD_last] += ones[nonD_last]
-				D_last[nonD_last] += D # new D_last
+				# print(f'Z=\n{Z}')
+				# print(f'EL=\n{EL}')
+				# print(f'O_next=\n{O_next}')
+				# print(f'D_last(new)=\n{D_last}')
 				el += 1
 
 				Zmean, ELmean = float(Z.mean().numpy()), float(EL.mean().numpy())
@@ -739,8 +832,9 @@ class MBPPO(MBRL, PPO):
 
 				nonD = ~D.squeeze(-1)
 				nonD_last = ~D_last.squeeze(-1)
-				O = O_next[nonD] # keep only non-terminated
-				O_last[nonD_last] = O # update only non-terminated
+				O = O_next
+
+				# print(f'O_last=\n{O_last}')
 
 				print(f'[ Epoch {n} | Model Rollout for {color.RED}AC {g}{color.END} ] M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(Zmean, 2)} | AvgEL={round(ELmean, 2)}', end='\r')
 
@@ -881,7 +975,7 @@ def main(exp_prefix, config, seed, device, wb):
 	wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
 	DE = configs['world_model']['num_ensembles']
 
-	group_name = f"{env_name}-{alg_name}-53" # Local
+	group_name = f"{env_name}-{alg_name}-54" # Local
 	# group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
 	exp_prefix = f"seed:{seed}"
 
