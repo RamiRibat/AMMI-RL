@@ -753,9 +753,9 @@ class MBPPO(MBRL, PPO):
 			ZList[:,m] = Z.reshape(-1)
 			ELList[:,m] = EL.reshape(-1)
 
-			if self.model_traj_buffer.total_size() >= self.configs['data']['ov_model_buffer_size']:
-				# print(f'[ Epoch {n} | AC {g} ] Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*40)
-				break
+			# if self.model_traj_buffer.total_size() >= self.configs['data']['ov_model_buffer_size']:
+			# 	# print(f'[ Epoch {n} | AC {g} ] Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*40)
+			# 	break
 
 		ZMEAN, ZSTD = float(ZList.mean().numpy()), float(ZList.std().numpy())
 		ELMEAN, ELSTD = float(ELList.mean().numpy()), float(ELList.std().numpy())
