@@ -702,12 +702,13 @@ class MBPPO(MBRL, PPO):
 		ones = T.ones((O_Nτ, 1))
 
 		# print('\n')
+		# Note: Remove old O
 		for m, model in enumerate(self.models):
 			el = 0
 			O = O_init.clone()
-			O_last = O_init.clone()
 
-			Dprev = D_init.clone()
+			O_last = O_init.clone()
+			D_last = D_init.clone()
 
 			Z, EL = Zi.clone(), ELi.clone()
 			Zmean, ELmean = 0, 0
@@ -719,23 +720,27 @@ class MBPPO(MBRL, PPO):
 				# with T.no_grad(): a, log_pi, _, v = self.actor_critic.get_a_and_v(o, on_policy=True, return_pre_pi=True)
 				with T.no_grad(): pre_A, A, log_Pi, _, V = self.actor_critic.get_a_and_v(O, on_policy=True, return_pre_pi=True)
 
+
 				O_next = model.forward(O, A).detach().cpu() # ip: Tensor, op: Tensor
 				R = model.reward(O, A).detach().cpu()
-				D_ = self._termination_fn("Hopper-v2", O, A, O_next)
-				D_ = T.tensor(D_, dtype=T.bool)
-				D = D_ + Dprev
-				Dprev = D
-				nonD = ~D#.squeeze(-1)
+				D = self._termination_fn("Hopper-v2", O, A, O_next)
+				D = T.tensor(D, dtype=T.bool)
+				# print(f'D=\n{D}')
 
-				Z += R*nonD
-				EL += ones*nonD
+				nonD_last = ~D_last.squeeze(-1)
+
+				Z[nonD_last] += R
+				EL[nonD_last] += ones[nonD_last]
+				D_last[nonD_last] += D # new D_last
 				el += 1
+
 				Zmean, ELmean = float(Z.mean().numpy()), float(EL.mean().numpy())
 				self.model_traj_buffer.store_batch(O, pre_A, A, R, O_next, V, log_Pi, el)
 
-				O = O_next
-				nonD = nonD.squeeze(-1)
-				O_last[nonD] = O[nonD]
+				nonD = ~D.squeeze(-1)
+				nonD_last = ~D_last.squeeze(-1)
+				O = O_next[nonD] # keep only non-terminated
+				O_last[nonD_last] = O # update only non-terminated
 
 				print(f'[ Epoch {n} | Model Rollout for {color.RED}AC {g}{color.END} ] M = {m+1}/{len(self.models)} | k = {k}/{K} | Buffer = {self.model_traj_buffer.total_size()} | AvgZ={round(Zmean, 2)} | AvgEL={round(ELmean, 2)}', end='\r')
 
@@ -876,7 +881,7 @@ def main(exp_prefix, config, seed, device, wb):
 	wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
 	DE = configs['world_model']['num_ensembles']
 
-	group_name = f"{env_name}-{alg_name}-51" # Local
+	group_name = f"{env_name}-{alg_name}-52" # Local
 	# group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
 	exp_prefix = f"seed:{seed}"
 
