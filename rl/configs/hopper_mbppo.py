@@ -29,8 +29,8 @@ configurations = {
 
             'env_steps' : 1000, # E: interact E times then train
             'grad_WM_steps': 25, # G-- PAL: 25 | MAL: 10
-            'grad_AC_steps': 5, # ACG: ac grad, 40
-            'grad_PPO_steps': 100, # ACG: ac grad, 40
+            'grad_AC_steps': 8, # ACG: ac grad, 40
+            'grad_PPO_steps': 80, # ACG: ac grad, 40
             # 'grad_AC_steps': 10, # ACG: ac grad, 40
             # 'grad_PPO_steps': 50, # ACG: ac grad, 40
 
@@ -135,10 +135,10 @@ configurations = {
         'buffer_size': int(1e4), # PAL: small- 1e4 | MAL: large- 1e5
         # 'init_obs_size': 250,
         # 'ov_model_buffer_size': int(2e4),
-        'init_obs_size': 25,
-        'ov_model_buffer_size': int(1e5),
-        # 'init_obs_size': 50,
-        # 'ov_model_buffer_size': int(2e5),
+        # 'init_obs_size': 25,
+        # 'ov_model_buffer_size': int(1e5),
+        'init_obs_size': 50,
+        'ov_model_buffer_size': int(2e5),
         'device': "auto",
     },
 
