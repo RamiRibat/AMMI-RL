@@ -692,22 +692,21 @@ class MBPPO(MBRL, PPO):
 
 		O_init = self.buffer.sample_init_obs_batch(Nτ)
 		O_Nτ = len(O_init)
+		D_init = T.zeros((O_Nτ, 1), dtype=T.bool).to(O_init.device)
 
+		Zi, ELi = T.zeros((O_Nτ, 1), dtype=T.float32), T.zeros((O_Nτ, 1), dtype=T.float32)
 		ZList, ELList = T.zeros((O_Nτ, 4), dtype=T.float32), T.zeros((O_Nτ, 4), dtype=T.float32)
 		ones = T.ones((O_Nτ, 1))
 
 		# print('\n')
 		for m, model in enumerate(self.models):
-			# o, Z, el = oi, 0, 0
 			el = 0
 			O = O_init.clone()
 			O_last = O_init.clone()
-			# print(f'm={m+1}\nO_init=\n{O_init}')
-			# print(f'm={m+1}\nO=\n{O}')
 
-			Dprev = T.zeros((O_Nτ, 1), dtype=T.bool)
+			Dprev = D_init.clone()
 
-			Z, EL = T.zeros((O_Nτ, 1), dtype=T.float32), T.zeros((O_Nτ, 1), dtype=T.float32)
+			Z, EL = Zi.clone(), ELi.clone()
 			Zmean, ELmean = 0, 0
 
 			for k in range(1, K+1): # Generate rollouts
@@ -720,7 +719,7 @@ class MBPPO(MBRL, PPO):
 				with T.no_grad(): pre_A, A, log_Pi, _, V = self.actor_critic.get_a_and_v(O, on_policy=True, return_pre_pi=True)
 
 				O_next = model.forward(O, A).detach().cpu() # ip: Tensor, op: Tensor
-				R = model.reward(O, A).detach()
+				R = model.reward(O, A).detach().cpu()
 				D_ = self._termination_fn("Hopper-v2", O, A, O_next)
 				D_ = T.tensor(D_, dtype=T.bool)
 				D = D_ + Dprev
