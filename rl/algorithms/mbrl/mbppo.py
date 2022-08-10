@@ -778,12 +778,10 @@ class MBPPO(MBRL, PPO):
 		# 07. Sample st uniformly from Denv
 		device = self._device_
 		Nτ = self.configs['data']['init_obs_size']
-		K = 100#0
+		K = 1000
 
 		O_init = self.buffer.sample_init_obs_batch(Nτ)
 		O_Nτ = len(O_init)
-		# print('Nτ: ', Nτ)
-		# print('O_Nτ: ', O_Nτ)
 		D_init = T.zeros((O_Nτ, 1), dtype=T.bool).to(O_init.device)
 
 		Zi, ELi = T.zeros((O_Nτ, 1), dtype=T.float32), T.zeros((O_Nτ, 1), dtype=T.float32)
