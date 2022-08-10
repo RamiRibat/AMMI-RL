@@ -153,7 +153,9 @@ python evaluate_agent.py -env Walker2d-v2 -alg SAC -seed 1 -EE 5
 - [Ruba Mutasim](https://github.com/ruba128) | SAC
 - [MohammedElfatih Salah](https://github.com/mohammedElfatihSalah) | SAC
 
-
+## AMMI-RL Advisors
+- Bilal Piot, Corentin Tallec and Florian Strub (During RL Course Fall 2021)
+- Vlad Mnih, Eszter Vértes and Theophane Weber (During Rami's AMMI project)
 
 ## Acknowledgement
 This repo was inspired by many great repos, mostly the following ones (not necessarily in order):
