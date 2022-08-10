@@ -6,35 +6,36 @@ This project was initiated in the RL course Fall 2021 at **The African Master's 
 ## Algorithms
 Algorithms we are re-implementing/plannning to re-implement:
 
-| Algorithms | Model | Value | On Policy | MPC | Reference | Progress |
-| --- | --- | --- | --- | --- | --- | :---: |
-| VPG | False | V(GAE) | True | False | [NeurIPS](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) | 🟢 |
-| NPG | False | V(GAE) | True | False | [NeurIPS](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) | 🔴 |
-| PPO | False | V(GAE) | True | False | [Arxiv](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) | 🟢 |
-| SAC | False | 2xQ | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
-| PETS | True | None | None | True | [Arxiv](https://arxiv.org/abs/1805.12114) | 🔴 |
-| MB-PPO | True | V(GAE) | True | False | Similar~[Arxiv](https://arxiv.org/abs/2004.07804) | 🟢 |
-| MB-SAC | True | 2xQ | False | False | [Arxiv](https://arxiv.org/abs/1812.05905) | 🟢 |
-| MOVOQ | True | V(GAE)/2xQ | Dual | False | None | 🟡 |
-| MoPAC | True | 2xQ | False | True | [Arxiv](https://arxiv.org/abs/2103.13842) | 🟣 |
-| MPC-SAC | True | V(GAE)/2xQ | False | True | [IEEE](https://ieeexplore.ieee.org/document/9429677) | 🔴 |
+| Algorithms | Model | Value | On Policy | MPC | Progress | Reference |
+| --- | --- | --- | --- | --- | :---: | --- |
+| VPG | False | V(GAE) | True | False | 🟢 | [Sutton et al., 1999](https://proceedings.neurips.cc/paper/1999/file/464d828b85b0bed98e80ade0a5c43b0f-Paper.pdf) |
+| NPG | False | V(GAE) | True | False | 🔴 | [Kakade, 2001](http://papers.neurips.cc/paper/2073-a-natural-policy-gradient.pdf) |
+| PPO | False | V(GAE) | True | False | 🟢 | [Schulman et al., 2017](https://arxiv.org/pdf/1707.06347.pdf?ref=https://githubhelp.com) |
+| SAC | False | 2xQ | False | False | 🟢 | [Haarnoja et al., 2018](https://arxiv.org/abs/1812.05905) |
+| PETS | True | None | None | True | 🔴 | [Chua et al., 2018](https://arxiv.org/abs/1805.12114) |
+| MB-PPO | True | V(GAE) | True | False | 🟢 | Similar~[Rajeswaran et al., 2020](https://arxiv.org/abs/2004.07804) |
+| MB-SAC | True | 2xQ | False | False | 🟢 | [Janner et al., 2019](https://arxiv.org/abs/1812.05905) |
+| MOVOQ | True | N/A | N/A | N/A | 🟡 | N/A |
+| MoPAC | True | 2xQ | False | True | 🟣 | [Morgan et al., 2021](https://arxiv.org/abs/2103.13842) |
+| MPC-SAC | True | V(GAE)/2xQ | False | True | 🔴 | [Omer et al., 2021](https://ieeexplore.ieee.org/document/9429677) |
 
 🟢 Done || 🟡 Now || 🟣 Next || 🔴 No plan
 
-## Generalized Hyperparameters
+## Generalized Network Hyperparameters
 We aim to finetune our implementations to work with a generalized set of hyperparametrs across different algorithms. We are working with the following hyperparameters in the mean time:
 
 | ☑️ | Network | Arch | Act | LRate | MFOV | MFOQ | MBOV | MBOQ | Notes |
-| --- | --- | --- | --- | --- | :---: | :---: | :---: | :---: | :---: |
-| | Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 | Works best with xav. init |
-| | Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
-| ✅ | Policy | [2x256] | PReLU | 3e-4 | 🟩 | 🟩 | 🟦 | 🟦 | Works best with orth. init |
-| | V | [2x128] | Tanh | 1e-3 | 🟩 | ⬜️ | 🟩 | ⬜️ | Works best with xav. init |
-| ✅ | V | [2x128] | PReLU | 1e-3 | 🟩 | ⬜️ | 🟦 | ⬜️ | Works best with orth. init |
-| | Q | [2x256] | ReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟩 | Works best with orth. init |
-| ✅ | Q | [2x256] | PReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟦 | Works best with orth. init |
-| ✅ | V-Model | [2x512] | ReLU | 1e-3 | ⬜️ | ⬜️ | 🟩 | 🟥 | Long rollouts deterministic ME |
-| ✅ | Q-Model | [4x200] | Swish | 3e-4 | ⬜️ | ⬜️ | 🟥 | 🟩 | Short rollouts probabilistic ME |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| | Policy | [2x128] | Tanh | 3e-4 | 🟩 | 🟨 | 🟩 | 🟥 | |
+| | Policy | [2x256] | ReLU | 3e-4 | 🟥 | 🟩 | ⬜️ | 🟩 | |
+| ✅ | Policy | [2x256] | PReLU | 3e-4 | 🟩 | 🟩 | 🟩 | 🟦 | |
+| | V | [2x128] | Tanh | 1e-3 | 🟩 | ⬜️ | 🟩 | ⬜️ | |
+| | V | [2x128] | PReLU | 1e-3 | 🟩 | ⬜️ | 🟨 | ⬜️ | |
+| ✅ | V | [2x256] | PReLU | 3e-4 | 🟩 | ⬜️ | 🟩 | ⬜️ | |
+| | Q | [2x256] | ReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟩 | |
+| ✅ | Q | [2x256] | PReLU | 3e-4 | ⬜️ | 🟩 | ⬜️ | 🟦 | |
+| ✅ | V-Model | [2x512] | ReLU | 1e-3 | ⬜️ | ⬜️ | 🟩 | 🟥 | |
+| ✅ | Q-Model | [4x200] | Swish | 3e-4 | ⬜️ | ⬜️ | 🟥 | 🟩 | |
 
 🟩 Best || 🟨 Good || 🟥 Bad || 🟦 In progress
 
@@ -147,7 +148,7 @@ python evaluate_agent.py -env Walker2d-v2 -alg SAC -seed 1 -EE 5
 
 ## AMMI-RL Team
 (last name alphabetical order) | contribution 
-- [Rami Ahmed](https://github.com/RamiSketche) | VPG, PPO, SAC, MBPO
+- [Rami Ahmed](https://github.com/RamiSketche) | VPG, PPO, SAC, MB{PPO, SAC}
 - [Wafaa Mohammed](https://github.com/Wafaa014) | SAC
 - [Ruba Mutasim](https://github.com/ruba128) | SAC
 - [MohammedElfatih Salah](https://github.com/mohammedElfatihSalah) | SAC
@@ -159,6 +160,7 @@ This repo was inspired by many great repos, mostly the following ones (not neces
 - [RLKit](https://github.com/rail-berkeley/rlkit)
 - [CleanRL](https://github.com/vwxyzjn/cleanrl)
 - [SpinningUp](https://github.com/openai/spinningup)
+- [RL for MuJoCo](https://github.com/aravindr93/mjrl)
 - [MBPO-PyTorch](https://github.com/Xingyu-Lin/mbpo_pytorch)
 - [Stabel Baselines](https://github.com/hill-a/stable-baselines)
 - [Youtube-Code-Repository](https://github.com/philtabor/Youtube-Code-Repository)
