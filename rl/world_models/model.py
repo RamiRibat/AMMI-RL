@@ -431,7 +431,8 @@ class EnsembleDynamicsModel():
             current = val_losses[i]
             _, best = self._snapshots[i]
             improvement = (best - current) / best
-            if improvement > 0.01:
+            # if improvement > 0.01: # org
+            if improvement > 0.005:
                 self._snapshots[i] = (epoch, current)
                 updated = True
 
