@@ -113,7 +113,7 @@ class MBRL:
             # num_traj = max_size//10
             # num_traj = max_size//20
             num_traj = num_ensembles * init_obs_size
-            horizon = 1000
+            horizon = 100#0
             gamma = self.configs['critic']['gamma']
             gae_lam = self.configs['critic']['gae_lam']
             # self.model_traj_buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device)

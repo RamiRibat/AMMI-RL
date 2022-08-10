@@ -778,16 +778,20 @@ class MBPPO(MBRL, PPO):
 		# 07. Sample st uniformly from Denv
 		device = self._device_
 		Nτ = self.configs['data']['init_obs_size']
-		K = 1000
+		K = 100#0
 
 		O_init = self.buffer.sample_init_obs_batch(Nτ)
 		O_Nτ = len(O_init)
+		# print('Nτ: ', Nτ)
+		# print('O_Nτ: ', O_Nτ)
 		D_init = T.zeros((O_Nτ, 1), dtype=T.bool).to(O_init.device)
 
 		Zi, ELi = T.zeros((O_Nτ, 1), dtype=T.float32), T.zeros((O_Nτ, 1), dtype=T.float32)
 		ZList, ELList = T.zeros((O_Nτ, 4), dtype=T.float32), T.zeros((O_Nτ, 4), dtype=T.float32)
 		zeros, ones = T.zeros((O_Nτ, 1), dtype=T.float32), T.ones((O_Nτ, 1), dtype=T.float32)
-		O_zeros = T.zeros((O_Nτ, self.obs_dim), dtype=T.float32)
+		O_zeros, A_zeros = T.zeros((O_Nτ, self.obs_dim), dtype=T.float32), T.zeros((O_Nτ, self.act_dim), dtype=T.float32)
+		R_zeros, V_zeros = T.zeros((O_Nτ, 1), dtype=T.float32), T.zeros((O_Nτ, 1), dtype=T.float32)
+		log_Pi_zeros = T.zeros((O_Nτ, 1), dtype=T.float32)
 
 		for m, model in enumerate(self.models):
 			el = 0
@@ -814,7 +818,15 @@ class MBPPO(MBRL, PPO):
 
 				nonD_last = ~D_last.squeeze(-1)
 
+
+				O[D_last] = O_zeros[D_last] # del fake O to proceed only with non-terminated
+				pre_A[D_last] = A_zeros[D_last] # del fake O to proceed only with non-terminated
+				A[D_last] = A_zeros[D_last] # del fake O to proceed only with non-terminated
 				O_next[D_last] = O_zeros[D_last] # del fake O to proceed only with non-terminated
+				R[D_last] = R_zeros[D_last] # del fake O to proceed only with non-terminated
+				V[D_last] = V_zeros[D_last] # del fake O to proceed only with non-terminated
+				log_Pi[D_last] = log_Pi_zeros[D_last] # del fake O to proceed only with non-terminated
+
 
 				O_last[nonD_last] = O_next[nonD_last] # update only non-terminated
 				D_last[nonD_last] += D[nonD_last] # new D_last
@@ -851,6 +863,17 @@ class MBPPO(MBRL, PPO):
 
 			ZList[:,m] = Z.reshape(-1)
 			ELList[:,m] = EL.reshape(-1)
+
+			# T.set_printoptions(profile="full")
+			# print('Buffer')
+			# # print(f'EL=\n{ELList}')
+			# # print(f'R(shape)=\n{self.model_traj_buffer.obs_buf.shape}')
+			# # print(f'O=\n{self.model_traj_buffer.obs_buf}')
+			# # print(f'R(shape)=\n{self.model_traj_buffer.act_buf.shape}')
+			# # print(f'A=\n{self.model_traj_buffer.act_buf}')
+			# # print(f'R(shape)=\n{self.model_traj_buffer.rew_buf.shape}')
+			# # print(f'R=\n{self.model_traj_buffer.rew_buf}')
+			# T.set_printoptions(profile="default")
 
 			if self.model_traj_buffer.total_size() >= self.configs['data']['ov_model_buffer_size']:
 				# print(f'[ Epoch {n} | AC {g} ] Breaking img rollouts at nτ={nτ+1}/m={m+1} | Buffer = {self.model_traj_buffer.total_size()} | Z={round(np.mean(ZList[1:]), 2)}±{round(np.std(ZList[1:]), 2)} | EL={round(np.mean(elList[1:]), 2)}±{round(np.std(elList[1:]), 2)} | x{round(np.mean(ZList[1:])/np.mean(elList[1:]), 2)}'+(' ')*40)
@@ -975,7 +998,7 @@ def main(exp_prefix, config, seed, device, wb):
 	wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
 	DE = configs['world_model']['num_ensembles']
 
-	group_name = f"{env_name}-{alg_name}-55" # Local
+	group_name = f"{env_name}-{alg_name}-56" # Local
 	# group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
 	exp_prefix = f"seed:{seed}"
 
