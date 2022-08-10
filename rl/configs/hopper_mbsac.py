@@ -75,16 +75,27 @@ configurations = {
 
 
     'actor': {
-        'type': 'gaussianpolicy',
+        # 'type': 'Gaussian',
+        'type': 'TanhSquashedGaussian',
         'action_noise': None,
-        'alpha': 0.2, # Temprature/Entropy #@#
+        'alpha': .2, # Temprature/Entropy
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {
+            # 'std_grad': False,
+            'log_std_grad': False,
+            # 'init_std': 3.,
+            'init_log_std': 1.,
+            # 'min_std': 1e-6,
+            # 'log_std_grad': False,
+            # 'init_log_std': 1,
             # 'arch': [128, 128],
             'arch': [256, 256],
+            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
+            # 'n_parameters': 2,
+            # 'op_activation': 'Tanh',
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
@@ -101,10 +112,11 @@ configurations = {
         'tau': 5e-3,
         'network': {
             # 'arch': [128, 128],
-            # 'arch': [256, 128],
             'arch': [256, 256],
+            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
+            # 'n_parameters': 1,
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",

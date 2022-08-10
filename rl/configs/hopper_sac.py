@@ -40,7 +40,7 @@ configurations = {
         # 'type': 'Gaussian',
         'type': 'TanhSquashedGaussian',
         'action_noise': None,
-        'alpha': .2, # Temprature/Entropy #@#
+        'alpha': .2, # Temprature/Entropy
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {
