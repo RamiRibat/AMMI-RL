@@ -1,6 +1,6 @@
 # AMMI-RL: Implementation for Continuous Control
 
-This project was initiated in the RL course Fall 2021 at **The African Master's in Machine Intelligence** ([**AMMI**](https://aimsammi.org/)) as a course-project where we implemented the SAC algorithm ([Haarnoja et al.](https://arxiv.org/abs/1812.05905)) for continuous control tasks. It is now an open project where we care to design code bases and benchmarks for RL algorithms in order to develop new algorithms. We are designing this repo based on existing repositories as well as original papers to produce better implementations for a selected set of algorithms.
+This project was initiated in the RL course of Fall 2021 at **The African Master's in Machine Intelligence** ([**AMMI**](https://aimsammi.org/)) as a course-project where we implemented the SAC algorithm ([Haarnoja et al.](https://arxiv.org/abs/1812.05905)) for continuous control tasks. It is now an open project where we care to design code bases and benchmarks for RL algorithms in order to ease the development of new algorithms. We are designing this repo based on existing repositories as well as original papers to produce better general implementations for a selected set of algorithms.
 
 
 ## Algorithms
