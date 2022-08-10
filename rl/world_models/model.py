@@ -270,7 +270,8 @@ class EnsembleModel(nn.Module):
 
         self.optimizer = T.optim.Adam(self.parameters(), lr=learning_rate)
 
-        self.activation = Swish() # nn.ReLU()
+        # self.activation = Swish() # nn.ReLU()
+        self.activation = nn.PReLU()
 
 
     def forward(self, x, ret_log_var=False):
