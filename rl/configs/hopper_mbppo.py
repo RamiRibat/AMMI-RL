@@ -134,7 +134,7 @@ configurations = {
         # 'init_obs_size': 250,
         # 'ov_model_buffer_size': int(2e4),
         'init_obs_size': 25,
-        'ov_model_buffer_size': int(1e5),
+        'ov_model_buffer_size': int(2e5),
         # 'init_obs_size': 50,
         # 'ov_model_buffer_size': int(2e5),
         'device': "auto",
