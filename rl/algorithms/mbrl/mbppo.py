@@ -778,7 +778,7 @@ class MBPPO(MBRL, PPO):
 		# 07. Sample st uniformly from Denv
 		device = self._device_
 		Nτ = self.configs['data']['init_obs_size']
-		K = 1000
+		K = self.configs['world_model']['rollout_length']
 
 		O_init = self.buffer.sample_init_obs_batch(Nτ)
 		O_Nτ = len(O_init)
@@ -852,10 +852,12 @@ class MBPPO(MBRL, PPO):
 					# print(f'\n[ Epoch {n} Model Rollout ] Breaking early: {k} | {nonD.sum()} / {nonD.shape}'+(' ')*50)
 					break
 
+			V = T.zeros((O_Nτ, 1))
 			if k == K:
-				with T.no_grad(): V = self.actor_critic.get_v(T.Tensor(O_last)).cpu()
-			else:
-				V = T.zeros((O_Nτ, 1))
+				# print(f'\nCalc term Val at EL={EL}')
+				x = (EL==K)
+				with T.no_grad(): V_ = self.actor_critic.get_v(T.Tensor(O_last)).cpu()
+				V[x] = V_[x]
 
 			self.model_traj_buffer.finish_path_batch(EL, V)
 
@@ -864,13 +866,14 @@ class MBPPO(MBRL, PPO):
 
 			# T.set_printoptions(profile="full")
 			# print('Buffer')
-			# # print(f'EL=\n{ELList}')
+			# print(f'EL=\n{ELList}')
 			# # print(f'R(shape)=\n{self.model_traj_buffer.obs_buf.shape}')
 			# # print(f'O=\n{self.model_traj_buffer.obs_buf}')
 			# # print(f'R(shape)=\n{self.model_traj_buffer.act_buf.shape}')
 			# # print(f'A=\n{self.model_traj_buffer.act_buf}')
 			# # print(f'R(shape)=\n{self.model_traj_buffer.rew_buf.shape}')
 			# # print(f'R=\n{self.model_traj_buffer.rew_buf}')
+			# print(f'V=\n{self.model_traj_buffer.val_buf}')
 			# T.set_printoptions(profile="default")
 
 			if self.model_traj_buffer.total_size() >= self.configs['data']['ov_model_buffer_size']:
@@ -996,7 +999,7 @@ def main(exp_prefix, config, seed, device, wb):
 	wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
 	DE = configs['world_model']['num_ensembles']
 
-	group_name = f"{env_name}-{alg_name}-59" # Local
+	group_name = f"{env_name}-{alg_name}-60" # Local
 	# group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
 	exp_prefix = f"seed:{seed}"
 

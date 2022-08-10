@@ -14,7 +14,7 @@ configurations = {
         'model-based': False,
         'on-policy': True,
         'learning': {
-            'epochs': 200, # N epochs
+            'epochs': 300, # N epochs
             'epoch_steps': 10000, # NT steps/epoch
             'init_epochs': 0, # Ni epochs
             'expl_epochs': 0, # Nx epochs
@@ -46,7 +46,7 @@ configurations = {
         'entropy_coef': 0.0,
         'network': {
             # 'std_grad': True,
-            'log_std_grad': True,
+            'log_std_grad': False,
             # 'init_std': 3.,
             'init_log_std': 1.,
             # 'min_std': 1e-6,
@@ -76,12 +76,12 @@ configurations = {
         # 'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
-            'arch': [128, 128],
-            # 'arch': [256, 256],
+            # 'arch': [128, 128],
+            'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            'lr': 1e-3,
-            # 'lr': 3e-4,
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",

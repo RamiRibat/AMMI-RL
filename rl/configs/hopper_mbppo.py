@@ -59,6 +59,7 @@ configurations = {
         'type': 'DE',
         'num_ensembles': 4,
         'learn_reward': True,
+        'rollout_length': 1000,
         'network': {
             'arch': [512, 512],
             'init_weights': 3e-3,
@@ -134,7 +135,7 @@ configurations = {
         # 'init_obs_size': 250,
         # 'ov_model_buffer_size': int(2e4),
         'init_obs_size': 25,
-        'ov_model_buffer_size': int(2e5),
+        'ov_model_buffer_size': int(1e5),
         # 'init_obs_size': 50,
         # 'ov_model_buffer_size': int(2e5),
         'device': "auto",

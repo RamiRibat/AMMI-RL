@@ -267,7 +267,6 @@ class TrajBuffer:
         batch_size = len(E)
         for i, e in enumerate(E):
             e = int(e)
-            # print(f'ptr={self.ptr} | i={i} | e={e} | V={V[i]}')
             self.rew_buf[ self.ptr+i, e, : ] = T.Tensor(V[i])
             self.val_buf[ self.ptr+i, e, : ] = T.Tensor(V[i])
             deltas = self.rew_buf[ self.ptr+i, :e, : ] + self.gamma * self.val_buf[ self.ptr+i, 1:e+1, : ] - self.val_buf[ self.ptr+i, :e, : ]
@@ -276,9 +275,6 @@ class TrajBuffer:
 
         self.ter_idx[self.ptr:self.ptr+batch_size] = E
 
-        # A = T.cat([E,self.adv_buf[self.ptr:self.ptr+batch_size, :int(E.max()), :],self.ret_buf[self.ptr:self.ptr+batch_size, :int(E.max()), :]], axis=1)
-
-        # print(f'\n[ finish_path ] e={e} | ptr={self.ptr} | size={self.total_size()}')
         if self.last_traj < self.num_traj-1:
             self.ptr +=batch_size
             self.last_traj +=batch_size
@@ -286,7 +282,6 @@ class TrajBuffer:
             self.ptr +=batch_size
         else:
             self.ptr = 0
-        # print('last_traj: ', self.last_traj)
 
 
     def store_transition_batch(self, O, A, R, D, V, log_Pi, e):

@@ -57,6 +57,7 @@ configurations = {
         'type': 'DE',
         'num_ensembles': 4,
         'learn_reward': True,
+        'rollout_length': 10,
         'network': {
             'arch': [512, 512],
             'init_weights': 3e-3,
