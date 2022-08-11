@@ -511,7 +511,7 @@ class SAC(MFRL):
         # Policy Improvement
         Jpi = (self.alpha * log_pi - min_Q_pi).mean() # org
         # Jpi = (self.alpha * log_pi).mean()
-        # Jpi = (min_Q_pi).mean()
+        # Jpi = (- min_Q_pi).mean()
         # print('pi=', pi)
         # print('log_pi=', log_pi)
 
@@ -553,7 +553,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-25"
+    group_name = f"{env_name}-{alg_name}-26"
     # group_name = f"{env_name}-{alg_name}-GCP-A-cpu"
     exp_prefix = f"seed:{seed}"
 
