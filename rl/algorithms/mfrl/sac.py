@@ -452,6 +452,7 @@ class SAC(MFRL):
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next) # org
             # Qs_backup = R + gamma * (1 - D) * (min_Q_targ)
+            # Qs_backup = R + gamma * (1 - D) * (min_Q_targ - 0.02 * log_pi_next) # for SAC-30
 
         # MSE loss
         Jq = 0.5 * sum([F.mse_loss(Q, Qs_backup) for Q in Qs])
@@ -509,9 +510,12 @@ class SAC(MFRL):
 
 
         # Policy Improvement
-        Jpi = (self.alpha * log_pi - min_Q_pi).mean() # org
+        # Jpi = (self.alpha * log_pi - min_Q_pi).mean() # org
         # Jpi = (self.alpha * log_pi).mean()
-        # Jpi = (- min_Q_pi).mean()
+        # Jpi = (- min_Q_pi).mean() # good interaction
+        # Jpi = (self.alpha * log_pi).mean() - (min_Q_pi).mean()
+        # Jpi = (0.02 * log_pi - min_Q_pi).mean() # for SAC-30
+        Jpi = (self.alpha * log_pi - min_Q_pi).mean() - 0.05*(log_pi).mean()
         # print('pi=', pi)
         # print('log_pi=', log_pi)
 
@@ -553,7 +557,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-26"
+    group_name = f"{env_name}-{alg_name}-32"
     # group_name = f"{env_name}-{alg_name}-GCP-A-cpu"
     exp_prefix = f"seed:{seed}"
 
