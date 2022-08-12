@@ -48,7 +48,7 @@ class MFRL:
 
     def _build(self):
         self._set_env()
-        self._set_buffer()
+        # self._set_buffer()
 
 
     def _set_env(self):

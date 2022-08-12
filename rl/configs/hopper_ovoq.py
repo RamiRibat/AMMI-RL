@@ -25,7 +25,7 @@ configurations = {
         'learning': {
             'epochs': 2000, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
-            'ov_init_epochs': 10000, # Random Actions + No Learning
+            'ov_init_epochs': 10, # Random Actions + No Learning
             'oq_init_epochs': 1, # Random Actions + No Learning
             'expl_epochs': 10, # Random Actions + Learning
 
@@ -60,7 +60,7 @@ configurations = {
         'type': 'ovoqpolicy',
         'constrained': False,
         'action_noise': None,
-        'alpha': 0.2,
+        'alpha': 0.02,
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'clip_eps': 0.25,
@@ -68,8 +68,8 @@ configurations = {
         'max_dev': 0.1,
         'entropy_coef': 0.0,
         'network': {
-            'std_grad': True,
-            'init_log_std': 1,
+            'log_std_grad': False,
+            'init_log_std': 1.,
             # 'arch': [64, 64],
             # 'arch': [128, 128],
             'arch': [256, 256],
@@ -81,7 +81,7 @@ configurations = {
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            'max_grad_norm': 0.5,
+            # 'max_grad_norm': 0.5,
         }
     },
 
@@ -94,16 +94,16 @@ configurations = {
         # 'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
-            'arch': [128, 128],
-            # 'arch': [256, 256],
+            # 'arch': [128, 128],
+            'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            'lr': 1e-3,
-            # 'lr': 3e-4,
+            # 'lr': 1e-3,
+            'lr': 3e-4,
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            'max_grad_norm': 0.5,
+            # 'max_grad_norm': 0.5,
         }
     },
 
@@ -118,7 +118,7 @@ configurations = {
             'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            'output_activation': 'nn.Identity',
+            'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
             # 'lr': 1e-3,

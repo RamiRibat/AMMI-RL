@@ -25,7 +25,7 @@ nn = T.nn
 from rl.algorithms.mfrl.mfrl import MFRL
 from rl.value_functions.v_function import VFunction
 from rl.value_functions.q_function import SoftQFunction
-from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy
+from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy, Policy
 from rl.data.buffer import TrajBuffer, ReplayBuffer
 
 
@@ -69,7 +69,7 @@ class ActorCritic: # Done
         # self.net_configs = configs['actor']['network']
         self._device_ = device
 
-        self.actor, self.critic, self.critic_target = None, None, None
+        self.actor, self.ov, self.oq, self.oq_target = None, None, None, None
         self._build()
 
 
@@ -88,7 +88,11 @@ class ActorCritic: # Done
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
-        return OVOQPolicy(
+        # return OVOQPolicy(
+        #     self.obs_dim, self.act_dim,
+        #     self.act_up_lim, self.act_low_lim,
+        #     net_configs, self._device_, self.seed)
+        return Policy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
@@ -116,7 +120,6 @@ class ActorCritic: # Done
 
 
     def get_q_target(self, o, a):
-        # Update Q
         return self.oq_target(o, a)
 
 
@@ -307,11 +310,15 @@ class OVOQ(MFRL):
         device = self._device_
         seed = self.seed
 
+        # Trajectory Buffer
         horizon = 1000
         max_size_ov = self.configs['data']['ov_buffer_size']
         num_traj = max_size_ov//10
-        self.traj_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size_ov, seed, device)
+        gamma = self.configs['critic-v']['gamma']
+        gae_lam = self.configs['critic-v']['gae_lam']
+        self.traj_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size_ov, seed, device, gamma, gae_lam)
 
+        # Replay Buffer
         max_size_oq = self.configs['data']['oq_buffer_size']
         self.repl_buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size_oq, seed, device)
 
@@ -349,39 +356,47 @@ class OVOQ(MFRL):
                             print(f'\n[ Epoch {n}   Learning (OV+OQ) ]'+(' '*50))
                             JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [], [], [], [], [], []
                             HVList, HQList, DevList = [], [], []
+                            LogPiVList, LogPiQList = [], []
                         else:
                             print(f'\n[ Epoch {n}   Learning (OQ) ]'+(' '*50))
                             JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [], [0], [], [0], [0], []
                             HVList, HQList, DevList = [0], [], [0]
+                            LogPiVList, LogPiQList = [0], []
                     else:
                         print(f'\n[ Epoch {n}   Learning (OV) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [0], [], [0], [], [], [0]
                         HVList, HQList, DevList = [], [0], []
+                        LogPiVList, LogPiQList = [], [0]
                     oldJs = [0, 0, 0, 0]
                 elif n > Niv and (n%VNF==0):
                     if n > Niq:
                         print(f'\n[ Epoch {n}   Exploration + Learning (OV+OQ) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [], [], [], [], [], []
                         HVList, HQList, DevList = [], [], []
+                        LogPiVList, LogPiQList = [], []
                     else:
                         print(f'\n[ Epoch {n}   Exploration + Learning (OV) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [0], [], [0], [], [], [0]
                         HVList, HQList, DevList = [], [0], []
+                        LogPiVList, LogPiQList = [], [0]
                     oldJs = [0, 0, 0, 0]
                 elif n > Niq:
                     if n > Niv and (n%VNF==0):
                         print(f'\n[ Epoch {n}   Exploration + Learning (OV+OQ) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [], [], [], [], [], []
                         HVList, HQList, DevList = [], [], []
+                        LogPiVList, LogPiQList = [], []
                     else:
                         print(f'\n[ Epoch {n}   Exploration + Learning (OQ) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [], [0], [], [0], [0], []
                         HVList, HQList, DevList = [0], [], [0]
+                        LogPiVList, LogPiQList = [0], []
                     oldJs = [0, 0, 0, 0]
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
                     JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [0], [0], [0], [0], [0], [0]
                     HVList, HQList, DevList = [0], [0], [0]
+                    LogPiVList, LogPiQList = [0], [0]
                     oldJs = [0, 0, 0, 0]
 
             nt = 0
@@ -391,26 +406,26 @@ class OVOQ(MFRL):
             AvgZ, AvgEL = 0, 0
             ppo_grads, sac_grads = 0, 0
 
-            # if n > Niq:
-            #     on_policy = False if (n%2==0) else True
-            #     OP = 'on-policy' if on_policy else 'off-policy'
-            # else:
-            #     on_policy = True
-            #     OP = 'on-policy'
+            if n > Niq:
+                on_policy = False if (n%2==0) else True
+                OP = 'on-policy' if on_policy else 'off-policy'
+            else:
+                on_policy = True
+                OP = 'on-policy'
 
-            on_policy = False
-            OP = 'off-policy'
-            # on_policy = True
-            # OP = 'on-policy'
+            # on_policy = False
+            # OP = 'off-policy'
+            # # on_policy = True
+            # # OP = 'on-policy'
 
             learn_start_real = time.time()
             while nt < NT: # full epoch
                 # Interaction steps
                 for e in range(1, E+1):
                     # print('OQ, el: ', el)
-                    o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=False)
+                    # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=on_policy)
                     # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=True)
-                    # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=False)
+                    o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=False)
 
                     if el > 0:
                         currZ = Z
@@ -441,6 +456,7 @@ class OVOQ(MFRL):
                         JQList.append(Jq)
                         JPiQList.append(Jpi)
                         HQList.append(PiInfo['entropy'])
+                        LogPiQList.append(PiInfo['log_pi'])
                         if self.configs['actor']['automatic_entropy']:
                             JAlphaList.append(Jalpha.item())
                             AlphaList.append(self.alpha)
@@ -537,8 +553,11 @@ class OVOQ(MFRL):
 
             logs['training/ovoq/actor/Jpi_ov          '] = np.mean(JPiVList)
             logs['training/ovoq/actor/Jpi_oq          '] = np.mean(JPiQList)
-            logs['training/ovoq/actor/HV              '] = np.mean(HVList)
-            logs['training/ovoq/actor/HQ              '] = np.mean(HQList)
+            logs['training/ovoq/actor/STD             '] = self.actor_critic.actor.std_value.clone().mean().item()
+            logs['training/ovoq/actor/log_pi-v        '] = np.mean(LogPiVList)
+            logs['training/ovoq/actor/log_pi-q        '] = np.mean(LogPiQList)
+            # logs['training/ovoq/actor/HV              '] = np.mean(HVList)
+            # logs['training/ovoq/actor/HQ              '] = np.mean(HQList)
             # logs['training/ovoq/actor/ov-KL           '] = np.mean(KLList) #
             logs['training/ovoq/actor/ov-deviation    '] = np.mean(DevList)
             logs['training/ovoq/actor/ppo-grads       '] = ppo_grads
@@ -693,7 +712,7 @@ class OVOQ(MFRL):
         """"
         Jv(θ) =
         """
-        max_grad_norm = kl_targ = self.configs['critic-v']['network']['max_grad_norm']
+        # max_grad_norm = kl_targ = self.configs['critic-v']['network']['max_grad_norm']
 
         O, _, _, _, _, Z, _, _, _ = batch.values()
         V = self.actor_critic.get_v(O)
@@ -715,7 +734,7 @@ class OVOQ(MFRL):
                             + γ Est+1∼D[ Eat+1~πφ(at+1|st+1)[ Qθ¯(st+1, at+1)
                                                 − α log(πφ(at+1|st+1)) ] ] ]
         """
-        gamma = self.configs['critic']['gamma']
+        gamma = self.configs['critic-q']['gamma']
 
         O = batch['observations']
         A = batch['actions']
@@ -740,9 +759,9 @@ class OVOQ(MFRL):
         # print('Jq=', Jq)
 
         # Gradient Descent
-        self.actor_critic.critic.optimizer.zero_grad()
+        self.actor_critic.oq.optimizer.zero_grad()
         Jq.backward()
-        self.actor_critic.critic.optimizer.step()
+        self.actor_critic.oq.optimizer.step()
 
         return Jq
 
@@ -784,7 +803,7 @@ class OVOQ(MFRL):
 
         clip_eps = self.configs['actor']['clip_eps']
         entropy_coef = self.configs['actor']['entropy_coef']
-        max_grad_norm = self.configs['actor']['network']['max_grad_norm']
+        # max_grad_norm = self.configs['actor']['network']['max_grad_norm']
         kl_targ = self.configs['actor']['kl_targ']
         max_dev = self.configs['actor']['max_dev']
 
@@ -864,7 +883,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-17"
+    group_name = f"{env_name}-{alg_name}-1-gcp"
     exp_prefix = f"seed:{seed}"
 
     if wb:
@@ -873,7 +892,8 @@ def main(exp_prefix, config, seed, device, wb):
             name=exp_prefix,
             group=group_name,
             # project='test',
-            project='AMMI-RL-2022',
+            # project='AMMI-RL-2022',
+            project=f'AMMI-RL-{env_name}',
             config=configs
         )
 
