@@ -229,7 +229,7 @@ class MFRL:
         Nx = self.configs['algorithm']['learning']['expl_epochs']
 
         if on_policy:
-            pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+            with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
             o_next, r, d, _ = self.traj_env.step(a)
             Z += r
             el += 1
