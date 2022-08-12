@@ -532,6 +532,7 @@ class OVOQ(MFRL):
                             JPiVList.append(Jpi)
                             KLList.append(PiInfo['KL'])
                             HVList.append(PiInfo['entropy'])
+                            LogPiVList.append(PiInfo['log_pi'])
                             DevList.append(PiInfo['deviation'])
                             dev = PiInfo['deviation']
                             if not PiInfo['stop_pi']:
@@ -564,7 +565,8 @@ class OVOQ(MFRL):
             logs['training/ovoq/actor/sac-grads       '] = sac_grads
 
             logs['data/real/on-policy                 '] = int(on_policy)
-            # logs['data/real/buffer_size               '] = self.buffer.total_size()
+            logs['data/real/repl_buffer_size          '] = self.repl_buffer.size
+            logs['data/real/traj_buffer_size          '] = self.traj_buffer.total_size()
             # if hasattr(self, 'traj_buffer') and hasattr(self, 'repl_buffer'):
             #     logs['data/imag/ov-traj_buffer_size       '] = self.traj_buffer.total_size()
             #     logs['data/imag/oq-repl_buffer_size       '] = self.repl_buffer.size
