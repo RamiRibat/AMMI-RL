@@ -714,7 +714,7 @@ class OVOQ(MFRL):
         """
         # max_grad_norm = kl_targ = self.configs['critic-v']['network']['max_grad_norm']
 
-        O, _, _, _, _, Z, _, _, _ = batch.values()
+        O, _, _, _, _, _, Z, _, _, _ = batch.values()
         V = self.actor_critic.get_v(O)
 
         Jv = 0.5 * ( (V - Z) ** 2 ).mean(axis=0)
