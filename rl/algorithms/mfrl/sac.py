@@ -319,6 +319,7 @@ class SAC(MFRL):
                             AlphaList.append(self.alpha)
 
                 nt += E
+                # self.updateLogPi()
 
             # logs['time/training                     '] = time.time() - learn_start_real
             logs['training/sac/critic/Jq              '] = np.mean(JQList)
@@ -418,6 +419,7 @@ class SAC(MFRL):
         if self.configs['actor']['automatic_entropy']: Jalpha = Jalpha.item()
         Jpi, PiInfo = self.updatePi(batch, oldJs[2])# if (g % PUI == 0) else oldJs[2]
         Jpi = Jpi.item()
+        # self.updateLogPi(batch)
 
         if g % TUI == 0:
             self.updateTarget()
@@ -452,7 +454,8 @@ class SAC(MFRL):
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next) # org
             # Qs_backup = R + gamma * (1 - D) * (min_Q_targ)
-            # Qs_backup = R + gamma * (1 - D) * (min_Q_targ - 0.02 * log_pi_next) # for SAC-30
+            # Qs_backup = R + gamma * (1 - D) * (min_Q_targ - 0.02 * log_pi_next) # for SAC-30/8
+            # Qs_backup = R + gamma * (1 - D) * (min_Q_targ - 0.05 * log_pi_next) # for SAC-36/7
 
         # MSE loss
         Jq = 0.5 * sum([F.mse_loss(Q, Qs_backup) for Q in Qs])
@@ -510,12 +513,13 @@ class SAC(MFRL):
 
 
         # Policy Improvement
-        # Jpi = (self.alpha * log_pi - min_Q_pi).mean() # org
+        Jpi = (self.alpha * log_pi - min_Q_pi).mean() # org
         # Jpi = (self.alpha * log_pi).mean()
         # Jpi = (- min_Q_pi).mean() # good interaction
         # Jpi = (self.alpha * log_pi).mean() - (min_Q_pi).mean()
-        # Jpi = (0.02 * log_pi - min_Q_pi).mean() # for SAC-30
-        Jpi = (self.alpha * log_pi - min_Q_pi).mean() - 0.05*(log_pi).mean()
+        # Jpi = (0.02 * log_pi - min_Q_pi).mean() # for SAC-30/8
+        # Jpi = (0.05 * log_pi - min_Q_pi).mean() # for SAC-36/7
+        # Jpi = (self.alpha * log_pi - min_Q_pi).mean() - 0.05*(log_pi).mean()
         # print('pi=', pi)
         # print('log_pi=', log_pi)
 
@@ -539,6 +543,29 @@ class SAC(MFRL):
                 p_targ.data.copy_(tau * p.data + (1 - tau) * p_targ.data)
 
 
+    def updateLogPi(self):
+
+        batch_size = self.buffer.size
+
+        batch = self.buffer.sample_batch(batch_size, device=self._device_)
+
+        O = batch['observations']
+
+        # Policy Evaluation
+        pi, log_pi, entropy = self.actor_critic.get_pi(O, on_policy=False, reparameterize=True, return_log_pi=True)
+
+
+        # Policy Improvement
+        Jlog_pi = -(log_pi).mean()
+        # print('pi=', pi)
+        # print('log_pi=', log_pi)
+
+        # Gradient Ascent
+        self.actor_critic.actor.optimizer.zero_grad()
+        Jlog_pi.backward()
+        self.actor_critic.actor.optimizer.step()
+
+
 
 
 
@@ -557,7 +584,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-32"
+    group_name = f"{env_name}-{alg_name}-38"
     # group_name = f"{env_name}-{alg_name}-GCP-A-cpu"
     exp_prefix = f"seed:{seed}"
 
