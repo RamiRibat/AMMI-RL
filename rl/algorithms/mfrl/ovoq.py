@@ -194,7 +194,7 @@ class ActorCritic: # Done
                                              return_entropy,
                                              return_pre_pi
                                              )
-        return pre_a.cpu(), a.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
+        return pre_a.cpu(), a.cpu(), log_pi.cpu(), entropy, self.ov(o).cpu()
 
 
     def get_a_and_v_np(self, o, a=None,
@@ -213,7 +213,7 @@ class ActorCritic: # Done
                                                           return_entropy,
                                                           return_pre_pi
                                                           )
-        return pre_a.cpu().numpy(), a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
+        return pre_a.cpu().numpy(), a.cpu().numpy(), log_pi.cpu().numpy(), self.ov(o).cpu().numpy()
 
 
     def get_pi_and_q(self, o, a=None,
@@ -883,7 +883,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-1-gcp"
+    group_name = f"{env_name}-{alg_name}-1"
     exp_prefix = f"seed:{seed}"
 
     if wb:
