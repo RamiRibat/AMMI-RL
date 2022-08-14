@@ -79,7 +79,7 @@ class MBPPO(MBRL, PPO):
 		Nx = self.configs['algorithm']['learning']['expl_epochs']
 
 		E = self.configs['algorithm']['learning']['env_steps']
-		G_WM = self.configs['algorithm']['learning']['grad_WM_steps']
+		# G_WM = self.configs['algorithm']['learning']['grad_WM_steps']
 		G_AC = self.configs['algorithm']['learning']['grad_AC_steps']
 		G_PPO = self.configs['algorithm']['learning']['grad_PPO_steps']
 		max_dev = self.configs['actor']['max_dev']
