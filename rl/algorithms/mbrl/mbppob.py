@@ -142,33 +142,13 @@ class MBPPO(MBRL, PPO):
 				with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
 				# self.buffer.traj_tail(d, v, el)
 				self.buffer.finish_path(el, v)
-
-				# print(f'Buffer size = {self.buffer.total_size()}')
+				
 				# Taking gradient steps after exploration
 				if n > Ni:
 					# 03. Train model pθ on Denv via maximum likelihood
 					print(f'\n[ Epoch {n} | Training World Model ]'+(' '*50))
 
 					ho_mean = self.train_world_model(n, local=True)
-
-					# model_fit_bs = min(self.configs['data']['buffer_size'], self.buffer.total_size())
-					# model_fit_batch = self.buffer.sample_batch(batch_size=model_fit_bs, device=self._device_)
-					# s, _, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
-					# if n == Ni+1:
-					# 	samples_to_collect = min((Ni+1)*1000, self.buffer.total_size())
-					# else:
-					# 	samples_to_collect = 1000
-					#
-					# LossGen = []
-					# for i, model in enumerate(self.world_model_local):
-					# 	# print(f'\n[ Epoch {n}   Training World Model {i+1} ]'+(' '*50))
-					# 	loss_general = model.compute_loss(s[-samples_to_collect:],
-					# 									  a[-samples_to_collect:],
-					# 									  sp[-samples_to_collect:]) # generalization error
-					# 	dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=G_WM)
-					# 	reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=G_WM)
-					# 	LossGen.append(loss_general)
-					# ho_mean = np.mean(LossGen)
 
 					for g in range(1, G_AC+1):
 						ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batch(g, n)
