@@ -23,7 +23,7 @@ configurations = {
         'model-based': True,
         'on-policy': True,
         'learning': {
-            'epochs': 200, # N epochs
+            'epochs': 100, # N epochs
             'epoch_steps': 1000, # NT steps/epoch
             'init_epochs': 2, # Ni-- PAL: 5 | MAL: 10
             'expl_epochs': 2, # Nx-- PAL: 5 | MAL: 10
