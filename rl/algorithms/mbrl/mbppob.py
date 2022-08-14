@@ -142,7 +142,7 @@ class MBPPO(MBRL, PPO):
 				with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
 				# self.buffer.traj_tail(d, v, el)
 				self.buffer.finish_path(el, v)
-				
+
 				# Taking gradient steps after exploration
 				if n > Ni:
 					# 03. Train model pθ on Denv via maximum likelihood
@@ -304,9 +304,16 @@ class MBPPO(MBRL, PPO):
 
 	def train_world_model(self, n, local=True):
 		Ni = self.configs['algorithm']['learning']['init_epochs']
-		G_WML = self.configs['algorithm']['learning']['grad_WML_steps']
-		G_WMG = self.configs['algorithm']['learning']['grad_WMG_steps']
-		model_fit_bs = min(self.configs['data']['local_buffer_size'], self.buffer.total_size())
+
+		if local:
+			G_WM = self.configs['algorithm']['learning']['grad_WML_steps']
+			model_fit_bs = min(self.configs['data']['local_buffer_size'], self.buffer.total_size())
+			world_model = self.world_model_local
+		else:
+			G_WM = self.configs['algorithm']['learning']['grad_WMG_steps']
+			model_fit_bs = min(self.configs['data']['global_buffer_size'], self.buffer.total_size())
+			world_model = self.world_model_global
+
 		model_fit_batch = self.buffer.sample_batch(batch_size=model_fit_bs, recent=True, device=self._device_)
 		s, _, a, sp, r, _, _, _, _, _ = model_fit_batch.values()
 
@@ -317,12 +324,12 @@ class MBPPO(MBRL, PPO):
 
 		LossGen = []
 
-		for i, model in enumerate(self.world_model_local):
+		for i, model in enumerate(world_model):
 			loss_general = model.compute_loss(s[-samples_to_collect:],
 											  a[-samples_to_collect:],
 											  sp[-samples_to_collect:])
-			dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=G_WML)
-			reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=G_WML)
+			dynamics_loss = model.fit_dynamics(s, a, sp, fit_mb_size=200, fit_epochs=G_WM)
+			reward_loss = model.fit_reward(s, a, r.reshape(-1, 1), fit_mb_size=200, fit_epochs=G_WM)
 			LossGen.append(loss_general)
 
 		ho_mean = np.mean(LossGen)
@@ -671,10 +678,10 @@ def main(exp_prefix, config, seed, device, wb):
 	alg_mode = configs['algorithm']['mode']
 	env_name = configs['environment']['name']
 	env_type = configs['environment']['type']
-	wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
+	# wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
 	DE = configs['world_model']['num_ensembles']
 
-	group_name = f"{env_name}-{alg_name}-1" # Local
+	group_name = f"{env_name}-{alg_name}-0" # Local
 	# group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
 	exp_prefix = f"seed:{seed}"
 
