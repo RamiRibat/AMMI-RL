@@ -160,6 +160,7 @@ class TrajBuffer:
             i = i+j
 
         if recent:
+            print('recent: ', recent)
             self.obs_batch = self.obs_batch[-recent:]
             self.pre_act_batch = self.pre_act_batch[-recent:]
             self.act_batch = self.act_batch[-recent:]
@@ -330,6 +331,7 @@ class TrajBuffer:
         batch_size = min(batch_size, self.total_size())
         if recent:
             idxs = np.random.randint(0, batch_size, size=batch_size)
+            recent = batch_size
         else:
             idxs = np.random.randint(0, self.total_size(), size=batch_size) # old
 
