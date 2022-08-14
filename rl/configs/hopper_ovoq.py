@@ -32,9 +32,9 @@ configurations = {
             # 'expl_epochs': 0, # Random Actions + Learning
 
             'epoch_steps': 1000, # NT steps/epoch
-            'ov_init_epochs': 9, # Random Actions + No Learning
-            'oq_init_epochs': 1, # Random Actions + No Learning
-            'expl_epochs': 10, # Random Actions + Learning
+            'ov_init_epochs': 0, # Random Actions + No Learning
+            'oq_init_epochs': 10000, # Random Actions + No Learning
+            'expl_epochs': 0, # Random Actions + Learning
 
             # 'env_steps' : 1,
             # 'ov_N_freq': 10,
@@ -44,7 +44,7 @@ configurations = {
             # 'grad_OQ_SAC_steps': 1,
 
             'env_steps' : 1,
-            'ov_N_freq': 10,
+            'ov_N_freq': 1,
             'ov_E_freq': 1000,
             'grad_OV_steps': 1,
             'grad_PPO_steps': 100,
@@ -82,8 +82,8 @@ configurations = {
         'max_dev': 0.1,
         'entropy_coef': 0.0,
         'network': {
-            # 'log_std_grad': False,
-            # 'init_log_std': 1.,
+            'log_std_grad': False,
+            'init_log_std': 1.,
             # 'arch': [64, 64],
             # 'arch': [128, 128],
             'arch': [256, 256],

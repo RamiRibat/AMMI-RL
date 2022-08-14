@@ -421,7 +421,7 @@ class OVOQ(MFRL):
             learn_start_real = time.time()
             while nt < NT: # full epoch
                 # Interaction steps
-                for e in range(1, E+1):
+                for e in range(1, 0+1):
                     # print('OQ, el: ', el)
                     # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=on_policy)
                     # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=True)
@@ -887,7 +887,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-6"
+    group_name = f"{env_name}-{alg_name}-8-ov"
     exp_prefix = f"seed:{seed}"
 
     if wb:

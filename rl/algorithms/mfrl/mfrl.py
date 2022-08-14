@@ -280,8 +280,9 @@ class MFRL:
             Z += r
             el += 1
             t += 1
-            self.traj_buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
-            self.repl_buffer.store_transition(o, a, r, o_next, d)
+            # self.traj_buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
+            self.traj_buffer.storeii(o, pre_a, a, r, o_next, d, v, log_pi, el)
+            # self.repl_buffer.store_transition(o, a, r, o_next, d)
             o = o_next
             if d or (el == max_el):
                 if el == max_el:

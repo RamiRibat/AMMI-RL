@@ -407,7 +407,7 @@ class OVOQPolicy(nn.Module):
 
 
 # Best for MB-PPO
-class PolicyA(nn.Module):
+class Policy(nn.Module):
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
@@ -538,7 +538,7 @@ class PolicyA(nn.Module):
 
 
 # Best for MB-SAC
-class Policy(nn.Module): # B
+class PolicyB(nn.Module): # B
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
@@ -555,9 +555,7 @@ class Policy(nn.Module): # B
         # My suggestions:
 		self.mean_and_log_std_bb = MLPNet(obs_dim, 0, net_configs)
 		self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
-		self.log_std_a = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
-		# self.log_std_b = nn.Parameter(1. * T.ones(act_dim, dtype=T.float32),
-        #                               requires_grad=net_configs['log_std_grad'])
+		self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
 		self.std_value = T.tensor([0.])
 
 		if net_configs['initialize_weights']:
@@ -594,8 +592,6 @@ class Policy(nn.Module): # B
 			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
 
 		mean, std = self.pi_mean_std(obs, on_policy)
-		# print(f'mean={mean}')
-		# print(f'std={std}')
 
 		log_pi, entropy = None, None
 
@@ -622,12 +618,9 @@ class Policy(nn.Module): # B
 
 		net_out = self.mean_and_log_std_bb(obs)
 		mean = self.mean(net_out)
-		log_std_a = self.log_std_a(net_out)
-		log_std_a = T.clamp(log_std_a, min=LOG_STD_MIN, max=LOG_STD_MAX)
-		std_a = T.exp(log_std_a)
-		# std_b = T.exp(self.log_std_b)
-		# std = 0.5*std_a + 0.5*std_b
-		std = std_a
+		log_std = self.log_std(net_out)
+		log_std = T.clamp(log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
+		std = T.exp(log_std)
 		self.std_value = std
 
 		return mean, std
@@ -648,10 +641,8 @@ class Policy(nn.Module): # B
 				sample = normal_ditribution.rsample()
 			else:
 				sample = normal_ditribution.sample()
-			# pre_prob, prob = sample, sample
 			pre_prob, prob = sample, T.tanh(sample)
 		else:
-			# pre_prob, prob = act, act
 			pre_prob, prob = act, T.tanh(act)
 
 		log_prob, entropy = None, None
@@ -673,6 +664,8 @@ class Policy(nn.Module): # B
 		self.act_bias = self.act_bias.to(device)
 		self.act_scale = self.act_scale.to(device)
 		return super(Policy, self).to(device)
+
+
 
 
 

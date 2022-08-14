@@ -224,6 +224,18 @@ class TrajBuffer:
         self.val_buf[ self.ptr, e-1, : ] = T.Tensor(v)
         self.log_pi_buf[ self.ptr, e-1, : ] = T.Tensor(log_pi)
 
+    def storeii(self, o, pre_a, a, r, o_next, d, v, log_pi, e):
+        if self.total_size() >= self.max_size:
+            self.clean_buffer()
+        self.obs_buf[ self.ptr, e-1, : ] = T.Tensor(o)
+        self.pre_act_buf[ self.ptr, e-1, : ] = T.Tensor(pre_a)
+        self.act_buf[ self.ptr, e-1, : ] = T.Tensor(a)
+        self.rew_buf[ self.ptr, e-1, : ] = T.tensor(r)
+        self.obs_next_buf[ self.ptr, e-1, : ] = T.Tensor(o_next)
+        self.ter_buf[ self.ptr, e-1, : ] = T.Tensor([d])
+        self.val_buf[ self.ptr, e-1, : ] = T.Tensor(v)
+        self.log_pi_buf[ self.ptr, e-1, : ] = T.Tensor(log_pi)
+
 
     def finish_path(self, e, v):
         # print(f'\n[ finish_path ] e={e} | ptr={self.ptr} | size={self.total_size()}')

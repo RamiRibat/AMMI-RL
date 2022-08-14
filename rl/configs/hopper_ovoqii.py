@@ -75,7 +75,7 @@ configurations = {
         'constrained': False,
         'action_noise': None,
         # 'alpha': 0.2,
-        'alpha': 0.2,
+        'alpha': 0.,
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'clip_eps': 0.25,
@@ -154,7 +154,7 @@ configurations = {
         # 'oq_model_val_ratio': 0.2,
         # 'oq_rollout_batch_size': int(1e5),
         # 'oq_model_batch_size': 256,
-        'oq_batch_size': int(1e3),
+        'oq_batch_size': int(1e4),
 
         # 'device': "auto",
     },
