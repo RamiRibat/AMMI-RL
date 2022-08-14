@@ -8,6 +8,7 @@ configurations = {
             'state_space': 'continuous',
             'action_space': 'continuous',
             'horizon': 1e3,
+            'traj_env': False,
         },
 
     'algorithm': {

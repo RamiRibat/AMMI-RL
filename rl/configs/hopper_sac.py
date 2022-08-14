@@ -7,6 +7,7 @@ configurations = {
             'state_space': 'continuous',
             'action_space': 'continuous',
             'horizon': 1e3,
+            'traj_env': False,
         },
 
     'algorithm': {
@@ -19,8 +20,12 @@ configurations = {
             'init_epochs': 1, # Ni epochs
             'expl_epochs': 10, # Nx epochs
 
-            'env_steps' : 1, # E: interact E times then train
-            'grad_AC_steps': 1, # ACG: ac grad
+            # Best set
+            # 'env_steps' : 1, # E: interact E times then train
+            # 'grad_AC_steps': 1, # ACG: ac grad
+
+            'env_steps' : 10, # E: interact E times then train
+            'grad_AC_steps': 10, # ACG: ac grad
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,

@@ -13,6 +13,7 @@ configurations = {
             'action_space': 'continuous',
             'horizon': 1e3,
             'action_repeat': 1, # New (leave this)
+            'traj_env': False,
         },
 
     'algorithm': {

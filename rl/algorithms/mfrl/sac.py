@@ -543,30 +543,6 @@ class SAC(MFRL):
                 p_targ.data.copy_(tau * p.data + (1 - tau) * p_targ.data)
 
 
-    def updateLogPi(self):
-
-        batch_size = self.buffer.size
-
-        batch = self.buffer.sample_batch(batch_size, device=self._device_)
-
-        O = batch['observations']
-
-        # Policy Evaluation
-        pi, log_pi, entropy = self.actor_critic.get_pi(O, on_policy=False, reparameterize=True, return_log_pi=True)
-
-
-        # Policy Improvement
-        Jlog_pi = -(log_pi).mean()
-        # print('pi=', pi)
-        # print('log_pi=', log_pi)
-
-        # Gradient Ascent
-        self.actor_critic.actor.optimizer.zero_grad()
-        Jlog_pi.backward()
-        self.actor_critic.actor.optimizer.step()
-
-
-
 
 
 
@@ -584,7 +560,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-38"
+    group_name = f"{env_name}-{alg_name}-44"
     # group_name = f"{env_name}-{alg_name}-GCP-A-cpu"
     exp_prefix = f"seed:{seed}"
 

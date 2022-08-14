@@ -406,7 +406,7 @@ class OVOQPolicy(nn.Module):
 
 
 
-
+# Best for MB-PPO
 class Policy(nn.Module):
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
@@ -421,19 +421,7 @@ class Policy(nn.Module):
 		lr = net_configs['lr']
 		init_log_std = net_configs['init_log_std']
 
-		# Method A
-		# self.mean_and_log_std_bb = MLPNet(obs_dim, 0, net_configs)
-		# self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
-		# self.log_std = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
-
-		# Method B
 		self.mean = MLPNet(obs_dim, act_dim, net_configs)
-		# self.log_std = MLPNet(obs_dim, act_dim, net_configs)
-		# self.log_std = nn.Linear(obs_dim, act_dim) # Last layer of Actor std
-		# self.log_std = nn.Parameter(1. * T.ones(act_dim, dtype=T.float32),
-        #                               requires_grad=False)
-		# self.std = nn.Parameter(2.75 * T.ones(act_dim, dtype=T.float32),
-        #                               requires_grad=net_configs['std_grad'])
 		self.log_std = nn.Parameter(init_log_std * T.ones(act_dim, dtype=T.float32),
                                       requires_grad=net_configs['log_std_grad']) # (MF/MB)-PPO
 
@@ -474,14 +462,11 @@ class Policy(nn.Module):
 			obs = (obs - self.obs_bias.cpu().numpy()) / (self.obs_scale.cpu().numpy() + epsilon)
 
 		mean, std = self.pi_mean_std(obs, on_policy)
-		# print(f'mean={mean}')
-		# print(f'std={std}')
 
 		log_pi, entropy = None, None
 
 		if deterministic:
 			pre_pi = None
-			# with T.no_grad(): pi = mean
 			with T.no_grad(): pi = T.tanh(mean)
 		else:
 			pre_pi, pi, log_pi, entropy = self.pi_prob(act,
@@ -501,24 +486,9 @@ class Policy(nn.Module):
 	def pi_mean_std(self, obs, on_policy=True):
 		obs = T.as_tensor(obs, dtype=T.float32).to(self.device)
 
-		# Method A
-		# net_out = self.mean_and_log_std_bb(obs)
-		# mean = self.mean(net_out)
-		# log_std = self.log_std(net_out)
-		# log_std = T.clamp(log_std, min=LOG_STD_MIN, max=LOG_STD_MAX)
-		# std = T.exp(log_std)
-
-		# Method B
 		mean = self.mean(obs)
 		log_std = self.log_std
 		std = T.exp(log_std)
-
-		# mean = self.mean(obs)
-		# # if not on_policy:
-		# # 	self.std.requires_grad = False
-		# # else:
-		# # 	self.std.requires_grad = True
-		# std = self.std
 
 		self.std_value = std
 
@@ -535,34 +505,13 @@ class Policy(nn.Module):
 
 		normal_ditribution = Normal(mean, std)
 
-		# if reparameterize:
-		# 	sample = normal_ditribution.rsample()
-		# else:
-		# 	sample = normal_ditribution.sample()
-		#
-		# # pre_prob, prob = sample, sample
-		# pre_prob, prob = sample, T.tanh(sample)
-		#
-		# log_prob, entropy = None, None
-		#
-		# if return_log_prob:
-		# 	# if act is not None: pre_prob, prob = act, act
-		# 	if act is not None: pre_prob, prob = act, T.tanh(act)
-		# 	log_prob = normal_ditribution.log_prob(pre_prob)
-		# 	log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
-		# 	log_prob = log_prob.sum(axis=-1, keepdim=True)
-
-
-
 		if act is None:
 			if reparameterize:
 				sample = normal_ditribution.rsample()
 			else:
 				sample = normal_ditribution.sample()
-			# pre_prob, prob = sample, sample
 			pre_prob, prob = sample, T.tanh(sample)
 		else:
-			# pre_prob, prob = act, act
 			pre_prob, prob = act, T.tanh(act)
 
 		log_prob, entropy = None, None
@@ -588,7 +537,7 @@ class Policy(nn.Module):
 
 
 
-
+# Best for MB-SAC
 class PolicyB(nn.Module): # B
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
@@ -607,16 +556,14 @@ class PolicyB(nn.Module): # B
 		self.mean_and_log_std_bb = MLPNet(obs_dim, 0, net_configs)
 		self.mean = nn.Linear(net_arch[-1], act_dim) # Last layer of Actoe mean
 		self.log_std_a = nn.Linear(net_arch[-1], act_dim) # Last layer of Actor std
-		# self.log_std.weight_decay = 0.00000
-		# self.std_b = nn.Parameter(2.75 * T.ones(act_dim, dtype=T.float32),
-        #                               requires_grad=net_configs['std_grad'])
-		self.std_b = nn.Parameter(.5 * T.ones(act_dim, dtype=T.float32),
-                                      requires_grad=net_configs['std_grad'])
-		self.std = T.tensor([0.])
+		# self.log_std_b = nn.Parameter(1. * T.ones(act_dim, dtype=T.float32),
+        #                               requires_grad=net_configs['log_std_grad'])
+		self.std_value = T.tensor([0.])
 
 		if net_configs['initialize_weights']:
 			print('Apply Initialization')
-			self.apply(init_weights_)
+			# self.apply(init_weights_)
+			self.apply(init_weights_ii)
 
 		self.act_dim = act_dim
 
@@ -678,8 +625,10 @@ class PolicyB(nn.Module): # B
 		log_std_a = self.log_std_a(net_out)
 		log_std_a = T.clamp(log_std_a, min=LOG_STD_MIN, max=LOG_STD_MAX)
 		std_a = T.exp(log_std_a)
-		std = 0.25*std_a + 0.75*self.std_b
-		self.std = std
+		# std_b = T.exp(self.log_std_b)
+		# std = 0.5*std_a + 0.5*std_b
+		std = std_a
+		self.std_value = std
 
 		return mean, std
 
@@ -694,17 +643,20 @@ class PolicyB(nn.Module): # B
 
 		normal_ditribution = Normal(mean, std)
 
-		if reparameterize:
-			sample = normal_ditribution.rsample()
+		if act is None:
+			if reparameterize:
+				sample = normal_ditribution.rsample()
+			else:
+				sample = normal_ditribution.sample()
+			# pre_prob, prob = sample, sample
+			pre_prob, prob = sample, T.tanh(sample)
 		else:
-			sample = normal_ditribution.sample()
-
-		pre_prob, prob = sample, T.tanh(sample)
+			# pre_prob, prob = act, act
+			pre_prob, prob = act, T.tanh(act)
 
 		log_prob, entropy = None, None
 
 		if return_log_prob:
-			if act is not None: pre_prob, prob = act, T.tanh(act)
 			log_prob = normal_ditribution.log_prob(pre_prob)
 			log_prob -= T.log( self.act_scale * (1 - prob.pow(2)) + epsilon )
 			log_prob = log_prob.sum(axis=-1, keepdim=True)

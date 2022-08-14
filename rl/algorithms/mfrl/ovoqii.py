@@ -260,7 +260,7 @@ class OVOQ(MFRL):
     """
     def __init__(self, exp_prefix, configs, seed, device, wb) -> None:
         super(OVOQ, self).__init__(exp_prefix, configs, seed, device)
-        print('Initialize OVOQ Algorithm!')
+        print('Initialize OVOQII Algorithm!')
         self.configs = configs
         self.seed = seed
         self._device_ = device
@@ -367,7 +367,7 @@ class OVOQ(MFRL):
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [0], [], [0], [], [], [0]
                         HVList, HQList, DevList = [], [0], []
                         LogPiVList, LogPiQList = [], [0]
-                    oldJs = [0, 0, 0, 0]
+                    oldJs = [0, 0, 0, 0, 0]
                 elif n > Niv and (n%VNF==0):
                     if n > Niq:
                         print(f'\n[ Epoch {n}   Exploration + Learning (OV+OQ) ]'+(' '*50))
@@ -379,7 +379,7 @@ class OVOQ(MFRL):
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [0], [], [0], [], [], [0]
                         HVList, HQList, DevList = [], [0], []
                         LogPiVList, LogPiQList = [], [0]
-                    oldJs = [0, 0, 0, 0]
+                    oldJs = [0, 0, 0, 0, 0]
                 elif n > Niq:
                     if n > Niv and (n%VNF==0):
                         print(f'\n[ Epoch {n}   Exploration + Learning (OV+OQ) ]'+(' '*50))
@@ -391,13 +391,13 @@ class OVOQ(MFRL):
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [], [0], [], [0], [0], []
                         HVList, HQList, DevList = [0], [], [0]
                         LogPiVList, LogPiQList = [0], []
-                    oldJs = [0, 0, 0, 0]
+                    oldJs = [0, 0, 0, 0, 0]
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
                     JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [0], [0], [0], [0], [0], [0]
                     HVList, HQList, DevList = [0], [0], [0]
                     LogPiVList, LogPiQList = [0], [0]
-                    oldJs = [0, 0, 0, 0]
+                    oldJs = [0, 0, 0, 0, 0]
 
             nt = 0
             # o, d, Z, el = self.learn_env.reset(), 0, 0, 0
@@ -421,7 +421,7 @@ class OVOQ(MFRL):
             learn_start_real = time.time()
             while nt < NT: # full epoch
                 # Interaction steps
-                for e in range(1, E+1):
+                for e in range(1, 0+1):
                     # print('OQ, el: ', el)
                     # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=on_policy)
                     # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=True)
@@ -503,7 +503,7 @@ class OVOQ(MFRL):
                         # # Generate M k-steps imaginary rollouts for PPO training
                         # # ZListImag, elListImag = self.rollout_ov_world_trajectories(gv, n)
                         for ev in range(1, 10000+1):
-                            ov, Zv, elv, _ = self.internact_ovoq(n, ov, Zv, elv, t, on_policy=True)
+                            ov, Zv, elv, _ = self.internact_ovoqii(n, ov, Zv, elv, t, on_policy=True)
                             if elv > 0:
                                 currZ = Zv
                                 AvgZ = (sum(ZListImag)+currZ)/(len(ZListImag))
@@ -521,29 +521,47 @@ class OVOQ(MFRL):
                         self.traj_buffer.finish_path(elv, v)
 
                         ppo_batch_size = int(self.traj_buffer.total_size())
+                        sac_batch_size = self.configs['data']['oq_batch_size']
                         kl, dev = 0, 0
                         stop_pi = False
-                        for gg in range(1, GPPO+1): # 101
-                            print(f"[ Epoch {n} | {color.RED}Training AV{color.END} ] GV: {gv}/{GV} | ac: {gg}/{GPPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*40), end='\r')
-                            batch = self.traj_buffer.sample_batch(batch_size=ppo_batch_size, device=self._device_)
-                            Jv, _, _, Jpi, PiInfo = self.trainAC(gv, batch, oldJs, on_policy=True)
-                            oldJs = [Jv, 0, 0, Jpi]
-                            JVList.append(Jv)
-                            JPiVList.append(Jpi)
-                            KLList.append(PiInfo['KL'])
-                            HVList.append(PiInfo['entropy'])
-                            LogPiVList.append(PiInfo['log_pi'])
-                            DevList.append(PiInfo['deviation'])
-                            dev = PiInfo['deviation']
-                            if not PiInfo['stop_pi']:
-                                ppo_grads += 1
-                            stop_pi = PiInfo['stop_pi']
-                #     # PPO <<<<
-                # else:
-                #     JVList, JPiVList, KLList = [0], [0], [0]
-                #     HVList, DevList = [0], [0]
 
-                # nt += E
+                        # Version A
+                        for gg in range(1, GPPO+1): # 101
+                            print(f"[ Epoch {n} | {color.RED}Training AV{color.END} ] GV: {gv}/{GV} | ac: {gg}/{GPPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*30), end='\r')
+                            # print(f"[ Epoch {n} | {color.PURPLE}Training AV+AQ{color.END} ] GV: {gv}/{GV} | ac: {gg}/{GPPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*30), end='\r')
+                            ppo_batch = self.traj_buffer.sample_batch(batch_size=ppo_batch_size, device=self._device_)
+                            Jv, _, _, Jpiv, PiInfov = self.trainAC(gv, ppo_batch, oldJs, on_policy=True)
+                            # sac_batch = self.repl_buffer.sample_batch(batch_size=sac_batch_size, device=self._device_)
+                            # _, Jq, _, Jpiq, PiInfoq = self.trainAC(gv, sac_batch, oldJs, on_policy=False)
+                            # oldJs = [Jv, Jq, 0, Jpiv, Jpiq]
+                            oldJs = [Jv, 0, 0, Jpiv, 0]
+                            JVList.append(Jv)
+                            # JQList.append(Jq)
+                            JPiVList.append(Jpiv)
+                            # JPiQList.append(Jpiq)
+                            # KLList.append(PiInfo['KL'])
+                            # HVList.append(PiInfo['entropy'])
+                            LogPiVList.append(PiInfov['log_pi'])
+                            # LogPiQList.append(PiInfoq['log_pi'])
+                            DevList.append(PiInfov['deviation'])
+                            dev = PiInfov['deviation']
+                            if not PiInfov['stop_pi']:
+                                ppo_grads += 1
+                            stop_pi = PiInfov['stop_pi']
+
+                        for gg in range(1, 10+1): # 101
+                            print(f"[ Epoch {n} | {color.PURPLE}Training AQ{color.END} ] GV: {gv}/{GV} | ac: {gg}/{GPPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*30), end='\r')
+                            sac_batch = self.repl_buffer.sample_batch(batch_size=sac_batch_size, device=self._device_)
+                            _, Jq, _, Jpiq, PiInfoq = self.trainAC(gv, sac_batch, oldJs, on_policy=False)
+                            oldJs = [Jv, Jq, 0, Jpiv, Jpiq]
+                            JQList.append(Jq)
+                            JPiQList.append(Jpiq)
+                            LogPiQList.append(PiInfoq['log_pi'])
+
+                    # PPO <<<<
+
+
+
 
             print('\n')
 
@@ -701,7 +719,7 @@ class OVOQ(MFRL):
         else: # off-policy
             Jq = self.updateQ(batch, oldJs[1])
             Jalpha = self.updateAlpha(batch, oldJs[2])# if (g % AUI == 0) else oldJs[1]
-            Jpi, PiInfo = self.updatePi(batch, oldJs[3], on_policy=False)# if (g % PUI == 0) else oldJs[2]
+            Jpi, PiInfo = self.updatePi(batch, oldJs[4], on_policy=False)# if (g % PUI == 0) else oldJs[2]
             Jv = oldJs[0]
             Jq = Jq.item()
             # Jalpha = Jalpha.item()
@@ -875,7 +893,7 @@ class OVOQ(MFRL):
 
 def main(exp_prefix, config, seed, device, wb):
 
-    print('Start an OVOQ experiment...')
+    print('Start an OVOQ-II experiment...')
     print('\n')
 
     configs = config.configurations
@@ -887,7 +905,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-6"
+    group_name = f"{env_name}-{alg_name}-9"
     exp_prefix = f"seed:{seed}"
 
     if wb:

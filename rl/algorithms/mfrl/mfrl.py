@@ -48,11 +48,12 @@ class MFRL:
 
     def _build(self):
         self._set_env()
-        # self._set_buffer()
+        self._set_buffer()
 
 
     def _set_env(self):
         name = self.configs['environment']['name']
+        traj_env = self.configs['environment']['traj_env']
         evaluate = self.configs['algorithm']['evaluation']
 
         # Inintialize Learning environment
@@ -60,7 +61,7 @@ class MFRL:
         self._seed_env(self.learn_env)
         assert isinstance (self.learn_env.action_space, Box), "Works only with continuous action space"
 
-        if True:
+        if traj_env:
             self.traj_env = gym.make(name)
             self._seed_env(self.traj_env)
 
@@ -86,17 +87,28 @@ class MFRL:
 
     def _set_buffer(self):
         obs_dim, act_dim = self.obs_dim, self.act_dim
-        max_size = self.configs['data']['buffer_size']
+        # max_size = self.configs['data']['buffer_size']
+        horizon = int(self.configs['environment']['horizon'])
         device = self._device_
         seed = self.seed
-        if self.configs['algorithm']['on-policy']:
+        if self.configs['algorithm']['on-policy'] == 'Dual':
+            max_size_ov = self.configs['data']['ov_buffer_size']
+            num_traj = max_size_ov//5
+            gamma = self.configs['critic-v']['gamma']
+            gae_lam = self.configs['critic-v']['gae_lam']
+            self.traj_buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size_ov, seed, device, gamma, gae_lam)
+            max_size_oq = self.configs['data']['oq_buffer_size']
+            self.repl_buffer = ReplayBuffer(obs_dim, act_dim, max_size_oq, seed, device)
+        elif self.configs['algorithm']['on-policy']:
+            max_size = self.configs['data']['buffer_size']
             num_traj = max_size//5
             # num_traj = max_size//20
-            horizon = 1000
+            # horizon = 1000
             gamma = self.configs['critic']['gamma']
             gae_lam = self.configs['critic']['gae_lam']
             self.buffer = TrajBuffer(obs_dim, act_dim, horizon, num_traj, max_size, seed, device, gamma, gae_lam)
         else:
+            max_size = self.configs['data']['buffer_size']
             self.buffer = ReplayBuffer(obs_dim, act_dim, max_size, seed, device)
 
 
@@ -222,8 +234,6 @@ class MFRL:
         return o, Z, el, t
 
 
-
-
     def internact_ovoq(self, n, o, Z, el, t, on_policy=True):
         max_el = self.configs['environment']['horizon']
         Nx = self.configs['algorithm']['learning']['expl_epochs']
@@ -258,6 +268,44 @@ class MFRL:
             if d or (el == max_el): o, Z, el = self.learn_env.reset(), 0, 0
 
         return o, Z, el, t
+
+
+    def internact_ovoqii(self, n, o, Z, el, t, on_policy=True):
+        max_el = self.configs['environment']['horizon']
+        Nx = self.configs['algorithm']['learning']['expl_epochs']
+
+        if on_policy:
+            with T.no_grad(): pre_a, a, log_pi, v = self.actor_critic.get_a_and_v_np(T.Tensor(o), on_policy=True, return_pre_pi=True)
+            o_next, r, d, _ = self.traj_env.step(a)
+            Z += r
+            el += 1
+            t += 1
+            self.traj_buffer.store(o, pre_a, a, r, o_next, v, log_pi, el)
+            self.repl_buffer.store_transition(o, a, r, o_next, d)
+            o = o_next
+            if d or (el == max_el):
+                if el == max_el:
+                    with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(o)).cpu()
+                else:
+                    v = T.Tensor([0.0])
+                self.traj_buffer.finish_path(el, v)
+                o, Z, el = self.traj_env.reset(), 0, 0
+        else: # off-policy
+            if n > Nx:
+                a = self.actor_critic.get_action_np(o)
+            else:
+                a = self.learn_env.action_space.sample()
+            o_next, r, d, _ = self.learn_env.step(a)
+            d = False if el == max_el else d
+            self.repl_buffer.store_transition(o, a, r, o_next, d)
+            o = o_next
+            Z += r
+            el +=1
+            t +=1
+            if d or (el == max_el): o, Z, el = self.learn_env.reset(), 0, 0
+
+        return o, Z, el, t
+
 
 
     def internact_ovoq_x(self, n, o, Z, el, t):
