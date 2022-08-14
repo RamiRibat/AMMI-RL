@@ -995,7 +995,7 @@ class OVOQ(MFRL):
         min_Q_pi, _ = T.min(Qs_pi, dim=1, keepdim=True)
         Jsac = (self.alpha * log_pi - min_Q_pi).mean()
 
-        Jpi = Jppo + Jsac
+        Jpi = Jppo + 0.05*Jsac
 
         if (constrained) and (deviation > max_dev):
             stop_pi = True
@@ -1045,7 +1045,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-14"
+    group_name = f"{env_name}-{alg_name}-15"
     exp_prefix = f"seed:{seed}"
 
     if wb:
