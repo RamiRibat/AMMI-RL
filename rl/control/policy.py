@@ -407,7 +407,7 @@ class OVOQPolicy(nn.Module):
 
 
 # Best for MB-PPO
-class Policy(nn.Module):
+class PolicyA(nn.Module):
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
@@ -538,7 +538,7 @@ class Policy(nn.Module):
 
 
 # Best for MB-SAC
-class PolicyB(nn.Module): # B
+class Policy(nn.Module): # B
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
 				net_configs, device, seed) -> None:
