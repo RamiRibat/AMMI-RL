@@ -31,7 +31,7 @@ configurations = {
             'env_steps' : 1000, # E: interact E times then train
             'grad_WML_steps': 25,
             'grad_WMG_steps': 10,
-            'grad_AC_steps': 5, # ACG: ac grad, 40
+            'grad_AC_steps': 7, # ACG: ac grad, 40
             'grad_PPO_steps': 100, # ACG: ac grad, 40
 
             'policy_update_interval': 1,

@@ -160,7 +160,7 @@ class TrajBuffer:
             i = i+j
 
         if recent:
-            print('recent: ', recent)
+            # print('recent: ', recent)
             self.obs_batch = self.obs_batch[-recent:]
             self.pre_act_batch = self.pre_act_batch[-recent:]
             self.act_batch = self.act_batch[-recent:]

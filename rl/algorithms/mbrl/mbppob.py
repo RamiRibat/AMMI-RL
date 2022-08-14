@@ -69,7 +69,7 @@ class MBPPO(MBRL, PPO):
 		net_arch = self.configs['world_model']['network']['arch']
 
 		self.world_model_local = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(num_ensembles) ]
-		# self.world_model_global = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(num_ensembles) ]
+		self.world_model_global = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(num_ensembles) ]
 
 
 	def learn(self):
@@ -79,7 +79,6 @@ class MBPPO(MBRL, PPO):
 		Nx = self.configs['algorithm']['learning']['expl_epochs']
 
 		E = self.configs['algorithm']['learning']['env_steps']
-		# G_WM = self.configs['algorithm']['learning']['grad_WM_steps']
 		G_AC = self.configs['algorithm']['learning']['grad_AC_steps']
 		G_PPO = self.configs['algorithm']['learning']['grad_PPO_steps']
 		max_dev = self.configs['actor']['max_dev']
@@ -99,7 +98,7 @@ class MBPPO(MBRL, PPO):
 					oldJs = [0, 0]
 					JVList, JPiList, KLList = [], [], []
 					HList, DevList = [], []
-					ho_mean = 0
+					ho_mean, ho_mean_l, ho_mean_g = 0, 0, 0
 				elif n > Ni:
 					print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
 					JVList, JPiList, KLList = [], [], []
@@ -109,7 +108,7 @@ class MBPPO(MBRL, PPO):
 					oldJs = [0, 0]
 					JVList, JPiList, KLList = [0], [0], [0]
 					HList, DevList = [0], [0]
-					ho_mean = 0
+					ho_mean, ho_mean_l, ho_mean_g = 0, 0, 0
 
 			nt = 0
 			o, d, Z, el, = self.learn_env.reset(), 0, 0, 0
@@ -148,14 +147,20 @@ class MBPPO(MBRL, PPO):
 					# 03. Train model pθ on Denv via maximum likelihood
 					print(f'\n[ Epoch {n} | Training World Model ]'+(' '*50))
 
-					ho_mean = self.train_world_model(n, local=True)
+					ho_mean_l = self.train_world_model(n, local=True)
+					ho_mean_g = self.train_world_model(n, local=False)
 
 					for g in range(1, G_AC+1):
-						ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batch(g, n)
+						if g <= 5:
+							ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batch(g, n, local=True)
+						else:
+							ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batch(g, n, local=False)
+
 						ppo_batch_size = int(self.model_traj_buffer.total_size())
 						stop_pi = False
 						kl = 0
 						dev = 0
+
 						# print(f'\n\n[ Epoch {n}   Training Actor-Critic ({g}/{G}) ] Model Buffer: Size={self.model_traj_buffer.total_size()} | AvgK={self.model_traj_buffer.average_horizon()}'+(" "*25)+'\n')
 						for gg in range(1, G_PPO+1): # 101
 							# print(f'[ Epoch {n} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | KL={round(kl, 4)}'+(' '*50), end='\r')
@@ -196,7 +201,8 @@ class MBPPO(MBRL, PPO):
 
 			# logs['training/wm/Jtrain_mean             '] = np.mean(JMeanTrainList)
 			# logs['training/wm/Jtrain                  '] = np.mean(JTrainList)
-			logs['training/wm/Jval                    '] = ho_mean
+			logs['training/wm/Jval_local                '] = ho_mean_l
+			logs['training/wm/Jval_global               '] = ho_mean_g
 			# logs['training/wm/test_mse                '] = np.mean(LossTestList)
 
 			logs['training/ppo/critic/Jv              '] = np.mean(JVList)
@@ -488,6 +494,8 @@ class MBPPO(MBRL, PPO):
 
 		if local:
 			world_model = self.world_model_local
+		else:
+			world_model = self.world_model_global
 
 		for m, model in enumerate(world_model):
 			el = 0
@@ -508,9 +516,6 @@ class MBPPO(MBRL, PPO):
 				D = self._termination_fn("Hopper-v2", O, A, O_next)
 				D = T.tensor(D, dtype=T.bool).squeeze(-1)
 				D_last = D_last.squeeze(-1)
-				# print(f'O=\n{O}')
-				# print(f'D_last(old)=\n{D_last}')
-				# print(f'D=\n{D}')
 
 				nonD_last = ~D_last.squeeze(-1)
 
@@ -529,10 +534,6 @@ class MBPPO(MBRL, PPO):
 
 				Z[nonD_last] += R[nonD_last]
 				EL[nonD_last] += ones[nonD_last]
-				# print(f'Z=\n{Z}')
-				# print(f'EL=\n{EL}')
-				# print(f'O_next=\n{O_next}')
-				# print(f'D_last(new)=\n{D_last}')
 				el += 1
 
 				Zmean, ELmean = float(Z.mean().numpy()), float(EL.mean().numpy())
@@ -681,7 +682,7 @@ def main(exp_prefix, config, seed, device, wb):
 	# wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
 	DE = configs['world_model']['num_ensembles']
 
-	group_name = f"{env_name}-{alg_name}-0" # Local
+	group_name = f"{env_name}-{alg_name}-1" # Local
 	# group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
 	exp_prefix = f"seed:{seed}"
 
