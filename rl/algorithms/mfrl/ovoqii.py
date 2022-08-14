@@ -421,7 +421,7 @@ class OVOQ(MFRL):
             learn_start_real = time.time()
             while nt < NT: # full epoch
                 # Interaction steps
-                for e in range(1, 0+1):
+                for e in range(1, E+1):
                     # print('OQ, el: ', el)
                     # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=on_policy)
                     # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=True)
@@ -452,10 +452,10 @@ class OVOQ(MFRL):
                         B_OQ = self.repl_buffer.sample_batch(batch_size, device=self._device_)
                         ## Train networks using batch B_sac
                         _, Jq, Jalpha, Jpi, PiInfo = self.trainAC(gq, B_OQ, oldJs, on_policy=False)
-                        oldJs = [0, Jq, Jalpha, Jpi]
+                        oldJs = [0, Jq, Jpi, 0]
                         JQList.append(Jq)
                         JPiQList.append(Jpi)
-                        HQList.append(PiInfo['entropy'])
+                        # HQList.append(PiInfo['entropy'])
                         LogPiQList.append(PiInfo['log_pi'])
                         if self.configs['actor']['automatic_entropy']:
                             JAlphaList.append(Jalpha.item())
@@ -525,7 +525,7 @@ class OVOQ(MFRL):
                         kl, dev = 0, 0
                         stop_pi = False
 
-                        # # Version A
+                        # Version A
                         # for gg in range(1, GPPO+1): # 101
                         #     print(f"[ Epoch {n} | {color.PURPLE}Training AV+AQ{color.END} ] GV: {gv}/{GV} | ac: {gg}/{GPPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*30), end='\r')
                         #     ppo_batch = self.traj_buffer.sample_batch(batch_size=ppo_batch_size, device=self._device_)
@@ -578,14 +578,14 @@ class OVOQ(MFRL):
                         #     stop_pi = PiInfov['stop_pi']
                         #
                         #
-                        # for gg in range(1, 10+1): # 101
+                        # for gg in range(1, 10+1):
                         #     print(f"[ Epoch {n} | {color.PURPLE}Training AQ{color.END} ] GV: {gv}/{GV} | ac: {gg}/{10} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*30), end='\r')
                         #     sac_batch = self.repl_buffer.sample_batch(batch_size=sac_batch_size, device=self._device_)
-                        #     _, Jq, _, Jpiq, PiInfoq = self.trainAC(gv, sac_batch, oldJs, on_policy=False)
-                        #     oldJs = [Jv, Jq, 0, Jpiv, Jpiq]
+                        #     _, Jq, _, Jpi, PiInfo = self.trainAC(gv, sac_batch, oldJs, on_policy=False)
+                        #     oldJs = [Jv, Jq, Jpi, 0]
                         #     JQList.append(Jq)
-                        #     JPiQList.append(Jpiq)
-                        #     LogPiQList.append(PiInfoq['log_pi'])
+                        #     JPiQList.append(Jpi)
+                        #     LogPiQList.append(PiInfo['log_pi'])
 
                     # PPO <<<<
 
@@ -601,11 +601,11 @@ class OVOQ(MFRL):
 
             logs['training/ovoq/actor/Jpi             '] = np.mean(JPiList)
             # logs['training/ovoq/actor/Jpi_ov          '] = np.mean(JPiVList)
-            # logs['training/ovoq/actor/Jpi_oq          '] = np.mean(JPiQList)
+            logs['training/ovoq/actor/Jpi_oq          '] = np.mean(JPiQList)
             logs['training/ovoq/actor/STD             '] = self.actor_critic.actor.std_value.clone().mean().item()
             logs['training/ovoq/actor/log_pi          '] = np.mean(LogPiList)
             # logs['training/ovoq/actor/log_pi-v        '] = np.mean(LogPiVList)
-            # logs['training/ovoq/actor/log_pi-q        '] = np.mean(LogPiQList)
+            logs['training/ovoq/actor/log_pi-q        '] = np.mean(LogPiQList)
             # logs['training/ovoq/actor/HV              '] = np.mean(HVList)
             # logs['training/ovoq/actor/HQ              '] = np.mean(HQList)
             # logs['training/ovoq/actor/ov-KL           '] = np.mean(KLList) #
@@ -750,7 +750,8 @@ class OVOQ(MFRL):
         else: # off-policy
             Jq = self.updateQ(batch, oldJs[1])
             Jalpha = self.updateAlpha(batch, oldJs[2])# if (g % AUI == 0) else oldJs[1]
-            Jpi, PiInfo = self.updatePi(batch, oldJs[4], on_policy=False)# if (g % PUI == 0) else oldJs[2]
+            # Jpi, PiInfo = self.updatePi(batch, oldJs[4], on_policy=False)# if (g % PUI == 0) else oldJs[2]
+            Jpi, PiInfo = self.updatePi(batch, oldJs[2], on_policy=False)# if (g % PUI == 0) else oldJs[2]
             Jv = oldJs[0]
             Jq = Jq.item()
             # Jalpha = Jalpha.item()
@@ -860,7 +861,7 @@ class OVOQ(MFRL):
         kl_targ = self.configs['actor']['kl_targ']
         max_dev = self.configs['actor']['max_dev']
 
-        # O, A, _, _, _, _, _, U, log_pis_old = batch.values()
+        # O, pre_A, A, _, _, _, _, _, U, log_pis_old = batch.values()
 
         if on_policy:
             O, pre_A, A, _, _, _, _, _, U, log_pis_old = batch.values()
@@ -928,7 +929,7 @@ class OVOQ(MFRL):
         Jv(θ) =
         """
         # max_grad_norm = kl_targ = self.configs['critic-v']['network']['max_grad_norm']
-        gamma = self.configs['critic-q']['gamma']
+        gamma = self.configs['critic-v']['gamma']
 
         O, _, A, O_next, R, D, Z, _, _, _ = batch.values()
 
@@ -946,6 +947,7 @@ class OVOQ(MFRL):
             Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
         # MSE loss
         Jq = 0.5 * sum([F.mse_loss(Q, Qs_backup) for Q in Qs])
+        # with T.no_grad(): print(f'values | V={V.mean()} | Q1={Qs[0].mean()} | Q2={Qs[1].mean()}')
 
         self.actor_critic.ov.optimizer.zero_grad()
         Jv.backward()
@@ -995,7 +997,7 @@ class OVOQ(MFRL):
         min_Q_pi, _ = T.min(Qs_pi, dim=1, keepdim=True)
         Jsac = (self.alpha * log_pi - min_Q_pi).mean()
 
-        Jpi = Jppo + 0.05*Jsac
+        Jpi = Jppo + Jsac
 
         if (constrained) and (deviation > max_dev):
             stop_pi = True
@@ -1045,7 +1047,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-15"
+    group_name = f"{env_name}-{alg_name}-16"
     exp_prefix = f"seed:{seed}"
 
     if wb:

@@ -32,9 +32,9 @@ configurations = {
             # 'expl_epochs': 0, # Random Actions + Learning
 
             'epoch_steps': 1000, # NT steps/epoch
-            'ov_init_epochs': 0, # Random Actions + No Learning
-            'oq_init_epochs': 10000, # Random Actions + No Learning
-            'expl_epochs': 0, # Random Actions + Learning
+            'ov_init_epochs': 9, # Random Actions + No Learning
+            'oq_init_epochs': 1, # Random Actions + No Learning
+            'expl_epochs': 10, # Random Actions + Learning
 
             # 'env_steps' : 1,
             # 'ov_N_freq': 10,
@@ -44,7 +44,7 @@ configurations = {
             # 'grad_OQ_SAC_steps': 1,
 
             'env_steps' : 1,
-            'ov_N_freq': 1,
+            'ov_N_freq': 10,
             'ov_E_freq': 1000,
             'grad_OV_steps': 1,
             'grad_PPO_steps': 100,
@@ -74,8 +74,8 @@ configurations = {
         'type': 'ovoqpolicy',
         'constrained': False,
         'action_noise': None,
-        # 'alpha': 0.2,
-        'alpha': 0.,
+        'alpha': 0.2,
+        # 'alpha': 0.,
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'clip_eps': 0.25,
@@ -154,7 +154,8 @@ configurations = {
         # 'oq_model_val_ratio': 0.2,
         # 'oq_rollout_batch_size': int(1e5),
         # 'oq_model_batch_size': 256,
-        'oq_batch_size': int(1e4),
+        # 'oq_batch_size': int(1e4),
+        'oq_batch_size': int(256),
 
         # 'device': "auto",
     },
