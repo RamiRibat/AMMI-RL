@@ -342,10 +342,12 @@ class TrajBuffer:
         # device = self.device
         batch_size = min(batch_size, self.total_size())
         if recent:
-            idxs = np.random.randint(0, batch_size, size=batch_size)
+            # idxs = np.random.randint(0, batch_size, size=batch_size)
+            idxs = np.random.choice(batch_size, size=batch_size, replace=False)
             recent = batch_size
         else:
-            idxs = np.random.randint(0, self.total_size(), size=batch_size) # old
+            # idxs = np.random.randint(0, self.total_size(), size=batch_size) # old
+            idxs = np.random.choice(self.total_size(), size=batch_size, replace=False)
 
         self.batch_data(recent)
 
@@ -431,7 +433,8 @@ class TrajBuffer:
             self.update_init_obs()
 
         batch_size = min(batch_size, len(self.init_obs))
-        idxs = np.random.randint(0, len(self.init_obs), size=batch_size)
+        # idxs = np.random.randint(0, len(self.init_obs), size=batch_size)
+        idxs = np.random.choice(len(self.init_obs), size=batch_size, replace=False)
 
         if device:
             return self.init_obs[idxs].to(device)
