@@ -31,7 +31,7 @@ configurations = {
             'env_steps' : 1000, # E: interact E times then train
             'grad_WML_steps': 25,
             'grad_WMG_steps': 10,
-            'grad_AC_steps': 10, # ACG: ac grad, 40
+            'grad_AC_steps': 5, # ACG: ac grad, 40
             'grad_PPO_steps': 100, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
@@ -75,17 +75,19 @@ configurations = {
         }
     },
 
-    'actor': { # No init
-        # 'type': 'Gaussian',
-        'type': 'TanhSquashedGaussian',
+    'actor': {
+        'type': 'ovoqpolicy',
         'constrained': False,
         'action_noise': None,
+        'alpha': 0.2,
+        # 'alpha': 0.,
+        'automatic_entropy': False,
+        'target_entropy': 'auto',
         'clip_eps': 0.25,
         'kl_targ': 0.02,
-        'max_dev': 0.2,
+        'max_dev': 0.1,
         'entropy_coef': 0.0,
         'network': {
-            # 'std_grad': False,
             'log_std_grad': False,
             'init_log_std': 1.,
             # 'arch': [64, 64],
@@ -103,13 +105,11 @@ configurations = {
         }
     },
 
-    'critic': { # Init
+    'critic-v': {
         'type': 'V',
         'number': 1,
         'gamma': 0.995, # Stable performance
         'gae_lam': 0.99, # Stable performance
-        # 'gamma': 0.999, # Stable performance
-        # 'gae_lam': 0.97, # Stable performance
         # 'gamma': 0.99,
         # 'gae_lam': 0.95,
         'network': {
@@ -124,6 +124,25 @@ configurations = {
             'initialize_weights': True,
             'optimizer': "Adam",
             # 'max_grad_norm': 0.5,
+        }
+    },
+
+    'critic-q': {
+        'type': 'sofQ',
+        'number': 2,
+        'gamma': 0.99,
+        'tau': 5e-3,
+        'network': {
+            # 'arch': [128, 128],
+            # 'arch': [256, 128],
+            'arch': [256, 256],
+            # 'activation': 'Tanh',
+            'activation': 'PReLU',
+            'op_activation': 'Identity',
+            'initialize_weights': True,
+            'optimizer': "Adam",
+            # 'lr': 1e-3,
+            'lr': 3e-4,
         }
     },
 
