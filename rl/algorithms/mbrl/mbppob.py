@@ -14,7 +14,7 @@ import torch.nn.functional as F
 # T.multiprocessing.set_sharing_strategy('file_system')
 
 from rl.algorithms.mbrl.mbrl import MBRL
-from rl.algorithms.mfrl.ppo import PPO
+from rl.algorithms.mfrl.ppob import PPO
 from rl.dynamics.world_model import WorldModel
 import rl.environments.mbpo.static as mbpo_static
 # from rl.data.dataset import RLDataModule
@@ -69,7 +69,7 @@ class MBPPO(MBRL, PPO):
 		net_arch = self.configs['world_model']['network']['arch']
 
 		self.world_model_local = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(num_ensembles) ]
-		self.world_model_global = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(num_ensembles) ]
+		# self.world_model_global = [ WorldModel(self.obs_dim, self.act_dim, seed=0+m, device=device) for m in range(num_ensembles) ]
 
 
 	def learn(self):
@@ -96,17 +96,17 @@ class MBPPO(MBRL, PPO):
 				if n > Nx:
 					print(f'\n[ Epoch {n}   Learning ]'+(' '*50))
 					oldJs = [0, 0]
-					JVList, JPiList, KLList = [], [], []
+					JVList, JPiList, JPiQList, KLList = [], [], [], []
 					HList, DevList = [], []
 					ho_mean, ho_mean_l, ho_mean_g = 0, 0, 0
 				elif n > Ni:
 					print(f'\n[ Epoch {n}   Exploration + Learning ]'+(' '*50))
-					JVList, JPiList, KLList = [], [], []
+					JVList, JPiList, JPiQList, KLList = [], [], [], []
 					HList, DevList = [], []
 				else:
 					print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
 					oldJs = [0, 0]
-					JVList, JPiList, KLList = [0], [0], [0]
+					JVList, JPiList, JPiQList, KLList = [0], [0], [0], [0]
 					HList, DevList = [0], [0]
 					ho_mean, ho_mean_l, ho_mean_g = 0, 0, 0
 
@@ -123,6 +123,11 @@ class MBPPO(MBRL, PPO):
 				for e in range(1, E+1):
 					# o, Z, el, t = self.internact(n, o, Z, el, t)
 					o, Z, el, t = self.internact_opB(n, o, Z, el, t, return_pre_pi=False)
+					# if n > Ni:
+					# 	for g in range(1, 1+1):
+					# 		batch = self.buffer.sample_batch(256, device=self._device_)
+					# 		Jq, Jalpha, Jpi, PiInfo = self.trainSAC(g, batch, oldJs)
+					# 		oldJs = [Jq, Jpi]
 
 					if el > 0:
 						currZ = Z
@@ -146,15 +151,18 @@ class MBPPO(MBRL, PPO):
 				if n > Ni:
 					# 03. Train model pθ on Denv via maximum likelihood
 					print(f'\n[ Epoch {n} | Training World Model ]'+(' '*50))
+					self.init_model_traj_buffer() # To spare some gpu-memory
 
 					ho_mean_l = self.train_world_model(n, local=True)
-					ho_mean_g = self.train_world_model(n, local=False)
+					# ho_mean_g = self.train_world_model(n, local=False)
+					ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batch(g=0, n=n, local=True, sac=True)
 
 					for g in range(1, G_AC+1):
+						self.init_model_traj_buffer() # To spare some gpu-memory
 						if g <= 5:
 							ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batch(g, n, local=True)
-						else:
-							ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batch(g, n, local=False)
+						# else:
+						# 	ZmeanImag, ZstdImag, ELmeanImag, ELstdImag = self.rollout_world_model_trajectories_batch(g, n, local=False)
 
 						ppo_batch_size = int(self.model_traj_buffer.total_size())
 						stop_pi = False
@@ -167,6 +175,7 @@ class MBPPO(MBRL, PPO):
 							print(f"[ Epoch {n} | {color.RED}Training AC{color.END} ] AC: {g}/{G_AC} | ac: {gg}/{G_PPO} || stopPG={stop_pi} | Dev={round(dev, 4)}"+(" "*30), end='\r')
 							batch = self.model_traj_buffer.sample_batch(batch_size=ppo_batch_size, device=self._device_)
 							Jv, Jpi, kl, PiInfo = self.trainAC(g, batch, oldJs)
+							Jq, Jalpha, Jpi, PiInfoq = self.trainSAC(g, batch, [0, 0], train_pi=True)
 							oldJs = [Jv, Jpi]
 							JVList.append(Jv)
 							JPiList.append(Jpi)
@@ -181,7 +190,7 @@ class MBPPO(MBRL, PPO):
 						model_buffer_ret = T.mean(self.model_traj_buffer.ret_batch).item()
 						model_buffer_size = self.model_traj_buffer.total_size()
 						# self.model_traj_buffer.reset()
-						self.init_model_traj_buffer() # To spare some gpu-memory
+						# self.init_model_traj_buffer() # To spare some gpu-memory
 						# del self.model_traj_buffer
 					# PPO-P <<<<
 
@@ -201,8 +210,8 @@ class MBPPO(MBRL, PPO):
 
 			# logs['training/wm/Jtrain_mean             '] = np.mean(JMeanTrainList)
 			# logs['training/wm/Jtrain                  '] = np.mean(JTrainList)
-			logs['training/wm/Jval_local                '] = ho_mean_l
-			logs['training/wm/Jval_global               '] = ho_mean_g
+			logs['training/wm/Jval_local              '] = ho_mean_l
+			logs['training/wm/Jval_global             '] = ho_mean_g
 			# logs['training/wm/test_mse                '] = np.mean(LossTestList)
 
 			logs['training/ppo/critic/Jv              '] = np.mean(JVList)
@@ -475,7 +484,7 @@ class MBPPO(MBRL, PPO):
 		return ZList, elList
 
 
-	def rollout_world_model_trajectories_batch(self, g, n, local=True):
+	def rollout_world_model_trajectories_batch(self, g, n, local=True, sac=False):
 		# 07. Sample st uniformly from Denv
 		device = self._device_
 		Nτ = self.configs['data']['init_obs_size']
@@ -542,6 +551,14 @@ class MBPPO(MBRL, PPO):
 				nonD = ~D.squeeze(-1)
 				nonD_last = ~D_last.squeeze(-1)
 				O = O_next
+
+				if sac:
+					oldJs = [0, 0]
+					for gsac in range(1, 1+1):
+						batch = self.model_traj_buffer.sample_batch(256, device=self._device_)
+						Jq, Jalpha, Jpi, PiInfo = self.trainSAC(gsac, batch, oldJs)
+						Jq, Jalpha, Jpi, PiInfo = self.trainSAC(gsac, batch, oldJs)
+						oldJs = [Jq, Jpi]
 
 				# print(f'O_last=\n{O_last}')
 
@@ -682,7 +699,7 @@ def main(exp_prefix, config, seed, device, wb):
 	# wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
 	DE = configs['world_model']['num_ensembles']
 
-	group_name = f"{env_name}-{alg_name}-2" # Local
+	group_name = f"{env_name}-{alg_name}-3" # Local
 	# group_name = f"{env_name}-{alg_name}-GCP-0" # GCP
 	exp_prefix = f"seed:{seed}"
 
@@ -701,7 +718,7 @@ def main(exp_prefix, config, seed, device, wb):
 	agent.learn()
 
 	print('\n')
-	print('... End the MBPPO experiment')
+	print('... End the MBPPO-B experiment')
 
 
 if __name__ == "__main__":
