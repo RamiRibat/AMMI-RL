@@ -24,8 +24,8 @@ from torch.distributions.normal import Normal
 nn = T.nn
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy, Policy
-# from rl.control.policy import NPGPolicy
+# from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy, Policy
+from rl.control.policy import PPOPolicy
 from rl.value_functions.v_function import VFunction
 from rl.value_functions.q_function import SoftQFunction
 
@@ -89,7 +89,7 @@ class ActorCritic: # Done
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
-        return Policy(
+        return PPOPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)

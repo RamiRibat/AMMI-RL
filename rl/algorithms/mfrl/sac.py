@@ -22,7 +22,8 @@ import torch as T
 import torch.nn.functional as F
 
 from rl.algorithms.mfrl.mfrl import MFRL
-from rl.control.policy import StochasticPolicy, OVOQPolicy, Policy
+# from rl.control.policy import StochasticPolicy, OVOQPolicy, Policy
+from rl.control.policy import SACPolicy
 from rl.value_functions.q_function import SoftQFunction
 
 # from rl.utils.logx import EpochLogger
@@ -87,7 +88,7 @@ class ActorCritic: # Done
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
-        return Policy(
+        return SACPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
