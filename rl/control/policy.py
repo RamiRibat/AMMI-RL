@@ -406,7 +406,7 @@ class OVOQPolicy(nn.Module):
 
 
 
-# Best for MB-PPO
+
 class Policy(nn.Module):
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
@@ -588,7 +588,7 @@ class Policy(nn.Module):
 
 
 
-# Best for MB-SAC
+
 class PolicyB(nn.Module): # B
 	def __init__(self, obs_dim, act_dim,
 				act_up_lim, act_low_lim,
@@ -721,10 +721,6 @@ class PolicyB(nn.Module): # B
 		self.act_bias = self.act_bias.to(device)
 		self.act_scale = self.act_scale.to(device)
 		return super(Policy, self).to(device)
-
-
-
-
 
 
 
