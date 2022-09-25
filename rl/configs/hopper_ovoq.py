@@ -13,7 +13,6 @@ configurations = {
             'action_space': 'continuous',
             'horizon': 1e3,
             'action_repeat': 1, # New (leave this)
-            'traj_env': True,
         },
 
     'algorithm': {
@@ -22,31 +21,18 @@ configurations = {
         # 'mode': 'PAL', # P: cons (few PG steps) | M: Aggr (many model updates + small real buffer)
         # 'mode': 'MAL', # P: Aggr (many PG steps) | M: Cons (few model updates + large real buffer)
         'model-based': False,
-        'on-policy': 'Dual', # TrajBuffer for env
+        'on-policy': True, # TrajBuffer for env
         'learning': {
             'epochs': 2000, # N epochs
-
-            # 'epoch_steps': 1000, # NT steps/epoch
-            # 'ov_init_epochs': 0, # Random Actions + No Learning
-            # 'oq_init_epochs': 10000, # Random Actions + No Learning
-            # 'expl_epochs': 0, # Random Actions + Learning
-
             'epoch_steps': 1000, # NT steps/epoch
-            'ov_init_epochs': 0, # Random Actions + No Learning
-            'oq_init_epochs': 10000, # Random Actions + No Learning
-            'expl_epochs': 0, # Random Actions + Learning
-
-            # 'env_steps' : 1,
-            # 'ov_N_freq': 10,
-            # 'ov_E_freq': 1000,
-            # 'grad_OV_steps': 5,
-            # 'grad_PPO_steps': 100,
-            # 'grad_OQ_SAC_steps': 1,
+            'ov_init_epochs': 10000, # Random Actions + No Learning
+            'oq_init_epochs': 1, # Random Actions + No Learning
+            'expl_epochs': 10, # Random Actions + Learning
 
             'env_steps' : 1,
-            'ov_N_freq': 1,
+            'ov_N_freq': 10,
             'ov_E_freq': 1000,
-            'grad_OV_steps': 1,
+            'grad_OV_steps': 5,
             'grad_PPO_steps': 100,
             'grad_OQ_SAC_steps': 1,
 
@@ -82,8 +68,8 @@ configurations = {
         'max_dev': 0.1,
         'entropy_coef': 0.0,
         'network': {
-            'log_std_grad': False,
-            'init_log_std': 1.,
+            'std_grad': True,
+            'init_log_std': 1,
             # 'arch': [64, 64],
             # 'arch': [128, 128],
             'arch': [256, 256],
@@ -95,7 +81,7 @@ configurations = {
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            # 'max_grad_norm': 0.5,
+            'max_grad_norm': 0.5,
         }
     },
 
@@ -108,16 +94,16 @@ configurations = {
         # 'gae_lam': 0.95,
         'network': {
             # 'arch': [64, 64],
-            # 'arch': [128, 128],
-            'arch': [256, 256],
+            'arch': [128, 128],
+            # 'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            # 'lr': 1e-3,
-            'lr': 3e-4,
+            'lr': 1e-3,
+            # 'lr': 3e-4,
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
-            # 'max_grad_norm': 0.5,
+            'max_grad_norm': 0.5,
         }
     },
 
@@ -132,7 +118,7 @@ configurations = {
             'arch': [256, 256],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            'op_activation': 'Identity',
+            'output_activation': 'nn.Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
             # 'lr': 1e-3,

@@ -22,8 +22,7 @@ import torch as T
 import torch.nn.functional as F
 
 from rl.algorithms.mfrl.mfrl import MFRL
-# from rl.control.policy import StochasticPolicy, OVOQPolicy, Policy
-from rl.control.policy import SACPolicy
+from rl.control.policy import StochasticPolicy, OVOQPolicy, Policy
 from rl.value_functions.q_function import SoftQFunction
 
 # from rl.utils.logx import EpochLogger
@@ -88,7 +87,7 @@ class ActorCritic: # Done
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
-        return SACPolicy(
+        return Policy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
@@ -314,20 +313,17 @@ class SAC(MFRL):
                         JQList.append(Jq)
                         JPiList.append(Jpi)
                         HList.append(PiInfo['entropy'])
-                        LogPiList.append(PiInfo['log_pi'])
                         if self.configs['actor']['automatic_entropy']:
                             JAlphaList.append(Jalpha)
                             AlphaList.append(self.alpha)
 
                 nt += E
-                # self.updateLogPi()
 
             # logs['time/training                     '] = time.time() - learn_start_real
             logs['training/sac/critic/Jq              '] = np.mean(JQList)
             logs['training/sac/actor/Jpi              '] = np.mean(JPiList)
             logs['training/sac/actor/H                '] = np.mean(HList)
             logs['training/sac/actor/STD              '] = self.actor_critic.actor.std_value.clone().mean().item()
-            logs['training/sac/actor/log_pi           '] = np.mean(LogPiList)
             if self.configs['actor']['automatic_entropy']:
                 logs['training/sac/actor/Jalpha           '] = np.mean(JAlphaList)
                 logs['training/sac/actor/alpha            '] = np.mean(AlphaList)
@@ -397,7 +393,7 @@ class SAC(MFRL):
                                 'evaluation/performance              ']
                 for k, v in logs.items():
                     if k in return_means:
-                        print(color.PURPLE+f'{k}  {round(v, 4)}'+color.END+(' '*10))
+                        print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
                     else:
                         print(f'{k}  {round(v, 4)}'+(' '*10))
 
@@ -420,7 +416,6 @@ class SAC(MFRL):
         if self.configs['actor']['automatic_entropy']: Jalpha = Jalpha.item()
         Jpi, PiInfo = self.updatePi(batch, oldJs[2])# if (g % PUI == 0) else oldJs[2]
         Jpi = Jpi.item()
-        # self.updateLogPi(batch)
 
         if g % TUI == 0:
             self.updateTarget()
@@ -453,10 +448,7 @@ class SAC(MFRL):
             A_next = pi_next
             Qs_targ = T.cat( self.actor_critic.get_q_target(O_next, A_next), dim=1 )
             min_Q_targ, _ = T.min(Qs_targ, dim=1, keepdim=True)
-            Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next) # org
-            # Qs_backup = R + gamma * (1 - D) * (min_Q_targ)
-            # Qs_backup = R + gamma * (1 - D) * (min_Q_targ - 0.02 * log_pi_next) # for SAC-30/8
-            # Qs_backup = R + gamma * (1 - D) * (min_Q_targ - 0.05 * log_pi_next) # for SAC-36/7
+            Qs_backup = R + gamma * (1 - D) * (min_Q_targ - self.alpha * log_pi_next)
 
         # MSE loss
         Jq = 0.5 * sum([F.mse_loss(Q, Qs_backup) for Q in Qs])
@@ -514,13 +506,7 @@ class SAC(MFRL):
 
 
         # Policy Improvement
-        Jpi = (self.alpha * log_pi - min_Q_pi).mean() # org
-        # Jpi = (self.alpha * log_pi).mean()
-        # Jpi = (- min_Q_pi).mean() # good interaction
-        # Jpi = (self.alpha * log_pi).mean() - (min_Q_pi).mean()
-        # Jpi = (0.02 * log_pi - min_Q_pi).mean() # for SAC-30/8
-        # Jpi = (0.05 * log_pi - min_Q_pi).mean() # for SAC-36/7
-        # Jpi = (self.alpha * log_pi - min_Q_pi).mean() - 0.05*(log_pi).mean()
+        Jpi = (self.alpha * log_pi - min_Q_pi).mean()
         # print('pi=', pi)
         # print('log_pi=', log_pi)
 
@@ -547,6 +533,7 @@ class SAC(MFRL):
 
 
 
+
 def main(exp_prefix, config, seed, device, wb):
 
     print('Start an SAC experiment...')
@@ -561,7 +548,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-44"
+    group_name = f"{env_name}-{alg_name}-20"
     # group_name = f"{env_name}-{alg_name}-GCP-A-cpu"
     exp_prefix = f"seed:{seed}"
 

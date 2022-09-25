@@ -25,7 +25,7 @@ nn = T.nn
 from rl.algorithms.mfrl.mfrl import MFRL
 from rl.value_functions.v_function import VFunction
 from rl.value_functions.q_function import SoftQFunction
-from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy, Policy
+from rl.control.policy import PPOPolicy, StochasticPolicy, OVOQPolicy
 from rl.data.buffer import TrajBuffer, ReplayBuffer
 
 
@@ -69,7 +69,7 @@ class ActorCritic: # Done
         # self.net_configs = configs['actor']['network']
         self._device_ = device
 
-        self.actor, self.ov, self.oq, self.oq_target = None, None, None, None
+        self.actor, self.critic, self.critic_target = None, None, None
         self._build()
 
 
@@ -88,11 +88,7 @@ class ActorCritic: # Done
         #     self.obs_dim, self.act_dim,
         #     self.act_up_lim, self.act_low_lim,
         #     net_configs, self._device_, self.seed)
-        # return OVOQPolicy(
-        #     self.obs_dim, self.act_dim,
-        #     self.act_up_lim, self.act_low_lim,
-        #     net_configs, self._device_, self.seed)
-        return Policy(
+        return OVOQPolicy(
             self.obs_dim, self.act_dim,
             self.act_up_lim, self.act_low_lim,
             net_configs, self._device_, self.seed)
@@ -120,6 +116,7 @@ class ActorCritic: # Done
 
 
     def get_q_target(self, o, a):
+        # Update Q
         return self.oq_target(o, a)
 
 
@@ -194,7 +191,7 @@ class ActorCritic: # Done
                                              return_entropy,
                                              return_pre_pi
                                              )
-        return pre_a.cpu(), a.cpu(), log_pi.cpu(), entropy, self.ov(o).cpu()
+        return pre_a.cpu(), a.cpu(), log_pi.cpu(), entropy, self.critic(o).cpu()
 
 
     def get_a_and_v_np(self, o, a=None,
@@ -213,7 +210,7 @@ class ActorCritic: # Done
                                                           return_entropy,
                                                           return_pre_pi
                                                           )
-        return pre_a.cpu().numpy(), a.cpu().numpy(), log_pi.cpu().numpy(), self.ov(o).cpu().numpy()
+        return pre_a.cpu().numpy(), a.cpu().numpy(), log_pi.cpu().numpy(), self.critic(o).cpu().numpy()
 
 
     def get_pi_and_q(self, o, a=None,
@@ -271,7 +268,7 @@ class OVOQ(MFRL):
     def _build(self):
         super(OVOQ, self)._build()
         # self._set_env()
-        # self._set_buffers()
+        self._set_buffers()
         self._set_actor_critic()
         self._set_alpha()
 
@@ -310,15 +307,11 @@ class OVOQ(MFRL):
         device = self._device_
         seed = self.seed
 
-        # Trajectory Buffer
         horizon = 1000
         max_size_ov = self.configs['data']['ov_buffer_size']
         num_traj = max_size_ov//10
-        gamma = self.configs['critic-v']['gamma']
-        gae_lam = self.configs['critic-v']['gae_lam']
-        self.traj_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size_ov, seed, device, gamma, gae_lam)
+        self.traj_buffer = TrajBuffer(self.obs_dim, self.act_dim, horizon, num_traj, max_size_ov, seed, device)
 
-        # Replay Buffer
         max_size_oq = self.configs['data']['oq_buffer_size']
         self.repl_buffer = ReplayBuffer(self.obs_dim, self.act_dim, max_size_oq, seed, device)
 
@@ -356,47 +349,39 @@ class OVOQ(MFRL):
                             print(f'\n[ Epoch {n}   Learning (OV+OQ) ]'+(' '*50))
                             JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [], [], [], [], [], []
                             HVList, HQList, DevList = [], [], []
-                            LogPiVList, LogPiQList = [], []
                         else:
                             print(f'\n[ Epoch {n}   Learning (OQ) ]'+(' '*50))
                             JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [], [0], [], [0], [0], []
                             HVList, HQList, DevList = [0], [], [0]
-                            LogPiVList, LogPiQList = [0], []
                     else:
                         print(f'\n[ Epoch {n}   Learning (OV) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [0], [], [0], [], [], [0]
                         HVList, HQList, DevList = [], [0], []
-                        LogPiVList, LogPiQList = [], [0]
                     oldJs = [0, 0, 0, 0]
                 elif n > Niv and (n%VNF==0):
                     if n > Niq:
                         print(f'\n[ Epoch {n}   Exploration + Learning (OV+OQ) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [], [], [], [], [], []
                         HVList, HQList, DevList = [], [], []
-                        LogPiVList, LogPiQList = [], []
                     else:
                         print(f'\n[ Epoch {n}   Exploration + Learning (OV) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [0], [], [0], [], [], [0]
                         HVList, HQList, DevList = [], [0], []
-                        LogPiVList, LogPiQList = [], [0]
                     oldJs = [0, 0, 0, 0]
                 elif n > Niq:
                     if n > Niv and (n%VNF==0):
                         print(f'\n[ Epoch {n}   Exploration + Learning (OV+OQ) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [], [], [], [], [], [], []
                         HVList, HQList, DevList = [], [], []
-                        LogPiVList, LogPiQList = [], []
                     else:
                         print(f'\n[ Epoch {n}   Exploration + Learning (OQ) ]'+(' '*50))
                         JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [], [0], [], [0], [0], []
                         HVList, HQList, DevList = [0], [], [0]
-                        LogPiVList, LogPiQList = [0], []
                     oldJs = [0, 0, 0, 0]
                 else:
                     print(f'\n[ Epoch {n}   Inintial Exploration ]'+(' '*50))
                     JVList, JQList, JPiVList, JPiQList, KLList, JHOVList, JHOQList = [0], [0], [0], [0], [0], [0], [0]
                     HVList, HQList, DevList = [0], [0], [0]
-                    LogPiVList, LogPiQList = [0], [0]
                     oldJs = [0, 0, 0, 0]
 
             nt = 0
@@ -406,26 +391,26 @@ class OVOQ(MFRL):
             AvgZ, AvgEL = 0, 0
             ppo_grads, sac_grads = 0, 0
 
-            if n > Niq:
-                on_policy = False if (n%2==0) else True
-                OP = 'on-policy' if on_policy else 'off-policy'
-            else:
-                on_policy = True
-                OP = 'on-policy'
+            # if n > Niq:
+            #     on_policy = False if (n%2==0) else True
+            #     OP = 'on-policy' if on_policy else 'off-policy'
+            # else:
+            #     on_policy = True
+            #     OP = 'on-policy'
 
-            # on_policy = False
-            # OP = 'off-policy'
-            # # on_policy = True
-            # # OP = 'on-policy'
+            on_policy = False
+            OP = 'off-policy'
+            # on_policy = True
+            # OP = 'on-policy'
 
             learn_start_real = time.time()
             while nt < NT: # full epoch
                 # Interaction steps
-                for e in range(1, 0+1):
+                for e in range(1, E+1):
                     # print('OQ, el: ', el)
-                    # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=on_policy)
-                    # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=True)
                     o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=False)
+                    # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=True)
+                    # o, Z, el, t = self.internact_ovoq(n, o, Z, el, t, on_policy=False)
 
                     if el > 0:
                         currZ = Z
@@ -456,7 +441,6 @@ class OVOQ(MFRL):
                         JQList.append(Jq)
                         JPiQList.append(Jpi)
                         HQList.append(PiInfo['entropy'])
-                        LogPiQList.append(PiInfo['log_pi'])
                         if self.configs['actor']['automatic_entropy']:
                             JAlphaList.append(Jalpha.item())
                             AlphaList.append(self.alpha)
@@ -516,7 +500,7 @@ class OVOQ(MFRL):
                                 lastEL = currEL
                                 elListImag.append(lastEL)
                                 AvgEL = sum(elListImag)/(len(elListImag)-1)
-                            print(f'[ Epoch {n} | {color.RED}OV ({gv}/{GV}) Interaction{color.END} ] Env Steps: {ev} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)} | x{round(AvgZ/AvgEL, 2)}'+(" "*20), end='\r')
+                            print(f'[ Epoch {n} | {color.RED}OV ({gv}/{GV}) Interaction{color.END} ] Env Steps: {ev} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)} | x{round(AvgZ/AvgEL, 2)}'+(" "*10), end='\r')
                         with T.no_grad(): v = self.actor_critic.get_v(T.Tensor(ov)).cpu()
                         self.traj_buffer.finish_path(elv, v)
 
@@ -532,7 +516,6 @@ class OVOQ(MFRL):
                             JPiVList.append(Jpi)
                             KLList.append(PiInfo['KL'])
                             HVList.append(PiInfo['entropy'])
-                            LogPiVList.append(PiInfo['log_pi'])
                             DevList.append(PiInfo['deviation'])
                             dev = PiInfo['deviation']
                             if not PiInfo['stop_pi']:
@@ -554,19 +537,15 @@ class OVOQ(MFRL):
 
             logs['training/ovoq/actor/Jpi_ov          '] = np.mean(JPiVList)
             logs['training/ovoq/actor/Jpi_oq          '] = np.mean(JPiQList)
-            logs['training/ovoq/actor/STD             '] = self.actor_critic.actor.std_value.clone().mean().item()
-            logs['training/ovoq/actor/log_pi-v        '] = np.mean(LogPiVList)
-            logs['training/ovoq/actor/log_pi-q        '] = np.mean(LogPiQList)
-            # logs['training/ovoq/actor/HV              '] = np.mean(HVList)
-            # logs['training/ovoq/actor/HQ              '] = np.mean(HQList)
+            logs['training/ovoq/actor/HV              '] = np.mean(HVList)
+            logs['training/ovoq/actor/HQ              '] = np.mean(HQList)
             # logs['training/ovoq/actor/ov-KL           '] = np.mean(KLList) #
             logs['training/ovoq/actor/ov-deviation    '] = np.mean(DevList)
             logs['training/ovoq/actor/ppo-grads       '] = ppo_grads
             logs['training/ovoq/actor/sac-grads       '] = sac_grads
 
             logs['data/real/on-policy                 '] = int(on_policy)
-            logs['data/real/repl_buffer_size          '] = self.repl_buffer.size
-            logs['data/real/traj_buffer_size          '] = self.traj_buffer.total_size()
+            # logs['data/real/buffer_size               '] = self.buffer.total_size()
             # if hasattr(self, 'traj_buffer') and hasattr(self, 'repl_buffer'):
             #     logs['data/imag/ov-traj_buffer_size       '] = self.traj_buffer.total_size()
             #     logs['data/imag/oq-repl_buffer_size       '] = self.repl_buffer.size
@@ -620,8 +599,6 @@ class OVOQ(MFRL):
 
             # WandB
             if self.WandB:
-                # for i in range(int(E/1000)):
-                # for i in range(10):
                 wandb.log(logs)
 
         self.learn_env.close()
@@ -716,9 +693,9 @@ class OVOQ(MFRL):
         """"
         Jv(θ) =
         """
-        # max_grad_norm = kl_targ = self.configs['critic-v']['network']['max_grad_norm']
+        max_grad_norm = kl_targ = self.configs['critic-v']['network']['max_grad_norm']
 
-        O, _, _, _, _, _, Z, _, _, _ = batch.values()
+        O, _, _, _, _, Z, _, _, _ = batch.values()
         V = self.actor_critic.get_v(O)
 
         Jv = 0.5 * ( (V - Z) ** 2 ).mean(axis=0)
@@ -738,7 +715,7 @@ class OVOQ(MFRL):
                             + γ Est+1∼D[ Eat+1~πφ(at+1|st+1)[ Qθ¯(st+1, at+1)
                                                 − α log(πφ(at+1|st+1)) ] ] ]
         """
-        gamma = self.configs['critic-q']['gamma']
+        gamma = self.configs['critic']['gamma']
 
         O = batch['observations']
         A = batch['actions']
@@ -763,9 +740,9 @@ class OVOQ(MFRL):
         # print('Jq=', Jq)
 
         # Gradient Descent
-        self.actor_critic.oq.optimizer.zero_grad()
+        self.actor_critic.critic.optimizer.zero_grad()
         Jq.backward()
-        self.actor_critic.oq.optimizer.step()
+        self.actor_critic.critic.optimizer.step()
 
         return Jq
 
@@ -807,7 +784,7 @@ class OVOQ(MFRL):
 
         clip_eps = self.configs['actor']['clip_eps']
         entropy_coef = self.configs['actor']['entropy_coef']
-        # max_grad_norm = self.configs['actor']['network']['max_grad_norm']
+        max_grad_norm = self.configs['actor']['network']['max_grad_norm']
         kl_targ = self.configs['actor']['kl_targ']
         max_dev = self.configs['actor']['max_dev']
 
@@ -887,7 +864,7 @@ def main(exp_prefix, config, seed, device, wb):
     env_name = configs['environment']['name']
     env_type = configs['environment']['type']
 
-    group_name = f"{env_name}-{alg_name}-8-ov"
+    group_name = f"{env_name}-{alg_name}-17"
     exp_prefix = f"seed:{seed}"
 
     if wb:
@@ -896,8 +873,7 @@ def main(exp_prefix, config, seed, device, wb):
             name=exp_prefix,
             group=group_name,
             # project='test',
-            # project='AMMI-RL-2022',
-            project=f'AMMI-RL-{env_name}',
+            project='AMMI-RL-2022',
             config=configs
         )
 

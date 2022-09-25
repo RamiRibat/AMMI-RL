@@ -7,7 +7,6 @@ configurations = {
             'state_space': 'continuous',
             'action_space': 'continuous',
             'horizon': 1e3,
-            'traj_env': False,
         },
 
     'algorithm': {
@@ -20,12 +19,8 @@ configurations = {
             'init_epochs': 1, # Ni epochs
             'expl_epochs': 10, # Nx epochs
 
-            # Best set
-            # 'env_steps' : 1, # E: interact E times then train
-            # 'grad_AC_steps': 1, # ACG: ac grad
-
-            'env_steps' : 10, # E: interact E times then train
-            'grad_AC_steps': 10, # ACG: ac grad
+            'env_steps' : 1, # E: interact E times then train
+            'grad_AC_steps': 1, # ACG: ac grad
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -45,7 +40,7 @@ configurations = {
         # 'type': 'Gaussian',
         'type': 'TanhSquashedGaussian',
         'action_noise': None,
-        'alpha': .2, # Temprature/Entropy
+        'alpha': .2, # Temprature/Entropy #@#
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {

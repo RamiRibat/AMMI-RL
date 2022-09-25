@@ -7,7 +7,6 @@ configurations = {
             'state_space': 'continuous',
             'action_space': 'continuous',
             'horizon': 1e3,
-            'traj_env': False,
         },
 
     'algorithm': {
@@ -15,7 +14,7 @@ configurations = {
         'model-based': False,
         'on-policy': True,
         'learning': {
-            'epochs': 200, # N epochs
+            'epochs': 300, # N epochs
             'epoch_steps': 10000, # NT steps/epoch
             'init_epochs': 0, # Ni epochs
             'expl_epochs': 0, # Nx epochs

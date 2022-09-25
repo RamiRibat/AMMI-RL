@@ -8,7 +8,6 @@ configurations = {
             'state_space': 'continuous',
             'action_space': 'continuous',
             'horizon': 1e3,
-            'traj_env': False,
         },
 
     'algorithm': {
@@ -25,7 +24,6 @@ configurations = {
             'env_steps' : 1, # E: interact E times then train
             'grad_WM_steps': 0, # G: ac grad
             'grad_SAC_steps': 20, #20, # ACG: ac grad, 40
-            # 'grad_SAC_steps': 10, #20, # ACG: ac grad, 40
 
             'policy_update_interval': 1,
             'alpha_update_interval': 1,
@@ -77,28 +75,16 @@ configurations = {
 
 
     'actor': {
-        # 'type': 'Gaussian',
-        'type': 'TanhSquashedGaussian',
+        'type': 'gaussianpolicy',
         'action_noise': None,
-        # 'alpha': .2, # Temprature/Entropy
-        'alpha': .02,
+        'alpha': 0.2, # Temprature/Entropy #@#
         'automatic_entropy': False,
         'target_entropy': 'auto',
         'network': {
-            # 'std_grad': False,
-            'log_std_grad': False,
-            # 'init_std': 3.,
-            'init_log_std': 1.,
-            # 'min_std': 1e-6,
-            # 'log_std_grad': False,
-            # 'init_log_std': 1,
             # 'arch': [128, 128],
             'arch': [256, 256],
-            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            # 'n_parameters': 2,
-            # 'op_activation': 'Tanh',
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
@@ -115,11 +101,10 @@ configurations = {
         'tau': 5e-3,
         'network': {
             # 'arch': [128, 128],
+            # 'arch': [256, 128],
             'arch': [256, 256],
-            # 'arch': [256, 128, 64],
             # 'activation': 'Tanh',
             'activation': 'PReLU',
-            # 'n_parameters': 1,
             'op_activation': 'Identity',
             'initialize_weights': True,
             'optimizer': "Adam",
@@ -135,7 +120,6 @@ configurations = {
         'buffer_size': int(5e5),
         'model_buffer_size': int(1e7),
         'real_ratio': 0.05,
-        # 'real_ratio': 0.1,
         'model_val_ratio': 0.2,
         'oq_rollout_batch_size': int(1e5),
         'model_batch_size': 256,

@@ -160,7 +160,6 @@ class TrajBuffer:
             i = i+j
 
         if recent:
-            # print('recent: ', recent)
             self.obs_batch = self.obs_batch[-recent:]
             self.pre_act_batch = self.pre_act_batch[-recent:]
             self.act_batch = self.act_batch[-recent:]
@@ -221,18 +220,6 @@ class TrajBuffer:
         self.rew_buf[ self.ptr, e-1, : ] = T.tensor(r)
         self.obs_next_buf[ self.ptr, e-1, : ] = T.Tensor(o_next)
         # self.ter_buf[ self.ptr, e-1, : ] = T.Tensor([d])
-        self.val_buf[ self.ptr, e-1, : ] = T.Tensor(v)
-        self.log_pi_buf[ self.ptr, e-1, : ] = T.Tensor(log_pi)
-
-    def storeii(self, o, pre_a, a, r, o_next, d, v, log_pi, e):
-        if self.total_size() >= self.max_size:
-            self.clean_buffer()
-        self.obs_buf[ self.ptr, e-1, : ] = T.Tensor(o)
-        self.pre_act_buf[ self.ptr, e-1, : ] = T.Tensor(pre_a)
-        self.act_buf[ self.ptr, e-1, : ] = T.Tensor(a)
-        self.rew_buf[ self.ptr, e-1, : ] = T.tensor(r)
-        self.obs_next_buf[ self.ptr, e-1, : ] = T.Tensor(o_next)
-        self.ter_buf[ self.ptr, e-1, : ] = T.Tensor([d])
         self.val_buf[ self.ptr, e-1, : ] = T.Tensor(v)
         self.log_pi_buf[ self.ptr, e-1, : ] = T.Tensor(log_pi)
 
@@ -343,11 +330,8 @@ class TrajBuffer:
         batch_size = min(batch_size, self.total_size())
         if recent:
             idxs = np.random.randint(0, batch_size, size=batch_size)
-            # idxs = np.random.choice(batch_size, size=batch_size, replace=False)
-            recent = batch_size
         else:
             idxs = np.random.randint(0, self.total_size(), size=batch_size) # old
-            # idxs = np.random.choice(self.total_size(), size=batch_size, replace=False)
 
         self.batch_data(recent)
 
@@ -434,7 +418,6 @@ class TrajBuffer:
 
         batch_size = min(batch_size, len(self.init_obs))
         idxs = np.random.randint(0, len(self.init_obs), size=batch_size)
-        # idxs = np.random.choice(len(self.init_obs), size=batch_size, replace=False)
 
         if device:
             return self.init_obs[idxs].to(device)

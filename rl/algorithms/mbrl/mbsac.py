@@ -221,7 +221,7 @@ class MBSAC(MBRL, SAC):
                     # AlphaList = [self.alpha]*G_sac
                     for g in range(1, GSAC+1): # it was "for g in (1, G_sac+1):" for 2 months, and I did't notice!! ;(
                         # print(f'Actor-Critic Grads...{g}', end='\r')
-                        print(f'[ Epoch {n} | {color.BLUE}Training AC{color.END} ] Env Steps: {nt+1} | AC Grads: {g}/{GSAC} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)} | x{round(AvgZ/AvgEL, 2)}'+(" "*10), end='\r')
+                        print(f'[ Epoch {n} | Training AC ] Env Steps: {nt+1} | AC Grads: {g}/{GSAC} | AvgZ={round(AvgZ, 2)} | AvgEL={round(AvgEL, 2)} | x{round(AvgZ/AvgEL, 2)}'+(" "*10), end='\r')
                         ## Sample a batch B_sac
                         B_sac = self.sac_batch()
                         ## Train networks using batch B_sac
@@ -315,7 +315,7 @@ class MBSAC(MBRL, SAC):
                                 'evaluation/return_to_full_length    ']
                 for k, v in logs.items():
                     if k in return_means:
-                        print(color.PURPLE+f'{k}  {round(v, 4)}'+color.END+(' '*10))
+                        print(color.RED+f'{k}  {round(v, 4)}'+color.END+(' '*10))
                     else:
                         print(f'{k}  {round(v, 4)}'+(' '*10))
 
@@ -546,7 +546,7 @@ def main(exp_prefix, config, seed, device, wb):
     wm_epochs = configs['algorithm']['learning']['grad_WM_steps']
     DE = configs['world_model']['num_ensembles']
 
-    group_name = f"{env_name}-{alg_name}-16"
+    group_name = f"{env_name}-{alg_name}-Tanh(Pi)-1"
     # group_name = f"{env_name}-{alg_name}-GCP-0"
     exp_prefix = f"seed:{seed}"
 

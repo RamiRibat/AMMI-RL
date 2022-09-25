@@ -271,7 +271,6 @@ class EnsembleModel(nn.Module):
         self.optimizer = T.optim.Adam(self.parameters(), lr=learning_rate)
 
         self.activation = Swish() # nn.ReLU()
-        # self.activation = nn.PReLU()
 
 
     def forward(self, x, ret_log_var=False):
@@ -431,8 +430,7 @@ class EnsembleDynamicsModel():
             current = val_losses[i]
             _, best = self._snapshots[i]
             improvement = (best - current) / best
-            if improvement > 0.01: # org
-            # if improvement > 0.005:
+            if improvement > 0.01:
                 self._snapshots[i] = (epoch, current)
                 updated = True
 
